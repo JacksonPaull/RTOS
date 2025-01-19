@@ -10,7 +10,7 @@
       <TargetName>PeriodicSysTickInts</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pCCUsed>6190000::V6.19::ARMCLANG</pCCUsed>
+      <pCCUsed>6220000::V6.22::ARMCLANG</pCCUsed>
       <uAC6>1</uAC6>
       <TargetOption>
         <TargetCommonOption>
@@ -82,9 +82,9 @@
           <AfterMake>
             <RunUserProg1>0</RunUserProg1>
             <RunUserProg2>0</RunUserProg2>
-            <UserProg1Name></UserProg1Name>
+            <UserProg1Name>fromelf $PObjects\%L --disassemble --interleave=source  --text -c --output=outfile.lst</UserProg1Name>
             <UserProg2Name></UserProg2Name>
-            <UserProg1Dos16Mode>0</UserProg1Dos16Mode>
+            <UserProg1Dos16Mode>1</UserProg1Dos16Mode>
             <UserProg2Dos16Mode>0</UserProg2Dos16Mode>
             <nStopA1X>0</nStopA1X>
             <nStopA2X>0</nStopA2X>
