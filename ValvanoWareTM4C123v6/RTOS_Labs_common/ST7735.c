@@ -1407,7 +1407,23 @@ void ST7735_OutUDec2(uint32_t n, uint32_t l){
 //        value   signed integer to be printed
 void ST7735_Message(uint32_t  d, uint32_t  l, char *pt, int32_t value){
   // write this as part of Labs 1 and 2
-
+	
+	// have static "device busy" semaphores
+		// Privately declared, but with an additional public getter, no setter
+	
+	// when message is called, check if device is free using busy-wait synch
+		// if so, set the busy flag
+	
+	// NOTE: If we make the output a critical section, then we can assume the cursor stays in the same place
+		// However, this means that it incurs a time-sink where interrupts are not active
+		// This seems OK to me, but can double check the length of time a max-length string will take
+		// If needed, break up into write half now, half later approach
+	
+	// Set cursor depending upon device / line number
+	
+	// Use ST7735_DrawString and OutUDec to output the final values
+	
+	// Unset busy flag
 }
 
 //-----------------------ST7735_OutUDec4-----------------------

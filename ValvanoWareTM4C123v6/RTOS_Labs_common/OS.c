@@ -399,7 +399,13 @@ uint32_t OS_TimeDifference(uint32_t start, uint32_t stop){
 // You are free to change how this works
 void OS_ClearMsTime(void){
   // put Lab 1 solution here
+	// NOTE: Use timer0 here
+		// Timer0 should be set up on initialization of the OS
+		// Set to decrement at 1ms rate, reloaded to max value
+		// create interrupt handler as well, which tracks number of cycles of the timer
 
+	
+	// write 0 to timer CUR_R register and 0 to cycle counter
 };
 
 // ******** OS_MsTime ************
@@ -410,6 +416,8 @@ void OS_ClearMsTime(void){
 // For Labs 2 and beyond, it is ok to make the resolution to match the first call to OS_AddPeriodicThread
 uint32_t OS_MsTime(void){
   // put Lab 1 solution here
+	// read value from timer CUR_R and static cycle counter
+	// return CUR_R(ms) * cycle_counter * ms_per_cycle
   return 0; // replace this line with solution
 };
 
