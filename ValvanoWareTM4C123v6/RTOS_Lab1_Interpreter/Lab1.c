@@ -58,8 +58,8 @@ int main(void){
   ST7735_InitR(INITR_REDTAB); // LCD initialization
   LaunchPad_Init();  // debugging profile on PF1
 	OS_MsTime_Init(); // Added by me, to later be added to os_init
-  //ADC_Init(3);       // channel 3 is PE0 <- connect an IR distance sensor to J8 to get a realistic analog signal   
-  //Timer4A_Init(&DAStask,80000000/10,1); // 10 Hz sampling, priority=1
+  ADC_Init(3);       // channel 3 is PE0 <- connect an IR distance sensor to J8 to get a realistic analog signal   
+  Timer4A_Init(&DAStask,80000000/10,1); // 10 Hz sampling, priority=1
   OS_ClearMsTime();    // start a periodic interrupt to maintain time
   EnableInterrupts();  
     
