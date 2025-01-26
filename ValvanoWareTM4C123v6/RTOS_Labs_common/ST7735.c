@@ -117,6 +117,9 @@
 #include "../RTOS_Labs_common/ST7735.h"
 #include "../RTOS_Labs_common/OS.h"
 #include "../RTOS_Labs_common/eDisk.h"
+
+extern void StartCritical(void);
+extern void EndCritical(void);
 // these defines are in two places, here and in eDisk.c
 #define SDC_CS_PB0 1
 #define SDC_CS_PD7 0
@@ -1385,6 +1388,19 @@ void ST7735_OutUDec(uint32_t n){
     ST7735_DrawCharS(StX*6,StY*10,'*',ST7735_RED,ST7735_BLACK, 1);
   }
 }
+
+void ST7735_OutDec(int32_t n){
+  Messageindex = 0;
+  fillmessage(n);
+  Message[Messageindex] = 0; // terminate
+  ST7735_DrawString(StX,StY,Message,StTextColor);
+  StX = StX+Messageindex;
+  if(StX>20){
+    StX = 20;
+    ST7735_DrawCharS(StX*6,StY*10,'*',ST7735_RED,ST7735_BLACK, 1);
+  }
+}
+
 //-----------------------ST7735_OutUDec2-----------------------
 // Output a 32-bit number in unsigned decimal format
 // Input: 32-bit number to be transferred
@@ -1399,6 +1415,15 @@ void ST7735_OutUDec2(uint32_t n, uint32_t l){
   Message[Messageindex] = 0; // terminate
   ST7735_DrawString(14,l,Message,ST7735_YELLOW);
 }
+
+
+typedef struct device {
+	uint32_t device_x;	// offset on physical lcd
+	uint32_t device_y;	// offset on physical lcd
+} device;
+
+const device devices[2] = {{0,0}, {0,8}};
+
 //------------ST7735_Message------------
 // String draw and number output.  
 // Input: device  0 is on top, 1 is on bottom
@@ -1408,22 +1433,14 @@ void ST7735_OutUDec2(uint32_t n, uint32_t l){
 void ST7735_Message(uint32_t  d, uint32_t  l, char *pt, int32_t value){
   // write this as part of Labs 1 and 2
 	
-	// have static "device busy" semaphores
-		// Privately declared, but with an additional public getter, no setter
+	StartCritical();
 	
-	// when message is called, check if device is free using busy-wait synch
-		// if so, set the busy flag
+	device dev = devices[d];
+	ST7735_SetCursor(dev.device_x, l+dev.device_y);
+	ST7735_OutString(pt);
+	ST7735_OutDec(value);
 	
-	// NOTE: If we make the output a critical section, then we can assume the cursor stays in the same place
-		// However, this means that it incurs a time-sink where interrupts are not active
-		// This seems OK to me, but can double check the length of time a max-length string will take
-		// If needed, break up into write half now, half later approach
-	
-	// Set cursor depending upon device / line number
-	
-	// Use ST7735_DrawString and OutUDec to output the final values
-	
-	// Unset busy flag
+	EndCritical();
 }
 
 //-----------------------ST7735_OutUDec4-----------------------

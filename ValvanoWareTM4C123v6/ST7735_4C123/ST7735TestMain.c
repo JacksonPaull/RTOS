@@ -711,7 +711,7 @@ int main4(void){uint32_t j; // main 4
 }
 
 
-int main(void){ int32_t i,n; // main 6
+int main6(void){ int32_t i,n; // main 6
   Output_Init();              // initialize output device
   Output_Color(ST7735_YELLOW);
   BookExamples();
@@ -735,7 +735,7 @@ int main7(void){ int i; // main 7
   }
 }
 
-int main8(void){uint32_t j; // main 8
+int main(void){uint32_t j; // main 8
   PLL_Init(Bus80MHz);                  // set system clock to 80 MHz
   ST7735_InitR(INITR_REDTAB);
   ST7735_OutString("Graphics test\n");

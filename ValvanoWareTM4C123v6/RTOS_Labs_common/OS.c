@@ -20,6 +20,7 @@
 #include "../inc/ADCT0ATrigger.h"
 #include "../RTOS_Labs_common/UART0int.h"
 #include "../RTOS_Labs_common/eFile.h"
+#include "../inc/Timer0A.h"
 
 
 // Performance Measurements 
@@ -27,6 +28,9 @@ int32_t MaxJitter;             // largest time jitter between interrupts in usec
 #define JITTERSIZE 64
 uint32_t const JitterSize=JITTERSIZE;
 uint32_t JitterHistogram[JITTERSIZE]={0,};
+
+//Note: current max run time will be 2^16 * 1000s ~= 2 years, which seems reasonable
+uint16_t OS_MsTimeResetCount = 0; // Number of times the OS timer has rolled over, allowing for greater run-times
 
 
 /*------------------------------------------------------------------------------
@@ -392,20 +396,37 @@ uint32_t OS_TimeDifference(uint32_t start, uint32_t stop){
 };
 
 
+
+// Private helper function to increment reset counter
+// This will be called every 1000s
+// no overflow checking will be implemented to save a few clock cycles
+//   Its worth noting that the precision of the uint32 return value in OS_MsTime will fail before the reset count does
+void MsTime_Helper(void) {
+	//Increment counter
+	OS_MsTimeResetCount += 1;
+}
+
+
+
+// ******** Os_MsTime_Init ********
+// Initializes timer 0a to be counting down from max value
+// Note: Making use of the max prescale value of 2^8 would give a runtime of just under 4 hours. 
+//			 Potentially reasonable, could be changed to this approach later
+#define OS_MSTIME_TIMER_MAX 1000000000
+void OS_MsTime_Init(void) {
+	// Here I use a prescaler of 80 to simplify math later
+	// Reload value is 10^9, this means that the counter will reset every 10^6 ms, or 1000s
+	Timer0A_Init(&MsTime_Helper, OS_MSTIME_TIMER_MAX, 1, 80);
+}
+
 // ******** OS_ClearMsTime ************
 // sets the system time to zero (solve for Lab 1), and start a periodic interrupt
 // Inputs:  none
 // Outputs: none
-// You are free to change how this works
 void OS_ClearMsTime(void){
-  // put Lab 1 solution here
-	// NOTE: Use timer0 here
-		// Timer0 should be set up on initialization of the OS
-		// Set to decrement at 1ms rate, reloaded to max value
-		// create interrupt handler as well, which tracks number of cycles of the timer
-
-	
-	// write 0 to timer CUR_R register and 0 to cycle counter
+	// Reset timer and counter to their initial config
+  OS_MsTimeResetCount = 0;
+	TIMER0_TAV_R = OS_MSTIME_TIMER_MAX;
 };
 
 // ******** OS_MsTime ************
@@ -415,10 +436,13 @@ void OS_ClearMsTime(void){
 // You are free to select the time resolution for this function
 // For Labs 2 and beyond, it is ok to make the resolution to match the first call to OS_AddPeriodicThread
 uint32_t OS_MsTime(void){
-  // put Lab 1 solution here
-	// read value from timer CUR_R and static cycle counter
-	// return CUR_R(ms) * cycle_counter * ms_per_cycle
-  return 0; // replace this line with solution
+	uint32_t timer_val = OS_MSTIME_TIMER_MAX - TIMER0_TAV_R; // (in microseconds after prescaler)
+	
+	// Note: Potential overflow here when reaching the 2 year limit
+	// Note: Truncation of microseconds in division, but its ok bc we're only returning ms precision anyways
+	uint32_t ms_time = OS_MsTimeResetCount * 10^6 + timer_val * 10^-3;
+	
+  return ms_time; // replace this line with solution
 };
 
 
@@ -456,6 +480,26 @@ int fputc (int ch, FILE *f) {
 }
 
 int fgetc (FILE *f){
+  char ch = UART_InChar();  // receive from keyboard
+  UART_OutChar(ch);         // echo
+  return ch;
+}
+
+int putc (int ch, FILE *f) { 
+  if(StreamToDevice==1){  // Lab 4
+    if(eFile_Write(ch)){          // close file on error
+       OS_EndRedirectToFile(); // cannot write to file
+       return 1;                  // failure
+    }
+    return 0; // success writing
+  }
+  
+  // default UART output
+  UART_OutChar(ch);
+  return ch; 
+}
+
+int getc (FILE *f){
   char ch = UART_InChar();  // receive from keyboard
   UART_OutChar(ch);         // echo
   return ch;

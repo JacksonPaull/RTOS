@@ -24,8 +24,29 @@ void Jitter(int32_t MaxJitter, uint32_t const JitterSize, uint32_t JitterHistogr
 
 // *********** Command line interpreter (shell) ************
 void Interpreter(void){ 
-  // write this  
-
+	while(1) {
+		// Read Command
+		char command[512];
+		UART_OutString("UART Out String test");
+		printf("UART Printf Test String:\n");
+		UART_InString(command, 512);
+		
+		// Parse command
+		
+		
+		//switch and call appropriate function
+		UART_OutString("Not Implemented Yet");
+		break;
+	}
 }
 
 
+// adc command
+	
+	// lcd command
+	
+	// led command
+	
+	// uart command
+	
+	// help command

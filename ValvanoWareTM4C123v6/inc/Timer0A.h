@@ -26,13 +26,16 @@
 #define __TIMER0AINTS_H__
 #include <stdint.h>
 
+
+#define Timer0A_CUR_R 
+
 // ***************** Timer0A_Init ****************
 // Activate Timer0A interrupts to run user task periodically
 // Inputs:  task is a pointer to a user function
 //          period in 12.5ns units
 //          priority 0 (highest) to 7 (lowest)
 // Outputs: none
-void Timer0A_Init(void(*task)(void), uint32_t period, uint32_t priority);
+void Timer0A_Init(void(*task)(void), uint32_t period, uint32_t priority, uint8_t prescaler);
 void Timer0A_Stop(void);
 
 #endif // __TIMER0AINTS_H__

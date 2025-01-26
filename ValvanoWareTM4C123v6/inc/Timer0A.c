@@ -52,19 +52,23 @@ void (*PeriodicTask0)(void);   // user function
 //          period in 12.5ns units
 //          priority 0 (highest) to 7 (lowest)
 // Outputs: none
-void Timer0A_Init(void(*task)(void), uint32_t period, uint32_t priority){
+void Timer0A_Init(void(*task)(void), uint32_t period, uint32_t priority, uint8_t prescaler){
   SYSCTL_RCGCTIMER_R |= 0x01;      // 0) activate timer0
   PeriodicTask0 = task;            // user function (this line also allows time to finish activating)
   TIMER0_CTL_R &= ~0x00000001;     // 1) disable timer0A during setup
   TIMER0_CFG_R = 0x00000000;       // 2) configure for 32-bit timer mode
   TIMER0_TAMR_R = 0x00000002;      // 3) configure for periodic mode, default down-count settings
   TIMER0_TAILR_R = period-1;       // 4) reload value
-  TIMER0_TAPR_R = 0;               // 5) 12.5ns timer0A
+  TIMER0_TAPR_R = prescaler;       // 5) 12.5ns * prescaler timer0A
   TIMER0_ICR_R = 0x00000001;       // 6) clear timer0A timeout flag
   TIMER0_IMR_R |= 0x00000001;      // 7) arm timeout interrupt
   NVIC_PRI4_R = (NVIC_PRI4_R&0x00FFFFFF)|(priority<<29); 
   NVIC_EN0_R = NVIC_EN0_INT19;     // 9) enable interrupt 19 in NVIC
   TIMER0_CTL_R |= 0x00000001;      // 10) enable timer0A
+}
+
+uint32_t Timer0A_Current_Value(void){
+	return 0;
 }
 
 void Timer0A_Handler(void){

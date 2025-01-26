@@ -7,43 +7,115 @@
 // Jonathan W. Valvano Jan 5, 2020, valvano@mail.utexas.edu
 #include <stdint.h>
 #include "../inc/ADCSWTrigger.h"
+#include "../inc/tm4c123gh6pm.h"
 
 // channelNum (0 to 11) specifies which pin is sampled with sequencer 3
 // software start
 // return with error 1, if channelNum>11, 
 // otherwise initialize ADC and return 0 (success)
-int ADC_Init(uint32_t channelNum){
-// put your Lab 1 code here Ref page 125 in book for hints
+int ADC_Init(uint32_t channelNum){	
+	volatile uint32_t delay;
+	uint32_t pinID;
+	SYSCTL_RCGCADC_R |= 0x1; // Turn on adc clock
 	
-	// return error if channelNum invalid
-	
-	// switch channel number
-	// case for every channel:
-			// init specific port on specific pin (PB4/5, PD4-PE5) PCTL
-			// (Remembering to enable the clock / wait for it to load)
-			// Enable alternate function AFSEL
-			// set input DIR
-			// disable digital DEN
-			// enable analog AMSEL
-	
-	// disable sequencer
-	// set sampling rate ADCn_PC_R, set to max sampling rate
-	// set UMUX register
-	
-	// Can set priority if wanted i guess
+//	// Set up appropriate pin / port 
+//	switch(channelNum) {
+//		case 0:
+//			pinID = 0x8;
+//		case 1:
+//			pinID = 0x4;
+//		case 2:
+//			pinID = 0x2;
+//		case 3: 
+//			pinID = 0x1;
+//		
+//	
+//			// Port E Set up
+//			SYSCTL_RCGCGPIO_R |= 0x10;   // Turn on clock 
+//			delay = SYSCTL_RCGCGPIO_R;
+//			GPIO_PORTE_DIR_R &= ~pinID;  //PEx set to input
+//			GPIO_PORTE_AFSEL_R |= pinID; //PEx alternate function enabled
+//			GPIO_PORTE_DEN_R &= ~pinID;  //Diable digital input on PEx
+//			GPIO_PORTE_AMSEL_R |= pinID; //Enable analog mode
+//			break;
+//		
+//		
+//		case 4:
+//			pinID = 0x8;
+//		case 5:
+//			pinID = 0x4;
+//		case 6:
+//			pinID = 0x2;
+//		case 7:
+//			pinID = 0x1;
+//		
+//	
+//			// Port D Set up
+//			SYSCTL_RCGCGPIO_R |= 0x8;    // Turn on clock 
+//			delay = SYSCTL_RCGCGPIO_R;
+//			GPIO_PORTD_DIR_R &= ~pinID;  //PDx set to input
+//			GPIO_PORTD_AFSEL_R |= pinID; //PDx alternate function enabled
+//			GPIO_PORTD_DEN_R &= ~pinID;  //Diable digital input on PDx
+//			GPIO_PORTD_AMSEL_R |= pinID; //Enable analog mode
+//			break;
+//		
+//		case 8:
+//			pinID = 0x20;
+//		case 9:
+//			pinID = 0x10;
+//		
+//			// Port E Set up
+//			SYSCTL_RCGCGPIO_R |= 0x10;   // Turn on clock 
+//			delay = SYSCTL_RCGCGPIO_R;
+//			GPIO_PORTE_DIR_R &= ~pinID;  //PDx set to input
+//			GPIO_PORTE_AFSEL_R |= pinID; //PDx alternate function enabled
+//			GPIO_PORTE_DEN_R &= ~pinID;  //Diable digital input on PDx
+//			GPIO_PORTE_AMSEL_R |= pinID; //Enable analog mode
+//			break;
+//		
+//		case 10:
+//			pinID = 0x20;
+//		case 11:
+//			pinID = 0x10;
 
+//			// Port B Set up
+//			SYSCTL_RCGCGPIO_R |= 0x2; 	 // Turn on clock 
+//			delay = SYSCTL_RCGCGPIO_R;
+//			GPIO_PORTB_DIR_R &= ~pinID;  //PDx set to input
+//			GPIO_PORTB_AFSEL_R |= pinID; //PDx alternate function enabled
+//			GPIO_PORTB_DEN_R &= ~pinID;  //Diable digital input on PDx
+//			GPIO_PORTB_AMSEL_R |= pinID; //Enable analog mode
+//			break;
+//			
+//		default:
+//			return 1; // Unsupported channel num
+//	}
+
+	pinID = 0x1;
+		
+	// HARD CODED FOR NOW
+	SYSCTL_RCGCGPIO_R |= 0x10;   // Turn on clock 
+	delay = SYSCTL_RCGCGPIO_R;
+	GPIO_PORTE_DIR_R &= ~pinID;  //PEx set to input
+	GPIO_PORTE_AFSEL_R |= pinID; //PEx alternate function enabled
+	GPIO_PORTE_DEN_R &= ~pinID;  //Diable digital input on PEx
+	GPIO_PORTE_AMSEL_R |= pinID; //Enable analog mode
 	
+	ADC0_PC_R = 0x1;						// Set sampling speed to 125kHz
+	ADC0_SSPRI_R = 0x3210; 			// Make sequencer 3 low priority
+	ADC0_ACTSS_R &= 0xFFFFFFF7; // Disable sequencer 3
+	ADC0_EMUX_R  &= 0xFFFF0FFF; // Specify software trigger
+	ADC0_SSMUX3_R = channelNum;	// Set channel number
+	ADC0_SSCTL3_R = 0x6; 				// Enable IE0 so that flag is set when conversion finished
+	ADC0_ACTSS_R |= 0x8; 				// Enable sequencer 3
   return 0;
 }
 
 
 // software start sequencer 3 and return 12 bit ADC result
 uint32_t ADC_In(void){
-// put your Lab 1 code here
 
-	// Enable SS3, wait two bus cycles, then read ADCn_SSFIFO3_R
-	// Disable SS3
-	
-	// Return read result
-  return 1;
+	ADC0_PSSI_R |= 0x8; // Write 8 to ADC_PSSI_R to initate conversion on s3
+	while((ADC0_RIS_R & 0x8) == 0){} // busy wait for sequencer to finish
+  return ADC0_SSFIFO3_R; // Return read result
 }
