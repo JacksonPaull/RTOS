@@ -16,3 +16,7 @@ int ADC_Init(uint32_t channelNum);
 
 // software start sequencer 3 and return 12 bit ADC result
 uint32_t ADC_In(void);
+
+float ADC_toVolts(uint32_t data);
+
+uint32_t ADC_getChannel(void);

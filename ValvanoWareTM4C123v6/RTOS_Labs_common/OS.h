@@ -47,6 +47,7 @@ void OS_Init(void);
 
 void OS_MsTime_Init(void);
 
+
 // ******** OS_InitSemaphore ************
 // initialize semaphore 
 // input:  pointer to a semaphore

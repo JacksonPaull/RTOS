@@ -30,8 +30,9 @@ uint32_t const JitterSize=JITTERSIZE;
 uint32_t JitterHistogram[JITTERSIZE]={0,};
 
 //Note: current max run time will be 2^16 * 1000s ~= 2 years, which seems reasonable
-uint16_t OS_MsTimeResetCount = 0; // Number of times the OS timer has rolled over, allowing for greater run-times
+//uint16_t OS_MsTimeResetCount = 0; // Number of times the OS timer has rolled over, allowing for greater run-times
 
+uint32_t OS_MsCount = 0;
 
 /*------------------------------------------------------------------------------
   Systick Interrupt Handler
@@ -403,20 +404,12 @@ uint32_t OS_TimeDifference(uint32_t start, uint32_t stop){
 //   Its worth noting that the precision of the uint32 return value in OS_MsTime will fail before the reset count does
 void MsTime_Helper(void) {
 	//Increment counter
-	OS_MsTimeResetCount += 1;
+	OS_MsCount += 1;
 }
 
-
-
-// ******** Os_MsTime_Init ********
-// Initializes timer 0a to be counting down from max value
-// Note: Making use of the max prescale value of 2^8 would give a runtime of just under 4 hours. 
-//			 Potentially reasonable, could be changed to this approach later
-#define OS_MSTIME_TIMER_MAX 1000000000
+# define OS_MS_TIMER_INIT 80000
 void OS_MsTime_Init(void) {
-	// Here I use a prescaler of 80 to simplify math later
-	// Reload value is 10^9, this means that the counter will reset every 10^6 ms, or 1000s
-	Timer0A_Init(&MsTime_Helper, OS_MSTIME_TIMER_MAX, 1, 80);
+	Timer0A_Init(&MsTime_Helper, OS_MS_TIMER_INIT, 1, 1);
 }
 
 // ******** OS_ClearMsTime ************
@@ -425,8 +418,8 @@ void OS_MsTime_Init(void) {
 // Outputs: none
 void OS_ClearMsTime(void){
 	// Reset timer and counter to their initial config
-  OS_MsTimeResetCount = 0;
-	TIMER0_TAV_R = OS_MSTIME_TIMER_MAX;
+  OS_MsCount = 0;
+	TIMER0_TAV_R = OS_MS_TIMER_INIT;
 };
 
 // ******** OS_MsTime ************
@@ -436,13 +429,14 @@ void OS_ClearMsTime(void){
 // You are free to select the time resolution for this function
 // For Labs 2 and beyond, it is ok to make the resolution to match the first call to OS_AddPeriodicThread
 uint32_t OS_MsTime(void){
-	uint32_t timer_val = OS_MSTIME_TIMER_MAX - TIMER0_TAV_R; // (in microseconds after prescaler)
-	
-	// Note: Potential overflow here when reaching the 2 year limit
-	// Note: Truncation of microseconds in division, but its ok bc we're only returning ms precision anyways
-	uint32_t ms_time = OS_MsTimeResetCount * 10^6 + timer_val * 10^-3;
-	
-  return ms_time; // replace this line with solution
+//	volatile uint32_t timer_val = OS_MSTIME_TIMER_MAX - TIMER0_TAV_R; // (in microseconds after prescaler)
+//	return timer_val / 1000;
+//	// Note: Potential overflow here when reaching the 2 year limit
+//	// Note: Truncation of microseconds in division, but its ok bc we're only returning ms precision anyways
+//	uint32_t ms_time = OS_MsTimeResetCount * 10^6 + timer_val * 10^-3;
+//	
+//  return ms_time;
+	return OS_MsCount;
 };
 
 
@@ -485,25 +479,25 @@ int fgetc (FILE *f){
   return ch;
 }
 
-int putc (int ch, FILE *f) { 
-  if(StreamToDevice==1){  // Lab 4
-    if(eFile_Write(ch)){          // close file on error
-       OS_EndRedirectToFile(); // cannot write to file
-       return 1;                  // failure
-    }
-    return 0; // success writing
-  }
-  
-  // default UART output
-  UART_OutChar(ch);
-  return ch; 
-}
+//int putc (int ch, FILE *f) { 
+//  if(StreamToDevice==1){  // Lab 4
+//    if(eFile_Write(ch)){          // close file on error
+//       OS_EndRedirectToFile(); // cannot write to file
+//       return 1;                  // failure
+//    }
+//    return 0; // success writing
+//  }
+//  
+//  // default UART output
+//  UART_OutChar(ch);
+//  return ch; 
+//}
 
-int getc (FILE *f){
-  char ch = UART_InChar();  // receive from keyboard
-  UART_OutChar(ch);         // echo
-  return ch;
-}
+//int getc (FILE *f){
+//  char ch = UART_InChar();  // receive from keyboard
+//  UART_OutChar(ch);         // echo
+//  return ch;
+//}
 
 int OS_RedirectToFile(const char *name){  // Lab 4
   eFile_Create(name);              // ignore error if file already exists

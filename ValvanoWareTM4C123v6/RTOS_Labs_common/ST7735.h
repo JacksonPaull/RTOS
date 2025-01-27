@@ -499,6 +499,4 @@ void ST7735_OutString(char *ptr);
 // ********************************************************
 void ST7735_SetTextColor(uint16_t color);
 
-
-
 #endif

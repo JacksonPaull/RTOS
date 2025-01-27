@@ -1418,11 +1418,12 @@ void ST7735_OutUDec2(uint32_t n, uint32_t l){
 
 
 typedef struct device {
-	uint32_t device_x;	// offset on physical lcd
-	uint32_t device_y;	// offset on physical lcd
+	uint16_t device_x;	// offset on physical lcd
+	uint16_t device_y;	// offset on physical lcd
 } device;
 
-const device devices[2] = {{0,0}, {0,8}};
+static const device devices[2] = {{0,0}, {0,8}};
+
 
 //------------ST7735_Message------------
 // String draw and number output.  
@@ -1433,14 +1434,15 @@ const device devices[2] = {{0,0}, {0,8}};
 void ST7735_Message(uint32_t  d, uint32_t  l, char *pt, int32_t value){
   // write this as part of Labs 1 and 2
 	
-	StartCritical();
+	//StartCritical();
 	
 	device dev = devices[d];
 	ST7735_SetCursor(dev.device_x, l+dev.device_y);
+	ST7735_DrawString(0,StY,"                     ",StTextColor); // Clear line
 	ST7735_OutString(pt);
 	ST7735_OutDec(value);
 	
-	EndCritical();
+	//EndCritical();
 }
 
 //-----------------------ST7735_OutUDec4-----------------------
