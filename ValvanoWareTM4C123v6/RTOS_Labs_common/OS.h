@@ -45,6 +45,11 @@ typedef struct Sema4 Sema4Type;
  */
 void OS_Init(void); 
 
+
+// ********** OS_MsTime_Init **********
+// Initializes the system clock in ms, through timer0A
+// Inputs: None
+// Outputs: None
 void OS_MsTime_Init(void);
 
 
@@ -258,18 +263,17 @@ uint32_t OS_Time(void);
 uint32_t OS_TimeDifference(uint32_t start, uint32_t stop);
 
 // ******** OS_ClearMsTime ************
-// sets the system time to zero (from Lab 1)
+// Sets the system time to 0ms
 // Inputs:  none
 // Outputs: none
-// You are free to change how this works
 void OS_ClearMsTime(void);
 
 // ******** OS_MsTime ************
-// reads the current time in msec (from Lab 1)
+// reads the current time in msec
 // Inputs:  none
 // Outputs: time in ms units
 // You are free to select the time resolution for this function
-// It is ok to make the resolution to match the first call to OS_AddPeriodicThread
+// For Labs 2 and beyond, it is ok to make the resolution to match the first call to OS_AddPeriodicThread
 uint32_t OS_MsTime(void);
 
 //******** OS_Launch *************** 

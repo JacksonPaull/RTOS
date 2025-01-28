@@ -399,21 +399,25 @@ uint32_t OS_TimeDifference(uint32_t start, uint32_t stop){
 
 
 // Private helper function to increment reset counter
-// This will be called every 1000s
+// This will be called every 1ms
 // no overflow checking will be implemented to save a few clock cycles
-//   Its worth noting that the precision of the uint32 return value in OS_MsTime will fail before the reset count does
+// Overflow will happen at around 50hrs of runtime, which is ok
 void MsTime_Helper(void) {
 	//Increment counter
 	OS_MsCount += 1;
 }
 
 # define OS_MS_TIMER_INIT 80000
+// ********** OS_MsTime_Init **********
+// Initializes the system clock in ms, through timer0A
+// Inputs: None
+// Outputs: None
 void OS_MsTime_Init(void) {
 	Timer0A_Init(&MsTime_Helper, OS_MS_TIMER_INIT, 1, 1);
 }
 
 // ******** OS_ClearMsTime ************
-// sets the system time to zero (solve for Lab 1), and start a periodic interrupt
+// Sets the system time to 0ms
 // Inputs:  none
 // Outputs: none
 void OS_ClearMsTime(void){
@@ -423,19 +427,13 @@ void OS_ClearMsTime(void){
 };
 
 // ******** OS_MsTime ************
-// reads the current time in msec (solve for Lab 1)
+// reads the current time in msec
 // Inputs:  none
 // Outputs: time in ms units
 // You are free to select the time resolution for this function
 // For Labs 2 and beyond, it is ok to make the resolution to match the first call to OS_AddPeriodicThread
 uint32_t OS_MsTime(void){
-//	volatile uint32_t timer_val = OS_MSTIME_TIMER_MAX - TIMER0_TAV_R; // (in microseconds after prescaler)
-//	return timer_val / 1000;
-//	// Note: Potential overflow here when reaching the 2 year limit
-//	// Note: Truncation of microseconds in division, but its ok bc we're only returning ms precision anyways
-//	uint32_t ms_time = OS_MsTimeResetCount * 10^6 + timer_val * 10^-3;
-//	
-//  return ms_time;
+	// TODO: Replace the MsTime function with a system timer on us resolution, and convert to ms here
 	return OS_MsCount;
 };
 

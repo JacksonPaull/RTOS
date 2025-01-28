@@ -474,6 +474,31 @@
               <FileType>1</FileType>
               <FilePath>..\inc\Timer0A.c</FilePath>
             </File>
+            <File>
+              <FileName>ADC.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\RTOS_Labs_common\ADC.h</FilePath>
+            </File>
+            <File>
+              <FileName>Interpreter.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\RTOS_Labs_common\Interpreter.h</FilePath>
+            </File>
+            <File>
+              <FileName>OS.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\RTOS_Labs_common\OS.h</FilePath>
+            </File>
+            <File>
+              <FileName>ST7735.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\RTOS_Labs_common\ST7735.h</FilePath>
+            </File>
+            <File>
+              <FileName>UART0int.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\RTOS_Labs_common\UART0int.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
