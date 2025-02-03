@@ -156,18 +156,18 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>667</LineNumber>
+          <LineNumber>86</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>2094</Address>
+          <Address>1594</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>.\Lab2.c</Filename>
+          <Filename>..\RTOS_Labs_common\OS.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\Lab2\Lab2.c\667</Expression>
+          <Expression>\\Lab2\../RTOS_Labs_common/OS.c\86</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>
@@ -200,6 +200,11 @@
           <count>5</count>
           <WinNumber>1</WinNumber>
           <ItemText>Count5</ItemText>
+        </Ww>
+        <Ww>
+          <count>6</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>RunPt</ItemText>
         </Ww>
       </WatchWindow1>
       <WatchWindow2>
@@ -253,7 +258,7 @@
         <Mm>
           <WinNumber>1</WinNumber>
           <SubType>2</SubType>
-          <ItemText>0x200001fc</ItemText>
+          <ItemText>0xE000ED2C</ItemText>
           <AccSizeX>0</AccSizeX>
         </Mm>
       </MemoryWindow1>
@@ -344,7 +349,7 @@
       <GroupNumber>1</GroupNumber>
       <FileNumber>3</FileNumber>
       <FileType>1</FileType>
-      <tvExp>0</tvExp>
+      <tvExp>1</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
       <PathWithFileName>..\RTOS_Labs_common\OS.c</PathWithFileName>

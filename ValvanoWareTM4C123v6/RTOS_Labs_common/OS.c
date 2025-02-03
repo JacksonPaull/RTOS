@@ -49,12 +49,6 @@ TCB_t *inactive_thread_list_head = 0;
 // TCB_t *sleeping_thread_list_head;
 // TCB_t *blocked_thread_list_head;
 
-// TODO Create linked_list.c and add a few functions like
-	// linked_list_append_circular
-	// linked_list_append_linear
-	// linked_list_remove
-	// linked_list_size
-
 /*------------------------------------------------------------------------------
   Systick Interrupt Handler
   SysTick interrupt happens every 10 ms
@@ -88,12 +82,13 @@ void SysTick_Init(unsigned long period){
 }
 
 void PendSV_Handler(void) {
-//	// Find out which thread to schedule and context switch
-//	TCB_t *next_node = round_robin_scheduler(RunPt);
+	// Find out which thread to schedule and context switch
+	TCB_t *next_node = round_robin_scheduler(RunPt);
 //	if(next_node == RunPt)
 //		return;
-//	
-//	ContextSwitch(next_node);
+	
+	STCURRENT = 0; // Reset timer
+	ContextSwitch(next_node);
 }
 
 
@@ -102,54 +97,50 @@ void thread_init_stack(TCB_t* thread, void(*task)(void)) {
 	int id = thread->id;
 	unsigned long* stack = stacks[id];
 	
-	thread->sp = stack+STACK_SIZE-16; // Start at bottom of stack and init registers on stack 
-	thread->sp-=16;
-	thread->sp[16] = MAGIC; //Used for debugging
-	thread->sp[15] = 0x00000000; //R0
-	thread->sp[14] = 0x01010101; //R1
-	thread->sp[13] = 0x02020202; //R2
-	thread->sp[12] = 0x03030303; //R3
-	thread->sp[11] = 0x12121212; //R12
+	thread->sp = stack+STACK_SIZE-18*4; // Start at bottom of stack and init registers on stack 
 	
-	// Note: any exiting thread should call OS_Kill
-	thread->sp[10] = (unsigned long)&OS_Kill; //LR
-	
-	thread->sp[9] = (unsigned long) task; // PC, should point to thread main task
-	thread->sp[8] = 0xFFFFFF00; // PSR all bits set and indicate that we are in thread mode after popping this
-	
-	thread->sp[7] = 0x04040404;
-	thread->sp[6] = 0x05050505;
-	thread->sp[5] = 0x06060606;
-	thread->sp[4] = 0x07070707;
-	thread->sp[3] = 0x08080808;
-	thread->sp[2] = 0x09090909;
-	thread->sp[1] = 0x10101010;
-	thread->sp[0] = 0x11111111;
-	
+	thread->sp[0]  = 0x04040404; //R4
+	thread->sp[1]  = 0x05050505; //R5
+	thread->sp[2]  = 0x06060606; //R6
+	thread->sp[3]  = 0x07070707; //R7
+	thread->sp[4]  = 0x08080808; //R8
+	thread->sp[5]  = 0x09090909; //R9
+	thread->sp[6]  = 0x10101010; //R10
+	thread->sp[7]  = 0x11111111; //R11
+	thread->sp[8]  = 0x00000000; //R0
+	thread->sp[9]  = 0x01010101; //R1
+	thread->sp[10] = 0x02020202; //R2
+	thread->sp[11] = 0303030303; //R3
+	thread->sp[12] = 0x12121212; //R12
+	thread->sp[13] = (unsigned long) &OS_Kill; //LR - Note: any exiting thread should call OS_Kill
+	thread->sp[14] = (unsigned long) task; // PC, should point to thread main task
+	thread->sp[15] = 0xFFFFFF00; // PSR all bits set and indicate that we are in thread mode after popping this
+	thread->sp[16] = MAGIC;
+	thread->sp[17] = MAGIC;
 }
 
 void OS_thread_init(void) {
-//	TCB_t* thread = 0;
-//	TCB_t* prev_thread=0;
-//	
-//	for(int i = 0; i < MAX_NUM_THREADS; i++) {
-//		prev_thread = thread;
-//		thread = &threads[i];
-//		if(i==0) {
-//			TCB_LL_create_linear(&inactive_thread_list_head, thread);
-//		}
-//		else {
-//			TCB_LL_append_linear(inactive_thread_list_head, thread);
-//		}
-//		
-//		thread->id=++thread_cnt;
-//		thread->sleep_count = 0;
-//		
-//		// TODO init anything else from the thread
-//		// Note: Stacks are initialized when making the thread
-//			// This also ensures that any program which exits without 
-//			//first clearing the stack won't mess up any new threads
-//	}
+	TCB_t* thread = 0;
+	TCB_t* prev_thread=0;
+	
+	for(int i = 0; i < MAX_NUM_THREADS; i++) {
+		prev_thread = thread;
+		thread = &threads[i];
+		if(i==0) {
+			TCB_LL_create_linear(&inactive_thread_list_head, thread);
+		}
+		else {
+			TCB_LL_append_linear(inactive_thread_list_head, thread);
+		}
+		
+		thread->id=++thread_cnt;
+		thread->sleep_count = 0;
+		
+		// TODO init anything else from the thread
+		// Note: Stacks are initialized when making the thread
+			// This also ensures that any program which exits without 
+			//first clearing the stack won't mess up any new threads
+	}
 }
 
 /**
@@ -243,25 +234,24 @@ void OS_bSignal(Sema4Type *semaPt){
 // In Lab 3, you can ignore the stackSize fields
 int OS_AddThread(void(*task)(void), 
    uint32_t stackSize, uint32_t priority){
-//  // put Lab 2 (and beyond) solution here
+  // put Lab 2 (and beyond) solution here
 
-//	// Take first thread from active list
-//	TCB_t *thread = TCB_LL_pop_head_linear(&inactive_thread_list_head);
-//	if(thread == 0) 
-//			return 0; // Cannot pull anything from list
-//		 
-//	
-//	thread_init_stack(thread, task);
-//	
-//	if(RunPt == 0) {
-//		TCB_LL_create_circular(&RunPt, thread);
-//	}
-//	else {
-//		TCB_LL_append_circular(RunPt, thread);
-//	}
-//     
-//  return 1; // replace this line with solution
-	return 0;
+	// Take first thread from active list
+	TCB_t *thread = TCB_LL_pop_head_linear(&inactive_thread_list_head);
+	if(thread == 0) 
+			return 0; // Cannot pull anything from list
+		 
+	
+	thread_init_stack(thread, task);
+	
+	if(RunPt == 0) {
+		TCB_LL_create_circular(&RunPt, thread);
+	}
+	else {
+		TCB_LL_append_circular(RunPt, thread);
+	}
+     
+  return 1; 
 };
 
 //******** OS_AddProcess *************** 
@@ -570,14 +560,26 @@ uint32_t OS_MsTime(void){
 // In Lab 3, you should implement the user-defined TimeSlice field
 // It is ok to limit the range of theTimeSlice to match the 24-bit SysTick
 void OS_Launch(uint32_t theTimeSlice){
-		
-	if(theTimeSlice > (1 << 24)) {
+			if(theTimeSlice > (1 << 24)) {
 		return; // TODO Change to some kind of fault?
 	}
 	
   SysTick_Init(theTimeSlice);
 	OS_ClearMsTime();
+
+	// Prep first thread for entry into context switch
+	__asm__(
+		"LDR R0, =RunPt\n"
+		"LDR R1, [R0]\n"
+		"LDR SP, [R1, #12]\n"
+		"POP {R4-R11}\n"
+		//"SUBS SP, #8"		// Not sure why but entering context switch increments SP by 8 bytes?????
+	);
+	
 	EnableInterrupts();
+	INTCTRL |= 0x10000000;
+	
+	// Note: The OS will crash if it is not initialized with at least one thread
 };
 
 //************** I/O Redirection *************** 
