@@ -26,6 +26,19 @@
 #define TIME_500US  (TIME_1MS/2)  
 #define TIME_250US  (TIME_1MS/4)  
 
+// Thread control stuff
+#define MAX_NUM_THREADS 10
+#define STACK_SIZE 1024
+#define MAGIC 0x12312399
+
+typedef struct TCB {
+	int id;
+	struct TCB *next_ptr, *prev_ptr; 	// For use in linked lists
+	unsigned long *sp; 								// Stack pointer
+	uint32_t sleep_count;
+	//uint8_t priority;
+} TCB_t;
+
 /**
  * \brief Semaphore structure. Feel free to change the type of semaphore, there are lots of good solutions
  */  

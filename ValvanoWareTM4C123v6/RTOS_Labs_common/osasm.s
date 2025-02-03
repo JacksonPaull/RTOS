@@ -10,11 +10,11 @@
         REQUIRE8
         PRESERVE8
 
-        EXTERN  RunPt            ; currently running thread
+        EXTERN  run_pt            ; currently running thread
 
         EXPORT  StartOS
         EXPORT  ContextSwitch
-        EXPORT  PendSV_Handler
+        ;EXPORT  PendSV_Handler [WEAK]
         EXPORT  SVC_Handler
 
 
@@ -44,10 +44,21 @@ OSStartHang
 ;              triggers the PendSV exception which is where the real work is done.
 ;********************************************************************************************************
 
+;********** ContextSwitch **********
+; Switch from active thread to scheduled thread
+; inputs: R0 - next_pt: pointer to scheduled TCB
+; outputs: none
 ContextSwitch
-; edit this code
-    
-    BX      LR
+		CPSID I
+		LDR R1, =run_pt
+		LDR R2, [R1]		; R2 = run_pt
+		PUSH {R4-R11}		; Save registers
+		STR SP, [R2, #12] 	; Save stack pointer in TCB
+		STR R0, [R1]		; run_pt = next_pt
+		LDR SP, [R0, #12]	; Load new stack pointer
+		POP {R4-R11}		; Restore registers
+		CPSIE I
+		BX		LR
     
 
 ;********************************************************************************************************
@@ -85,12 +96,12 @@ ContextSwitch
 ;              therefore safe to assume that context being switched out was using the process stack (PSP).
 ;********************************************************************************************************
 
-PendSV_Handler
+;PendSV_Handler
 ; put your code here
 
     
     
-    BX      LR                 ; Exception return will restore remaining context   
+;    BX      LR                 ; Exception return will restore remaining context   
     
 
 ;********************************************************************************************************

@@ -21,6 +21,11 @@
 #include "../RTOS_Labs_common/UART0int.h"
 #include "../RTOS_Labs_common/eFile.h"
 #include "../inc/Timer0A.h"
+#include "../RTOS_Lab2_RTOSkernel/LinkedList.h"
+#include "../RTOS_Lab2_RTOSkernel/scheduler.h"
+
+
+extern void ContextSwitch(TCB_t *next_thread);
 
 
 // Performance Measurements 
@@ -33,14 +38,35 @@ uint32_t JitterHistogram[JITTERSIZE]={0,};
 //uint16_t OS_MsTimeResetCount = 0; // Number of times the OS timer has rolled over, allowing for greater run-times
 
 uint32_t OS_MsCount = 0;
+uint16_t thread_cnt = 0;
+
+// Thread control structures
+TCB_t threads[MAX_NUM_THREADS];
+unsigned long stacks[MAX_NUM_THREADS][STACK_SIZE];
+
+TCB_t *run_pt = 0; // Currently running thread
+TCB_t *inactive_thread_list_head = 0;
+// TCB_t *sleeping_thread_list_head;
+// TCB_t *blocked_thread_list_head;
+
+// TODO Create linked_list.c and add a few functions like
+	// linked_list_append_circular
+	// linked_list_append_linear
+	// linked_list_remove
+	// linked_list_size
 
 /*------------------------------------------------------------------------------
   Systick Interrupt Handler
   SysTick interrupt happens every 10 ms
   used for preemptive thread switch
  *------------------------------------------------------------------------------*/
+
+ 
 void SysTick_Handler(void) {
-  
+	INTCTRL |= 1<<28; // Software trigger of PendSV interrupt
+	
+	// Decrement sleep counter(s)
+		// TODO
   
 } // end SysTick_Handler
 
@@ -54,7 +80,76 @@ void OS_UnLockScheduler(unsigned long previous){
 
 
 void SysTick_Init(unsigned long period){
-  
+	STCTRL &= ~0x1; //Disable systick during setup
+  STRELOAD = period-1;
+	STCURRENT = 0;
+	SYSPRI3 = (SYSPRI3 & ~0xEFFFFFFF) | 0x40000000; // Set to priority 2
+	STCTRL|= 0x7; 
+}
+
+void PendSV_Handler(void) {
+	// Find out which thread to schedule and context switch
+	TCB_t *next_node = round_robin_scheduler(run_pt);
+	if(next_node == run_pt)
+		return;
+	
+	ContextSwitch(next_node);
+}
+
+
+
+void thread_init_stack(TCB_t* thread, void(*task)(void)) {
+	int id = thread->id;
+	unsigned long* stack = stacks[id];
+	
+	thread->sp = stack+STACK_SIZE-16; // Start at bottom of stack and init registers on stack 
+	thread->sp-=16;
+	thread->sp[16] = MAGIC; //Used for debugging
+	thread->sp[15] = 0x00000000; //R0
+	thread->sp[14] = 0x01010101; //R1
+	thread->sp[13] = 0x02020202; //R2
+	thread->sp[12] = 0x03030303; //R3
+	thread->sp[11] = 0x12121212; //R12
+	
+	// Note: any exiting thread should call OS_Kill
+	thread->sp[10] = (unsigned long)&OS_Kill; //LR
+	
+	thread->sp[9] = (unsigned long) task; // PC, should point to thread main task
+	thread->sp[8] = 0xFFFFFF00; // PSR all bits set and indicate that we are in thread mode after popping this
+	
+	thread->sp[7] = 0x04040404;
+	thread->sp[6] = 0x05050505;
+	thread->sp[5] = 0x06060606;
+	thread->sp[4] = 0x07070707;
+	thread->sp[3] = 0x08080808;
+	thread->sp[2] = 0x09090909;
+	thread->sp[1] = 0x10101010;
+	thread->sp[0] = 0x11111111;
+	
+}
+
+void OS_thread_init(void) {
+	TCB_t* thread = 0;
+	TCB_t* prev_thread=0;
+	
+	for(int i = 0; i < MAX_NUM_THREADS; i++) {
+		prev_thread = thread;
+		thread = &threads[i];
+		if(i==0) {
+			TCB_LL_create_linear(&inactive_thread_list_head, thread);
+		}
+		else {
+			TCB_LL_append_linear(inactive_thread_list_head, thread);
+		}
+		
+		thread->id=++thread_cnt;
+		thread->sleep_count = 0;
+		
+		// TODO init anything else from the thread
+		// Note: Stacks are initialized when making the thread
+			// This also ensures that any program which exits without 
+			//first clearing the stack won't mess up any new threads
+	}
 }
 
 /**
@@ -66,7 +161,21 @@ void SysTick_Init(unsigned long period){
  * @brief  Initialize OS
  */
 void OS_Init(void){
-  // put Lab 2 (and beyond) solution here
+	
+	// init launch pad / pll
+	PLL_Init(Bus80MHz);
+	LaunchPad_Init();
+	
+	DisableInterrupts();
+	
+	// Init anything else used by OS
+	OS_MsTime_Init();
+	OS_thread_init();
+	
+	// Set PendSV priority to 2;
+	SYSPRI3 = (SYSPRI3 &0xFF0FFFFF) | 0x00400000;
+	
+	//TODO Init UART, any OS controlled ADCs, etc
 
 }; 
 
@@ -136,8 +245,22 @@ int OS_AddThread(void(*task)(void),
    uint32_t stackSize, uint32_t priority){
   // put Lab 2 (and beyond) solution here
 
+	// Take first thread from active list
+	TCB_t *thread = TCB_LL_pop_head_linear(&inactive_thread_list_head);
+	if(thread == 0) 
+			return 0; // Cannot pull anything from list
+		 
+	
+	thread_init_stack(thread, task);
+	
+	if(run_pt == 0) {
+		TCB_LL_create_circular(&run_pt, thread);
+	}
+	else {
+		TCB_LL_append_circular(run_pt, thread);
+	}
      
-  return 0; // replace this line with solution
+  return 1; // replace this line with solution
 };
 
 //******** OS_AddProcess *************** 
@@ -164,9 +287,7 @@ int OS_AddProcess(void(*entry)(void), void *text, void *data,
 // Inputs: none
 // Outputs: Thread ID, number greater than zero 
 uint32_t OS_Id(void){
-  // put Lab 2 (and beyond) solution here
-  
-  return 0; // replace this line with solution
+  return run_pt->id;
 };
 
 
@@ -275,9 +396,8 @@ void OS_Kill(void){
 // input:  none
 // output: none
 void OS_Suspend(void){
-  // put Lab 2 (and beyond) solution here
-  
-
+	// Trigger PendSV interrupt
+	INTCTRL |= 1<<28;
 };
   
 // ******** OS_Fifo_Init ************
@@ -449,9 +569,14 @@ uint32_t OS_MsTime(void){
 // In Lab 3, you should implement the user-defined TimeSlice field
 // It is ok to limit the range of theTimeSlice to match the 24-bit SysTick
 void OS_Launch(uint32_t theTimeSlice){
-  // put Lab 2 (and beyond) solution here
-  
-    
+		
+	if(theTimeSlice > (1 << 24)) {
+		return; // TODO Change to some kind of fault?
+	}
+	
+  SysTick_Init(theTimeSlice);
+	OS_ClearMsTime();
+	EnableInterrupts();
 };
 
 //************** I/O Redirection *************** 
