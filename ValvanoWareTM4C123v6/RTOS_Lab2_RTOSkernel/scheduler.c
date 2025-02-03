@@ -14,11 +14,6 @@ Inputs:
 Outputs: pointer to next thread that should be run
 */
 TCB_t* round_robin_scheduler(TCB_t *run_pt) {
-	static int init = 0;
-	if(init == 0) {
-		init = 1;
-		return run_pt;
-	}
 	return run_pt->next_ptr;
 }
 

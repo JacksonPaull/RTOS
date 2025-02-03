@@ -25,8 +25,8 @@
 #include "../RTOS_Lab2_RTOSkernel/scheduler.h"
 
 
-extern void ContextSwitch(TCB_t *next_thread);
-
+extern void ContextSwitch(void);
+extern void CleanFirstStack(void);
 
 // Performance Measurements 
 int32_t MaxJitter;             // largest time jitter between interrupts in usec
@@ -36,7 +36,6 @@ uint32_t JitterHistogram[JITTERSIZE]={0,};
 
 //Note: current max run time will be 2^16 * 1000s ~= 2 years, which seems reasonable
 //uint16_t OS_MsTimeResetCount = 0; // Number of times the OS timer has rolled over, allowing for greater run-times
-
 uint32_t OS_MsCount = 0;
 uint16_t thread_cnt = 0;
 
@@ -57,7 +56,7 @@ TCB_t *inactive_thread_list_head = 0;
 
  
 void SysTick_Handler(void) {
-	INTCTRL |= 1<<28; // Software trigger of PendSV interrupt
+	//ContextSwitch(); // Software trigger of PendSV interrupt
 	
 	// Decrement sleep counter(s)
 		// TODO
@@ -81,23 +80,13 @@ void SysTick_Init(unsigned long period){
 	STCTRL|= 0x7; 
 }
 
-void PendSV_Handler(void) {
-	// Find out which thread to schedule and context switch
-	TCB_t *next_node = round_robin_scheduler(RunPt);
-//	if(next_node == RunPt)
-//		return;
-	
-	STCURRENT = 0; // Reset timer
-	ContextSwitch(next_node);
-}
-
 
 
 void thread_init_stack(TCB_t* thread, void(*task)(void)) {
 	int id = thread->id;
 	unsigned long* stack = stacks[id];
 	
-	thread->sp = stack+STACK_SIZE-18*4; // Start at bottom of stack and init registers on stack 
+	thread->sp = stack+STACK_SIZE-18*sizeof(unsigned long); // Start at bottom of stack and init registers on stack 
 	
 	thread->sp[0]  = 0x04040404; //R4
 	thread->sp[1]  = 0x05050505; //R5
@@ -110,11 +99,11 @@ void thread_init_stack(TCB_t* thread, void(*task)(void)) {
 	thread->sp[8]  = 0x00000000; //R0
 	thread->sp[9]  = 0x01010101; //R1
 	thread->sp[10] = 0x02020202; //R2
-	thread->sp[11] = 0303030303; //R3
+	thread->sp[11] = 0x03030303; //R3
 	thread->sp[12] = 0x12121212; //R12
 	thread->sp[13] = (unsigned long) &OS_Kill; //LR - Note: any exiting thread should call OS_Kill
 	thread->sp[14] = (unsigned long) task; // PC, should point to thread main task
-	thread->sp[15] = 0xFFFFFF00; // PSR all bits set and indicate that we are in thread mode after popping this
+	thread->sp[15] = 0x01000000;	// Set thumb mode in PSR
 	thread->sp[16] = MAGIC;
 	thread->sp[17] = MAGIC;
 }
@@ -163,8 +152,8 @@ void OS_Init(void){
 	OS_MsTime_Init();
 	OS_thread_init();
 	
-	// Set PendSV priority to 2;
-	SYSPRI3 = (SYSPRI3 &0xFF0FFFFF) | 0x00400000;
+	// Set PendSV priority to 1;
+	SYSPRI3 = (SYSPRI3 &0xFF0FFFFF) | 0x00200000;
 	
 	//TODO Init UART, any OS controlled ADCs, etc
 
@@ -241,7 +230,6 @@ int OS_AddThread(void(*task)(void),
 	if(thread == 0) 
 			return 0; // Cannot pull anything from list
 		 
-	
 	thread_init_stack(thread, task);
 	
 	if(RunPt == 0) {
@@ -388,7 +376,7 @@ void OS_Kill(void){
 // output: none
 void OS_Suspend(void){
 	// Trigger PendSV interrupt
-	INTCTRL |= 1<<28;
+	ContextSwitch();
 };
   
 // ******** OS_Fifo_Init ************
@@ -562,21 +550,17 @@ void OS_Launch(uint32_t theTimeSlice){
 		return; // TODO Change to some kind of fault?
 	}
 	
-  SysTick_Init(theTimeSlice);
+  //SysTick_Init(theTimeSlice);
 	OS_ClearMsTime();
-
-	// Prep first thread for entry into context switch
-	__asm__(
-		"LDR R0, =RunPt\n"
-		"LDR R1, [R0]\n"
-		"LDR SP, [R1, #12]\n"
-		"POP {R4-R11}\n"
-		//"SUBS SP, #8"		// Not sure why but entering context switch increments SP by 8 bytes?????
-	);
 	
+	// Set RunPt to previous pointer
+		// This way the first thread created is the first scheduled
+	RunPt = RunPt->prev_ptr;
+	CleanFirstStack();
 	EnableInterrupts();
-	INTCTRL |= 0x10000000;
-	
+	ContextSwitch();
+
+	for(;;){} // Should never reach here
 	// Note: The OS will crash if it is not initialized with at least one thread
 };
 

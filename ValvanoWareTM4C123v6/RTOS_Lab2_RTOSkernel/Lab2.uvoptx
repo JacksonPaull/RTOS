@@ -103,7 +103,7 @@
         <bEvRecOn>1</bEvRecOn>
         <bSchkAxf>0</bSchkAxf>
         <bTchkAxf>0</bTchkAxf>
-        <nTsel>-1</nTsel>
+        <nTsel>19</nTsel>
         <sDll></sDll>
         <sDllPa></sDllPa>
         <sDlgDll></sDlgDll>
@@ -156,18 +156,50 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>86</LineNumber>
+          <LineNumber>61</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>1594</Address>
+          <Address>710</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\RTOS_Labs_common\OS.c</Filename>
+          <Filename>..\RTOS_Labs_common\osasm.s</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\Lab2\../RTOS_Labs_common/OS.c\86</Expression>
+          <Expression>\\Lab2\../RTOS_Labs_common/osasm.s\61</Expression>
+        </Bp>
+        <Bp>
+          <Number>1</Number>
+          <Type>0</Type>
+          <LineNumber>107</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>730</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>..\RTOS_Labs_common\osasm.s</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\Lab2\../RTOS_Labs_common/osasm.s\107</Expression>
+        </Bp>
+        <Bp>
+          <Number>2</Number>
+          <Type>0</Type>
+          <LineNumber>343</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>1936</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>.\Lab2.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\Lab2\Lab2.c\343</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>
@@ -258,7 +290,7 @@
         <Mm>
           <WinNumber>1</WinNumber>
           <SubType>2</SubType>
-          <ItemText>0xE000ED2C</ItemText>
+          <ItemText>0x2000171c</ItemText>
           <AccSizeX>0</AccSizeX>
         </Mm>
       </MemoryWindow1>

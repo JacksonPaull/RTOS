@@ -13,9 +13,12 @@
         EXTERN  RunPt            ; currently running thread
 
         EXPORT  StartOS
+		EXPORT 	CleanFirstStack
         EXPORT  ContextSwitch
-        EXPORT  PendSV_Handler [WEAK]
+        EXPORT  PendSV_Handler
         EXPORT  SVC_Handler
+		
+		IMPORT round_robin_scheduler
 
 
 NVIC_INT_CTRL   EQU     0xE000ED04                              ; Interrupt control state register.
@@ -24,13 +27,23 @@ NVIC_SYSPRI15   EQU     0xE000ED23                              ; Systick priori
 NVIC_LEVEL14    EQU           0xEF                              ; Systick priority value (second lowest).
 NVIC_LEVEL15    EQU           0xFF                              ; PendSV priority value (lowest).
 NVIC_PENDSVSET  EQU     0x10000000                              ; Value to trigger PendSV exception.
+STCURRENT 		EQU 	0xE000E018
+
+
+; Remove R4-R11 from the first thread so that a context switch triggers properly
+CleanFirstStack
+; put your code here
+    LDR R0, =RunPt
+	LDR R0, [R0]
+	LDR SP, [R0, #12]
+	POP {R4-R11}
+    BX LR
 
 
 StartOS
-; put your code here
-    
-    
-    BX      LR                 ; start first thread
+	BX      LR                 ; start first thread
+
+
 
 OSStartHang
     B       OSStartHang        ; Should never get here
@@ -44,20 +57,13 @@ OSStartHang
 ;              triggers the PendSV exception which is where the real work is done.
 ;********************************************************************************************************
 
-;********** ContextSwitch **********
-; Switch from active thread to scheduled thread
-; inputs: R0 - next_pt: pointer to scheduled TCB
-; outputs: none
 ContextSwitch
-		CPSID I
-		LDR R1, =RunPt
-		LDR R2, [R1]		; R2 = run_pt
-		PUSH {R4-R11}		; Save registers
-		STR SP, [R2, #12] 	; Save stack pointer in TCB
-		STR R0, [R1]		; run_pt = next_pt
-		LDR SP, [R0, #12]	; Load new stack pointer
-		POP {R4-R11}		; Restore registers
-		CPSIE I
+		LDR R0, =NVIC_INT_CTRL
+		LDR R1, [R0]
+		MOV R2, #1		; R2 <- 1<<28 (28th bit)
+		LSL R2, R2, #28
+		ORR R1, R1, R2	; R1 <- INT_CTRL | 0x10000000
+		STR R1, [R0]	; INT_CTRL <- R1 = INT_CTRL | 0x10000000
 		BX		LR
     
 
@@ -97,11 +103,31 @@ ContextSwitch
 ;********************************************************************************************************
 
 PendSV_Handler
-; put your code here
+	; 1) Call the scheduler
+	LDR R1, =RunPt
+	LDR R0, [R1]
+	
+	PUSH {LR}
+	BL round_robin_scheduler	; R0 <-- pointer to next thread
+	POP {LR}
+	
+	; 2) Reset STCURRENT=0
+	LDR R1, =STCURRENT
+	MOV R2, #0
+	STR R2, [R1]
+	
+	; 3) Perform the context switch
+	CPSID I
+	LDR R1, =RunPt
+	LDR R2, [R1]		; R2 = run_pt
+	PUSH {R4-R11}		; Save registers
+	STR SP, [R2, #12] 	; Save stack pointer in TCB
+	STR R0, [R1]		; run_pt = next_pt
+	LDR SP, [R0, #12]	; Load new stack pointer
+	POP {R4-R11}		; Restore registers
+	CPSIE I
 
-    
-    
-    BX      LR                 ; Exception return will restore remaining context   
+    BX	LR                 ; Exception return will restore remaining context   
     
 
 ;********************************************************************************************************
