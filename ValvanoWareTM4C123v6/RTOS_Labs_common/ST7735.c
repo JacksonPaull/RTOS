@@ -113,6 +113,8 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+#include <math.h>
 #include "../inc/tm4c123gh6pm.h"
 #include "../RTOS_Labs_common/ST7735.h"
 #include "../RTOS_Labs_common/OS.h"
@@ -1420,10 +1422,14 @@ void ST7735_OutUDec2(uint32_t n, uint32_t l){
 typedef struct device {
 	uint16_t device_x;	// offset on physical lcd
 	uint16_t device_y;	// offset on physical lcd
+	uint8_t h;					// height
+	uint8_t w;					// width
 } device;
 
-static const device devices[2] = {{0,0}, {0,8}};
-
+static const device devices[2] = {
+	{0,0, 8, 21}, // LCD 0
+	{0,8, 8, 21}  // LCD 1
+};
 
 //------------ST7735_Message------------
 // String draw and number output.  
@@ -1434,15 +1440,24 @@ static const device devices[2] = {{0,0}, {0,8}};
 void ST7735_Message(uint32_t  d, uint32_t  l, char *pt, int32_t value){
   // write this as part of Labs 1 and 2
 	
-	//StartCritical();
-	
 	device dev = devices[d];
+	uint32_t val_len = 0;
+	int32_t value_copy = value;
+	do {
+		value_copy /= 10;
+		val_len++;
+	} while (value_copy != 0);
+	uint32_t msg_len = strlen(pt) + val_len;
+	
+	// Check bounds
+	if(l >= dev.h || msg_len > dev.w)
+		return;
+	
 	ST7735_SetCursor(dev.device_x, l+dev.device_y);
 	ST7735_DrawString(0,StY,"                     ",StTextColor); // Clear line
 	ST7735_OutString(pt);
 	ST7735_OutDec(value);
 	
-	//EndCritical();
 }
 
 //-----------------------ST7735_OutUDec4-----------------------

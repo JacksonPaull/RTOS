@@ -6,4 +6,4 @@
 *.axf
 *.map
 *.lst
-*.Jackson
+*.Jackson*

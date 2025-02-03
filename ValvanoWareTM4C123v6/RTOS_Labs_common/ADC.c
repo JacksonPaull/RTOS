@@ -14,10 +14,12 @@
 static uint32_t channel = -1;
 
 
-// channelNum (0 to 11) specifies which pin is sampled with sequencer 3
-// software start
-// return with error 1, if channelNum>11, 
-// otherwise initialize ADC and return 0 (success)
+// ********** ADC_Init **********
+// Initalize ADC0 on sequencer 3 for specified pin
+// See TM4c Manual page 801 for table
+// Inputs: 
+//   uint32_t channelNum: Which pin is sampled with ss3.
+// Outputs int: 1 if error, 0 if success
 int ADC_Init(uint32_t channelNum){	
 	volatile uint32_t delay;
 	uint32_t pinID;
@@ -25,7 +27,7 @@ int ADC_Init(uint32_t channelNum){
 	
 	channel = channelNum;
 	
-//	// Set up appropriate pin / port 
+	// Set up appropriate pin / port 
 	switch(channelNum) {
 		case 0: //E3
 			pinID = 0x8;
@@ -88,17 +90,6 @@ int ADC_Init(uint32_t channelNum){
 		default:
 			return 1; // Unsupported channel num
 	}
-
-//	pinID = 0x8;
-//		
-//	// HARD CODED FOR NOW
-//	SYSCTL_RCGCGPIO_R |= 0x10;   // Turn on clock 
-//	delay = SYSCTL_RCGCGPIO_R;
-//	GPIO_PORTE_DIR_R &= ~pinID;  //PEx set to input
-//	GPIO_PORTE_AFSEL_R |= pinID; //PEx alternate function enabled
-//	GPIO_PORTE_DEN_R &= ~pinID;  //Diable digital input on PEx
-//	GPIO_PORTE_AMSEL_R |= pinID; //Enable analog mode
-	
 	
 	ADC0_PC_R = 0x1;						// Set sampling speed to 125kHz
 	ADC0_SSPRI_R = 0x3210; 			// Make sequencer 3 low priority
@@ -111,11 +102,22 @@ int ADC_Init(uint32_t channelNum){
   return 0;
 }
 
+
+// ********** ADC_getChannel **********
+// Return the current channel for the ADC
+// Inputs: None
+// Outputs uint32_t: Channel (0-11)
+//   Note: See TM4c manual page 801
 uint32_t ADC_getChannel(void) {
 	return channel;
 }
 
-// software start sequencer 3 and return 12 bit ADC result
+// ********** ADC_In **********
+// Start sequencer through software, 
+// wait for it to finish, and return sample
+// Inputs: None
+// Outputs: ADC sample
+//	 note: 2^12 alternatives on 3.3V range
 uint32_t ADC_In(void){
 
 	ADC0_PSSI_R |= 0x8; // Write 8 to ADC_PSSI_R to initate conversion on s3
@@ -125,6 +127,12 @@ uint32_t ADC_In(void){
   return data; // Return read result
 }
 
+
+// ********** ADC_toVolts **********
+// Convert digital ADC value to volts
+// Inputs: 
+//   uint32_t data: 12 bit adc data
+// Outputs float: Volt (0-3.3V for valid ADC data)
 float ADC_toVolts(uint32_t data){
 	static const int inverse_resolution = 1241; // 2^12 / 3.3V =1241.212121 ~= 1241, accurate to 4 sig figs, good enough
 	float ret = data;
