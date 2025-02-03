@@ -1,8 +1,8 @@
 
 
 
-#ifndef __TCB_LL__
-#define __TCB_LL__
+#ifndef __TCB_LL__H__
+#define __TCB_LL__H__
 
 #include "../RTOS_Labs_common/OS.h"
 

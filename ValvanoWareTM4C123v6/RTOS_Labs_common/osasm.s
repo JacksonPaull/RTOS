@@ -10,11 +10,11 @@
         REQUIRE8
         PRESERVE8
 
-        EXTERN  run_pt            ; currently running thread
+        EXTERN  RunPt            ; currently running thread
 
         EXPORT  StartOS
         EXPORT  ContextSwitch
-        ;EXPORT  PendSV_Handler [WEAK]
+        EXPORT  PendSV_Handler [WEAK]
         EXPORT  SVC_Handler
 
 
@@ -50,7 +50,7 @@ OSStartHang
 ; outputs: none
 ContextSwitch
 		CPSID I
-		LDR R1, =run_pt
+		LDR R1, =RunPt
 		LDR R2, [R1]		; R2 = run_pt
 		PUSH {R4-R11}		; Save registers
 		STR SP, [R2, #12] 	; Save stack pointer in TCB
@@ -96,12 +96,12 @@ ContextSwitch
 ;              therefore safe to assume that context being switched out was using the process stack (PSP).
 ;********************************************************************************************************
 
-;PendSV_Handler
+PendSV_Handler
 ; put your code here
 
     
     
-;    BX      LR                 ; Exception return will restore remaining context   
+    BX      LR                 ; Exception return will restore remaining context   
     
 
 ;********************************************************************************************************

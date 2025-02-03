@@ -44,7 +44,7 @@ uint16_t thread_cnt = 0;
 TCB_t threads[MAX_NUM_THREADS];
 unsigned long stacks[MAX_NUM_THREADS][STACK_SIZE];
 
-TCB_t *run_pt = 0; // Currently running thread
+TCB_t *RunPt = 0; // Currently running thread
 TCB_t *inactive_thread_list_head = 0;
 // TCB_t *sleeping_thread_list_head;
 // TCB_t *blocked_thread_list_head;
@@ -88,12 +88,12 @@ void SysTick_Init(unsigned long period){
 }
 
 void PendSV_Handler(void) {
-	// Find out which thread to schedule and context switch
-	TCB_t *next_node = round_robin_scheduler(run_pt);
-	if(next_node == run_pt)
-		return;
-	
-	ContextSwitch(next_node);
+//	// Find out which thread to schedule and context switch
+//	TCB_t *next_node = round_robin_scheduler(RunPt);
+//	if(next_node == RunPt)
+//		return;
+//	
+//	ContextSwitch(next_node);
 }
 
 
@@ -129,27 +129,27 @@ void thread_init_stack(TCB_t* thread, void(*task)(void)) {
 }
 
 void OS_thread_init(void) {
-	TCB_t* thread = 0;
-	TCB_t* prev_thread=0;
-	
-	for(int i = 0; i < MAX_NUM_THREADS; i++) {
-		prev_thread = thread;
-		thread = &threads[i];
-		if(i==0) {
-			TCB_LL_create_linear(&inactive_thread_list_head, thread);
-		}
-		else {
-			TCB_LL_append_linear(inactive_thread_list_head, thread);
-		}
-		
-		thread->id=++thread_cnt;
-		thread->sleep_count = 0;
-		
-		// TODO init anything else from the thread
-		// Note: Stacks are initialized when making the thread
-			// This also ensures that any program which exits without 
-			//first clearing the stack won't mess up any new threads
-	}
+//	TCB_t* thread = 0;
+//	TCB_t* prev_thread=0;
+//	
+//	for(int i = 0; i < MAX_NUM_THREADS; i++) {
+//		prev_thread = thread;
+//		thread = &threads[i];
+//		if(i==0) {
+//			TCB_LL_create_linear(&inactive_thread_list_head, thread);
+//		}
+//		else {
+//			TCB_LL_append_linear(inactive_thread_list_head, thread);
+//		}
+//		
+//		thread->id=++thread_cnt;
+//		thread->sleep_count = 0;
+//		
+//		// TODO init anything else from the thread
+//		// Note: Stacks are initialized when making the thread
+//			// This also ensures that any program which exits without 
+//			//first clearing the stack won't mess up any new threads
+//	}
 }
 
 /**
@@ -243,24 +243,25 @@ void OS_bSignal(Sema4Type *semaPt){
 // In Lab 3, you can ignore the stackSize fields
 int OS_AddThread(void(*task)(void), 
    uint32_t stackSize, uint32_t priority){
-  // put Lab 2 (and beyond) solution here
+//  // put Lab 2 (and beyond) solution here
 
-	// Take first thread from active list
-	TCB_t *thread = TCB_LL_pop_head_linear(&inactive_thread_list_head);
-	if(thread == 0) 
-			return 0; // Cannot pull anything from list
-		 
-	
-	thread_init_stack(thread, task);
-	
-	if(run_pt == 0) {
-		TCB_LL_create_circular(&run_pt, thread);
-	}
-	else {
-		TCB_LL_append_circular(run_pt, thread);
-	}
-     
-  return 1; // replace this line with solution
+//	// Take first thread from active list
+//	TCB_t *thread = TCB_LL_pop_head_linear(&inactive_thread_list_head);
+//	if(thread == 0) 
+//			return 0; // Cannot pull anything from list
+//		 
+//	
+//	thread_init_stack(thread, task);
+//	
+//	if(RunPt == 0) {
+//		TCB_LL_create_circular(&RunPt, thread);
+//	}
+//	else {
+//		TCB_LL_append_circular(RunPt, thread);
+//	}
+//     
+//  return 1; // replace this line with solution
+	return 0;
 };
 
 //******** OS_AddProcess *************** 
@@ -287,7 +288,7 @@ int OS_AddProcess(void(*entry)(void), void *text, void *data,
 // Inputs: none
 // Outputs: Thread ID, number greater than zero 
 uint32_t OS_Id(void){
-  return run_pt->id;
+  return RunPt->id;
 };
 
 

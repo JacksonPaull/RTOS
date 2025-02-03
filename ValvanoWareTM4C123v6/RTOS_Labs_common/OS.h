@@ -27,8 +27,8 @@
 #define TIME_250US  (TIME_1MS/4)  
 
 // Thread control stuff
-#define MAX_NUM_THREADS 10
-#define STACK_SIZE 1024
+#define MAX_NUM_THREADS 5
+#define STACK_SIZE 512
 #define MAGIC 0x12312399
 
 typedef struct TCB {

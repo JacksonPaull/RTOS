@@ -2,7 +2,7 @@
 	contains implementations for a variety of different scheduler types
 */
 
-#include "../RTOS_Labs_common/OS.h"
+#include "./scheduler.h"
 
 
 /* round_robin_scheduler
