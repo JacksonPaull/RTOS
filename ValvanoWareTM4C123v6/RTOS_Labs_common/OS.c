@@ -26,7 +26,7 @@
 
 
 extern void ContextSwitch(void);
-extern void CleanFirstStack(void);
+extern void StartOS(void);
 
 // Performance Measurements 
 int32_t MaxJitter;             // largest time jitter between interrupts in usec
@@ -40,6 +40,7 @@ uint32_t OS_MsCount = 0;
 uint16_t thread_cnt = 0;
 
 // Thread control structures
+TCB_t OS_TCB;
 TCB_t threads[MAX_NUM_THREADS];
 unsigned long stacks[MAX_NUM_THREADS][STACK_SIZE];
 
@@ -56,11 +57,10 @@ TCB_t *inactive_thread_list_head = 0;
 
  
 void SysTick_Handler(void) {
-	//ContextSwitch(); // Software trigger of PendSV interrupt
-	
 	// Decrement sleep counter(s)
 		// TODO
-  
+	
+	ContextSwitch(); // Software trigger of PendSV interrupt
 } // end SysTick_Handler
 
 unsigned long OS_LockScheduler(void){
@@ -76,8 +76,8 @@ void SysTick_Init(unsigned long period){
 	STCTRL &= ~0x1; //Disable systick during setup
   STRELOAD = period-1;
 	STCURRENT = 0;
-	SYSPRI3 = (SYSPRI3 & ~0xEFFFFFFF) | 0x40000000; // Set to priority 2
-	STCTRL|= 0x7; 
+	SYSPRI3 = (SYSPRI3 & ~0xE0000000) | 0x60000000; // Set to priority 3
+	STCTRL|= 0x7; 	//Enable Systick (src=clock, interrupts enabled, systick enabled)
 }
 
 
@@ -550,18 +550,13 @@ void OS_Launch(uint32_t theTimeSlice){
 		return; // TODO Change to some kind of fault?
 	}
 	
-  //SysTick_Init(theTimeSlice);
-	OS_ClearMsTime();
 	
-	// Set RunPt to previous pointer
-		// This way the first thread created is the first scheduled
-	RunPt = RunPt->prev_ptr;
-	CleanFirstStack();
-	EnableInterrupts();
-	ContextSwitch();
-
-	for(;;){} // Should never reach here
-	// Note: The OS will crash if it is not initialized with at least one thread
+  SysTick_Init(theTimeSlice);
+	OS_ClearMsTime();
+	scheduler_init(RunPt);	// Init the scheduler with the first thread created
+	
+	RunPt = &OS_TCB;				// Set the RunPt to point to a different TCB so it doesnt interfere with user ones
+	StartOS(); // Never returns, Note: The OS will crash unless a thread is created before launching
 };
 
 //************** I/O Redirection *************** 

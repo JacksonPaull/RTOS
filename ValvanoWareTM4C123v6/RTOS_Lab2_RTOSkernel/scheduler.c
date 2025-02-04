@@ -13,8 +13,16 @@ Inputs:
 								 Assumes this list is a proper doubly linked list
 Outputs: pointer to next thread that should be run
 */
-TCB_t* round_robin_scheduler(TCB_t *run_pt) {
-	return run_pt->next_ptr;
+
+TCB_t *scheduled_pt;
+
+void scheduler_init(TCB_t *first_thread) {
+		scheduled_pt = first_thread->prev_ptr;
+}
+
+TCB_t* round_robin_scheduler(void) {
+	scheduled_pt = scheduled_pt->next_ptr;
+	return scheduled_pt;
 }
 
 

@@ -13,7 +13,6 @@
         EXTERN  RunPt            ; currently running thread
 
         EXPORT  StartOS
-		EXPORT 	CleanFirstStack
         EXPORT  ContextSwitch
         EXPORT  PendSV_Handler
         EXPORT  SVC_Handler
@@ -30,18 +29,21 @@ NVIC_PENDSVSET  EQU     0x10000000                              ; Value to trigg
 STCURRENT 		EQU 	0xE000E018
 
 
-; Remove R4-R11 from the first thread so that a context switch triggers properly
-CleanFirstStack
-; put your code here
-    LDR R0, =RunPt
-	LDR R0, [R0]
-	LDR SP, [R0, #12]
-	POP {R4-R11}
-    BX LR
 
 
 StartOS
-	BX      LR                 ; start first thread
+;	LDR R0, =RunPt
+;	LDR R1, [R0]
+;	LDR R2, [R1, #8]		; Load prev thread pointer
+;	STR R2, [R0]			; RunPt = RunPt->prev_ptr
+	
+	;LDR SP, [R2, #12]		; Remove R4-R11 from stack (so when they get pushed its all good)
+	;POP {R4-R11}
+	;STR SP, [R2, #12]		; Make sure to update the stack pointer for when this thread is scheduled
+	
+	CPSIE I					; Enable Interupts
+	BL ContextSwitch		; Call ContextSwitch (and return to infinite loop when done)
+	B OSStartHang			; Enter an infinite loop until the interrupt is serviced
 
 
 
@@ -103,10 +105,7 @@ ContextSwitch
 ;********************************************************************************************************
 
 PendSV_Handler
-	; 1) Call the scheduler
-	LDR R1, =RunPt
-	LDR R0, [R1]
-	
+	; 1) Call the scheduler	
 	PUSH {LR}
 	BL round_robin_scheduler	; R0 <-- pointer to next thread
 	POP {LR}

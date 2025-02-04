@@ -3,6 +3,7 @@
 
 #include "../RTOS_Labs_common/OS.h"
 
-TCB_t* round_robin_scheduler(TCB_t *run_pt);
+TCB_t* round_robin_scheduler(void);
+void scheduler_init(TCB_t *first_thread);
 
 #endif
