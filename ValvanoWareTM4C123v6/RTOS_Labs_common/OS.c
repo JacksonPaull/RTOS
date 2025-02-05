@@ -41,28 +41,43 @@ uint32_t OS_MsCount = 0;
 uint16_t thread_cnt = 0;
 
 // Thread control structures
-TCB_t OS_TCB;
 TCB_t threads[MAX_NUM_THREADS];
 unsigned long stacks[MAX_NUM_THREADS][STACK_SIZE];
 
 TCB_t *RunPt = 0; // Currently running thread
 TCB_t *inactive_thread_list_head = 0;
-// TCB_t *sleeping_thread_list_head;
+TCB_t *sleeping_thread_list_head = 0;
 // TCB_t *blocked_thread_list_head;
+
+
+void DecrementSleepCounters(void) {
+	uint32_t systick_period = (STRELOAD+1) / 80000; // Period of systick in ms
+	
+	// Loop through counters and decrement by period
+	TCB_t *node = sleeping_thread_list_head;
+	while(node != 0) {
+		if(node->sleep_count <= systick_period) {
+			node->sleep_count = 0; 
+			
+			// remove node from list and reshedule it
+			TCB_LL_remove(&sleeping_thread_list_head, node);
+			scheduler_schedule(node);
+		}
+		else {
+			node->sleep_count -= systick_period;
+		}
+	}
+}
 
 /*------------------------------------------------------------------------------
   Systick Interrupt Handler
   SysTick interrupt happens every 10 ms
   used for preemptive thread switch
  *------------------------------------------------------------------------------*/
-
- 
 void SysTick_Handler(void) {
-	// Decrement sleep counter(s)
-		// TODO
-	
-	ContextSwitch(); // Software trigger of PendSV interrupt
-} // end SysTick_Handler
+	DecrementSleepCounters();
+	ContextSwitch();
+}
 
 unsigned long OS_LockScheduler(void){
   // lab 4 might need this for disk formating
@@ -77,7 +92,7 @@ void SysTick_Init(unsigned long period){
 	STCTRL &= ~0x1; //Disable systick during setup
   STRELOAD = period-1;
 	STCURRENT = 0;
-	SYSPRI3 = (SYSPRI3 & ~0xE0000000) | 0x60000000; // Set to priority 3
+	SYSPRI3 = (SYSPRI3 & ~0xE0000000) | 0x20000000; // Set to priority 1
 	STCTRL|= 0x7; 	//Enable Systick (src=clock, interrupts enabled, systick enabled)
 }
 
@@ -116,12 +131,9 @@ void OS_thread_init(void) {
 	for(int i = 0; i < MAX_NUM_THREADS; i++) {
 		prev_thread = thread;
 		thread = &threads[i];
-		if(i==0) {
-			TCB_LL_create_linear(&inactive_thread_list_head, thread);
-		}
-		else {
-			TCB_LL_append_linear(inactive_thread_list_head, thread);
-		}
+
+		TCB_LL_append_linear(&inactive_thread_list_head, thread);
+		
 		
 		thread->id=++thread_cnt;
 		thread->sleep_count = 0;
@@ -153,8 +165,8 @@ void OS_Init(void){
 	OS_MsTime_Init();
 	OS_thread_init();
 	
-	// Set PendSV priority to 1;
-	SYSPRI3 = (SYSPRI3 &0xFF0FFFFF) | 0x00200000;
+	// Set PendSV priority to 7;
+	SYSPRI3 = (SYSPRI3 &0xFF0FFFFF) | 0x00E00000;
 	
 	//TODO Init UART, any OS controlled ADCs, etc
 
@@ -247,13 +259,7 @@ int OS_AddThread(void(*task)(void),
 			return 0; // Cannot pull anything from list
 		 
 	thread_init_stack(thread, task);
-	
-	if(RunPt == 0) {
-		TCB_LL_create_circular(&RunPt, thread);
-	}
-	else {
-		TCB_LL_append_circular(RunPt, thread);
-	}
+	scheduler_schedule(thread);
      
   return 1; 
 };
@@ -366,9 +372,12 @@ int OS_AddSW2Task(void(*task)(void), uint32_t priority){
 // You are free to select the time resolution for this function
 // OS_Sleep(0) implements cooperative multitasking
 void OS_Sleep(uint32_t sleepTime){
-  // put Lab 2 (and beyond) solution here
-  
-
+	RunPt->sleep_count = sleepTime;
+	DisableInterrupts();
+	scheduler_unschedule(RunPt); // Unschedule current thread
+	TCB_LL_append_linear(&sleeping_thread_list_head, RunPt); // Add to sleeping list
+	EnableInterrupts();
+	ContextSwitch();
 };  
 
 // ******** OS_Kill ************
@@ -376,10 +385,18 @@ void OS_Sleep(uint32_t sleepTime){
 // input:  none
 // output: none
 void OS_Kill(void){
-  // put Lab 2 (and beyond) solution here
- 
-  EnableInterrupts();   // end of atomic section 
-  for(;;){};        // can not return
+	TCB_t *node = RunPt;
+	node->sleep_count = 0;
+	// Note: We don't need to mess with the SP 
+	//				as it will be automatically reset when a new thread is added
+	
+	
+	DisableInterrupts(); // Don't let another thread take over while this thread is in limbo
+	scheduler_unschedule(RunPt);
+	TCB_LL_append_linear(&inactive_thread_list_head, node);
+	EnableInterrupts();
+	
+  for(;;){};        // can not return, just wait for interrupt
     
 }; 
 
@@ -566,12 +583,9 @@ void OS_Launch(uint32_t theTimeSlice){
 		return; // TODO Change to some kind of fault?
 	}
 	
-	
   SysTick_Init(theTimeSlice);
 	OS_ClearMsTime();
-	scheduler_init(RunPt);	// Init the scheduler with the first thread created
-	
-	RunPt = &OS_TCB;				// Set the RunPt to point to a different TCB so it doesnt interfere with user ones
+	scheduler_init(RunPt, &RunPt);	// Init the scheduler with the first thread created
 	StartOS(); // Never returns, Note: The OS will crash unless a thread is created before launching
 };
 
