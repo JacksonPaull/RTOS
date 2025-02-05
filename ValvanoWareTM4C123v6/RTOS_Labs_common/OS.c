@@ -28,6 +28,7 @@
 extern void ContextSwitch(void);
 extern void StartOS(void);
 
+
 // Performance Measurements 
 int32_t MaxJitter;             // largest time jitter between interrupts in usec
 #define JITTERSIZE 64
@@ -164,8 +165,8 @@ void OS_Init(void){
 // input:  pointer to a semaphore
 // output: none
 void OS_InitSemaphore(Sema4Type *semaPt, int32_t value){
-  // put Lab 2 (and beyond) solution here
-
+  // Note: Assumes that a semaphore is initialized once, and this is not called again
+	semaPt->Value = value;
 }; 
 
 // ******** OS_Wait ************
@@ -176,7 +177,14 @@ void OS_InitSemaphore(Sema4Type *semaPt, int32_t value){
 // output: none
 void OS_Wait(Sema4Type *semaPt){
   // put Lab 2 (and beyond) solution here
-  
+	DisableInterrupts();
+	while(semaPt->Value <= 0) {
+		EnableInterrupts();
+		ContextSwitch();
+		DisableInterrupts();
+	}
+	semaPt->Value -= 1;
+	EnableInterrupts();
 }; 
 
 // ******** OS_Signal ************
@@ -186,8 +194,9 @@ void OS_Wait(Sema4Type *semaPt){
 // input:  pointer to a counting semaphore
 // output: none
 void OS_Signal(Sema4Type *semaPt){
-  // put Lab 2 (and beyond) solution here
-
+  DisableInterrupts();
+	semaPt->Value += 1;
+	EnableInterrupts();
 }; 
 
 // ******** OS_bWait ************
@@ -196,8 +205,15 @@ void OS_Signal(Sema4Type *semaPt){
 // input:  pointer to a binary semaphore
 // output: none
 void OS_bWait(Sema4Type *semaPt){
-  // put Lab 2 (and beyond) solution here
-
+  // TODO Write in ASM with LDREX and STREX?
+	DisableInterrupts();
+	while(!semaPt->Value) {
+		EnableInterrupts();
+		ContextSwitch();
+		DisableInterrupts();
+	}
+	semaPt->Value = 0;
+	EnableInterrupts();
 }; 
 
 // ******** OS_bSignal ************
@@ -206,8 +222,8 @@ void OS_bWait(Sema4Type *semaPt){
 // input:  pointer to a binary semaphore
 // output: none
 void OS_bSignal(Sema4Type *semaPt){
-  // put Lab 2 (and beyond) solution here
-
+  // No critical section because there is no modify/write seq, just write
+	semaPt->Value = 1;
 }; 
 
 

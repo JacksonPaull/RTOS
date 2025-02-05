@@ -770,6 +770,8 @@ void static commandList(const uint8_t *addr) {
 
 // Initialization code common to both 'B' and 'R' type displays
 void static commonInit(const uint8_t *cmdList) {
+	OS_InitSemaphore(&LCDFree, 1);
+	
   volatile uint32_t delay;
   ColStart  = RowStart = 0; // May be overridden in init func
 
@@ -1440,6 +1442,7 @@ static const device devices[2] = {
 void ST7735_Message(uint32_t  d, uint32_t  l, char *pt, int32_t value){
   // write this as part of Labs 1 and 2
 	
+	
 	device dev = devices[d];
 	uint32_t val_len = 0;
 	int32_t value_copy = value;
@@ -1453,11 +1456,12 @@ void ST7735_Message(uint32_t  d, uint32_t  l, char *pt, int32_t value){
 	if(l >= dev.h || msg_len > dev.w)
 		return;
 	
+	OS_bWait(&LCDFree); // Acquire LCD Lock
 	ST7735_SetCursor(dev.device_x, l+dev.device_y);
 	ST7735_DrawString(0,StY,"                     ",StTextColor); // Clear line
 	ST7735_OutString(pt);
 	ST7735_OutDec(value);
-	
+	OS_bSignal(&LCDFree);	// Release LCD Lock when done
 }
 
 //-----------------------ST7735_OutUDec4-----------------------
