@@ -5,7 +5,7 @@
 #include "../RTOS_Lab2_RTOSkernel/LinkedList.h"
 
 TCB_t* round_robin_scheduler(void);
-void scheduler_init(TCB_t *first_thread, TCB_t **RunPt);
+void scheduler_init(TCB_t **RunPt);
 void scheduler_unschedule(TCB_t *thread);
 void scheduler_schedule(TCB_t *thread);
 

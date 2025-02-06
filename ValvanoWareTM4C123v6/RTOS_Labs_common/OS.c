@@ -47,8 +47,6 @@ unsigned long stacks[MAX_NUM_THREADS][STACK_SIZE];
 TCB_t *RunPt = 0; // Currently running thread
 TCB_t *inactive_thread_list_head = 0;
 TCB_t *sleeping_thread_list_head = 0;
-// TCB_t *blocked_thread_list_head;
-
 
 void DecrementSleepCounters(void) {
 	uint32_t systick_period = (STRELOAD+1) / 80000; // Period of systick in ms
@@ -206,9 +204,9 @@ void OS_Wait(Sema4Type *semaPt){
 // input:  pointer to a counting semaphore
 // output: none
 void OS_Signal(Sema4Type *semaPt){
-  DisableInterrupts();
+	int i = StartCritical();
 	semaPt->Value += 1;
-	EnableInterrupts();
+	EndCritical(i);
 }; 
 
 // ******** OS_bWait ************
@@ -585,7 +583,8 @@ void OS_Launch(uint32_t theTimeSlice){
 	
   SysTick_Init(theTimeSlice);
 	OS_ClearMsTime();
-	scheduler_init(RunPt, &RunPt);	// Init the scheduler with the first thread created
+	
+	scheduler_init(&RunPt);
 	StartOS(); // Never returns, Note: The OS will crash unless a thread is created before launching
 };
 

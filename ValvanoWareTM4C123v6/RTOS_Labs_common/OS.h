@@ -45,6 +45,7 @@ TCB_t *RunPt;
  */  
 struct  Sema4{
   int32_t Value;   // >0 means free, otherwise means busy        
+	TCB_t *blocked_threads_head;
 // add other components here, if necessary to implement blocking
 };
 typedef struct Sema4 Sema4Type;

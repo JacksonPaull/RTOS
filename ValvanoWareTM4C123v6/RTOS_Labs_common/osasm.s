@@ -44,6 +44,9 @@ StartOS
 	CPSIE I					; Enable Interupts
 	BL ContextSwitch		; Call ContextSwitch (and return to infinite loop when done)
 	B OSStartHang			; Enter an infinite loop until the interrupt is serviced
+							; Alternatively, branch to OS background thread
+							; e.g. replace [46] with `BX LR` and update OS_Launch() to call some (non-returning) task
+							;		or replace [46] with `b func_label` to some (non-returning) task
 
 
 
