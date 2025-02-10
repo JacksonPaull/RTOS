@@ -36,7 +36,8 @@ typedef struct TCB {
 	struct TCB *next_ptr, *prev_ptr; 	// For use in linked lists
 	unsigned long *sp; 								// Stack pointer
 	uint32_t sleep_count;							// In ms
-	//uint8_t priority;
+	uint8_t priority;
+	uint8_t removeAfterScheduling;		// For periodic / switch tasks (tells scheduler to unschedule after they run)
 } TCB_t;
 TCB_t *RunPt;
 
@@ -49,6 +50,22 @@ struct  Sema4{
 // add other components here, if necessary to implement blocking
 };
 typedef struct Sema4 Sema4Type;
+
+typedef struct Mailbox {
+	Sema4Type data_ready;
+	Sema4Type data_received;
+	uint32_t data;
+} Mailbox_t;
+
+typedef struct FIFO {
+	uint32_t max_size;
+	uint32_t *data;
+	uint32_t head;
+	uint32_t tail;
+	
+	Sema4Type flag;
+	Sema4Type mutex;
+} FIFO_t;
 
 /**
  * @details  Initialize operating system, disable interrupts until OS_Launch.

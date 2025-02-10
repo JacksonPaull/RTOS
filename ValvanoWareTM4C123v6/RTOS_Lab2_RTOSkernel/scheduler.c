@@ -34,6 +34,9 @@ TCB_t* round_robin_scheduler(void) {
 	if(scheduled_thread == 0)
 		return &INIT_TCB;
 	scheduled_thread = scheduled_thread->next_ptr;
+	if(scheduled_thread->removeAfterScheduling) {
+		scheduler_unschedule(scheduled_thread);
+	}
 	return scheduled_thread;
 }
 

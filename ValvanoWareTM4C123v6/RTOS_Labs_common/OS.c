@@ -27,6 +27,7 @@
 
 extern void ContextSwitch(void);
 extern void StartOS(void);
+void PortFEdge_Init(void);
 
 
 // Performance Measurements 
@@ -34,6 +35,14 @@ int32_t MaxJitter;             // largest time jitter between interrupts in usec
 #define JITTERSIZE 64
 uint32_t const JitterSize=JITTERSIZE;
 uint32_t JitterHistogram[JITTERSIZE]={0,};
+
+// OS Mailbox and FIFIO
+# define MAX_FIFO_SIZE 64
+
+Mailbox_t OS_mailbox;
+uint32_t OS_FIFO_data[MAX_FIFO_SIZE];
+FIFO_t OS_FIFO;
+
 
 //Note: current max run time will be 2^16 * 1000s ~= 2 years, which seems reasonable
 //uint16_t OS_MsTimeResetCount = 0; // Number of times the OS timer has rolled over, allowing for greater run-times
@@ -135,6 +144,8 @@ void OS_thread_init(void) {
 		
 		thread->id=++thread_cnt;
 		thread->sleep_count = 0;
+		thread->priority = 8;
+		thread->removeAfterScheduling = 0;
 		
 		// TODO init anything else from the thread
 		// Note: Stacks are initialized when making the thread
@@ -156,6 +167,7 @@ void OS_Init(void){
 	// init launch pad / pll
 	PLL_Init(Bus80MHz);
 	LaunchPad_Init();
+	PortFEdge_Init();
 	
 	DisableInterrupts();
 	
@@ -188,12 +200,15 @@ void OS_InitSemaphore(Sema4Type *semaPt, int32_t value){
 void OS_Wait(Sema4Type *semaPt){
   // put Lab 2 (and beyond) solution here
 	DisableInterrupts();
-	while(semaPt->Value <= 0) {
-		EnableInterrupts();
-		ContextSwitch();
-		DisableInterrupts();
-	}
+	
 	semaPt->Value -= 1;
+	if(semaPt->Value < 0) {
+		// Add to semaphore's blocked list and unschedule
+		// This thread will later be rescheduled when OS_Signal is called
+		scheduler_unschedule(RunPt);
+		TCB_LL_append_linear(&semaPt->blocked_threads_head, RunPt);
+	}
+	ContextSwitch(); // Trigger PendSV
 	EnableInterrupts();
 }; 
 
@@ -206,6 +221,13 @@ void OS_Wait(Sema4Type *semaPt){
 void OS_Signal(Sema4Type *semaPt){
 	int i = StartCritical();
 	semaPt->Value += 1;
+	
+	// If value <= 0, then awaken a blocked thread
+	if(semaPt->Value <= 0) {
+		TCB_t *thread = TCB_LL_pop_head_linear(&semaPt->blocked_threads_head);
+		scheduler_schedule(thread);
+	}
+	
 	EndCritical(i);
 }; 
 
@@ -217,12 +239,16 @@ void OS_Signal(Sema4Type *semaPt){
 void OS_bWait(Sema4Type *semaPt){
   // TODO Write in ASM with LDREX and STREX?
 	DisableInterrupts();
-	while(!semaPt->Value) {
+	if(semaPt->Value == 1) {
+		semaPt->Value = 0;
 		EnableInterrupts();
-		ContextSwitch();
-		DisableInterrupts();
+		return;
 	}
-	semaPt->Value = 0;
+	
+	// semaPt->Value == 0
+	scheduler_unschedule(RunPt);
+	TCB_LL_append_linear(&semaPt->blocked_threads_head, RunPt);
+	ContextSwitch();
 	EnableInterrupts();
 }; 
 
@@ -232,8 +258,18 @@ void OS_bWait(Sema4Type *semaPt){
 // input:  pointer to a binary semaphore
 // output: none
 void OS_bSignal(Sema4Type *semaPt){
-  // No critical section because there is no modify/write seq, just write
-	semaPt->Value = 1;
+
+	TCB_t *thread = TCB_LL_pop_head_linear(&semaPt->blocked_threads_head);
+	int i = StartCritical();
+	if(thread != 0) {
+		scheduler_schedule(thread);
+		semaPt->Value = 0;
+	}
+	else {
+		semaPt->Value = 1;
+	}
+	
+	EndCritical(i);
 }; 
 
 
@@ -310,18 +346,55 @@ uint32_t OS_Id(void){
 //           determines the relative priority of these four threads
 int OS_AddPeriodicThread(void(*task)(void), 
    uint32_t period, uint32_t priority){
-  // put Lab 2 (and beyond) solution here
+  // For lab 2 this system works
   
+	// TODO (future labs) modify systick
+		// counter that goes from 0 to uintmax
+		// counter % period == 0 --> trigger task / schedule thread
+		// First task is context switch at specified freq
+		// all user tasks are just scheduled with high priority
+		 
+
+	Timer4A_Init(task, period, priority);
      
-  return 0; // replace this line with solution
+  return 1; // replace this line with solution
 };
 
+
+void PortFEdge_Init(void) {
+	SYSCTL_RCGCGPIO_R |= 0x00000020; // 1) activate clock for port F
+  GPIO_PORTF_LOCK_R = 0x4C4F434B;   // 2) unlock GPIO Port F
+  GPIO_PORTF_CR_R = 0x1F;           // allow changes to PF4-0
+  GPIO_PORTF_DIR_R |=  0x0E;    // output on PF3,2,1 
+  GPIO_PORTF_DIR_R &= ~0x11;    // (c) make PF4,0 in (built-in button)
+  GPIO_PORTF_AFSEL_R &= ~0x1F;  //     disable alt funct on PF4,0
+  GPIO_PORTF_DEN_R |= 0x1F;     //     enable digital I/O on PF4   
+  GPIO_PORTF_PCTL_R &= ~0x000FFFFF; // configure PF4 as GPIO
+  GPIO_PORTF_AMSEL_R = 0;       //     disable analog functionality on PF
+  GPIO_PORTF_PUR_R |= 0x11;     //     enable weak pull-up on PF4
+  GPIO_PORTF_IS_R &= ~0x10;     // (d) PF4 is edge-sensitive
+  GPIO_PORTF_IBE_R &= ~0x10;    //     PF4 is not both edges
+  GPIO_PORTF_IEV_R &= ~0x10;    //     PF4 falling edge event
+  GPIO_PORTF_ICR_R = 0x10;      // (e) clear flag4
+  GPIO_PORTF_IM_R |= 0x10;      // (f) arm interrupt on PF4 *** No IME bit as mentioned in Book ***
+  NVIC_PRI7_R = (NVIC_PRI7_R&0xFF00FFFF)|0x00A00000; // (g) priority 5
+  NVIC_EN0_R = 0x40000000;      // (h) enable interrupt 30 in NVIC
+	
+}
 
 /*----------------------------------------------------------------------------
   PF1 Interrupt Handler
  *----------------------------------------------------------------------------*/
+TCB_t *SW1_tasks_head = 0;
 void GPIOPortF_Handler(void){
- 
+	GPIO_PORTF_ICR_R = 0x10;      // acknowledge flag4
+	//Schedule thread(s)
+	
+	TCB_t *t = SW1_tasks_head;
+	while(t != 0) {
+		scheduler_schedule(t);
+		t = t->next_ptr;
+	}
 }
 
 //******** OS_AddSW1Task *************** 
@@ -338,9 +411,15 @@ void GPIOPortF_Handler(void){
 // In lab 3, there will be up to four background threads, and this priority field 
 //           determines the relative priority of these four threads
 int OS_AddSW1Task(void(*task)(void), uint32_t priority){
-  // put Lab 2 (and beyond) solution here
- 
-  return 0; // replace this line with solution
+	TCB_t *thread = TCB_LL_pop_head_linear(&inactive_thread_list_head);
+	if(thread == 0) 
+			return 0; // Cannot pull anything from list
+		 
+	thread->removeAfterScheduling = 1;
+	thread_init_stack(thread, task);
+	TCB_LL_append_linear(&SW1_tasks_head, thread);	// Add to portF controller
+
+  return 1; // replace this line with solution
 };
 
 //******** OS_AddSW2Task *************** 
@@ -384,7 +463,12 @@ void OS_Sleep(uint32_t sleepTime){
 // output: none
 void OS_Kill(void){
 	TCB_t *node = RunPt;
+	
+	// Reset TCB properties
 	node->sleep_count = 0;
+	node->priority = 8;
+	node->removeAfterScheduling = 0;
+	
 	// Note: We don't need to mess with the SP 
 	//				as it will be automatically reset when a new thread is added
 	
@@ -421,8 +505,12 @@ void OS_Suspend(void){
 //    e.g., must be a power of 2,4,8,16,32,64,128
 void OS_Fifo_Init(uint32_t size){
   // put Lab 2 (and beyond) solution here
-   
-  
+  OS_FIFO.data = OS_FIFO_data;	// TODO replace with dynamic allocation (amortized doubling too)
+	OS_FIFO.head = 0;
+	OS_FIFO.tail = 0;
+	OS_FIFO.max_size = size+1; // The fifo is essentially null terminated, hence the extra spot
+	OS_InitSemaphore(&OS_FIFO.flag, 0);
+	OS_InitSemaphore(&OS_FIFO.mutex, 1);
 };
 
 // ******** OS_Fifo_Put ************
@@ -434,9 +522,18 @@ void OS_Fifo_Init(uint32_t size){
 // Since this is called by interrupt handlers 
 //  this function can not disable or enable interrupts
 int OS_Fifo_Put(uint32_t data){
-  // put Lab 2 (and beyond) solution here
+	if((OS_FIFO.tail + 1) % OS_FIFO.max_size == OS_FIFO.head) {
+		// FIFO is full, return 0
+		return 0;
+	}
+	
+	// FIFO has room
+	// place at tail, increment tail
+	OS_FIFO.data[OS_FIFO.tail] = data;
+	OS_FIFO.tail = (OS_FIFO.tail+1) % OS_FIFO.max_size;
 
-    return 0; // replace this line with solution
+	OS_Signal(&OS_FIFO.flag);
+  return 1;
 };  
 
 // ******** OS_Fifo_Get ************
@@ -446,8 +543,15 @@ int OS_Fifo_Put(uint32_t data){
 // Outputs: data 
 uint32_t OS_Fifo_Get(void){
   // put Lab 2 (and beyond) solution here
+	OS_Wait(&OS_FIFO.flag);	// Wait for data
+	OS_bWait(&OS_FIFO.mutex);	// Mutex when reading data from FIFO
+	
+	// Read from head, increment head
+	uint32_t data = OS_FIFO.data[OS_FIFO.head];
+	OS_FIFO.head = (OS_FIFO.head+1) % OS_FIFO.max_size;
   
-  return 0; // replace this line with solution
+	OS_bSignal(&OS_FIFO.mutex);
+  return data;
 };
 
 // ******** OS_Fifo_Size ************
@@ -466,13 +570,11 @@ int32_t OS_Fifo_Size(void){
 
 // ******** OS_MailBox_Init ************
 // Initialize communication channel
-// Inputs:  none
-// Outputs: none
+// Inputs:  None
+// Outputs: None
 void OS_MailBox_Init(void){
-  // put Lab 2 (and beyond) solution here
-  
-
-  // put solution here
+	OS_InitSemaphore(&OS_mailbox.data_ready, 0); //Init flag to 1="ready to read"
+	OS_InitSemaphore(&OS_mailbox.data_received, 1); //Init flag to 1="ready to send"
 };
 
 // ******** OS_MailBox_Send ************
@@ -482,10 +584,13 @@ void OS_MailBox_Init(void){
 // This function will be called from a foreground thread
 // It will spin/block if the MailBox contains data not yet received 
 void OS_MailBox_Send(uint32_t data){
-  // put Lab 2 (and beyond) solution here
-  // put solution here
-   
-
+  // Set flag down and place data
+	OS_bWait(&OS_mailbox.data_received);
+	OS_mailbox.data = data;
+	OS_bSignal(&OS_mailbox.data_ready);
+	
+	// Note: if two threads call this, the second thread will 
+	// spin on bWait until the mail is receieved
 };
 
 // ******** OS_MailBox_Recv ************
@@ -495,15 +600,16 @@ void OS_MailBox_Send(uint32_t data){
 // This function will be called from a foreground thread
 // It will spin/block if the MailBox is empty 
 uint32_t OS_MailBox_Recv(void){
-  // put Lab 2 (and beyond) solution here
- 
-  return 0; // replace this line with solution
+	OS_bWait(&OS_mailbox.data_ready);
+  uint32_t data = OS_mailbox.data;
+	OS_bSignal(&OS_mailbox.data_received);
+	return data;
 };
 
 // ******** OS_Time ************
 // return the system time 
 // Inputs:  none
-// Outputs: time in 12.5ns units, 0 to 4294967295
+// Outputs: time in 12.5ns units, 0 to 4294967295 = 2**32-1
 // The time resolution should be less than or equal to 1us, and the precision 32 bits
 // It is ok to change the resolution and precision of this function as long as 
 //   this function and OS_TimeDifference have the same resolution and precision 
@@ -585,7 +691,7 @@ void OS_Launch(uint32_t theTimeSlice){
 	OS_ClearMsTime();
 	
 	scheduler_init(&RunPt);
-	StartOS(); // Never returns, Note: The OS will crash unless a thread is created before launching
+	StartOS(); // Never returns
 };
 
 //************** I/O Redirection *************** 

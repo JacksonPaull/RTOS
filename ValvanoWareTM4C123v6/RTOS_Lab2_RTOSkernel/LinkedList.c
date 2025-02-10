@@ -62,6 +62,12 @@ void TCB_LL_remove(TCB_t **head, TCB_t *node) {
 	TCB_t *prev = node->prev_ptr;
 	TCB_t *next = node->next_ptr;
 	
+	// Treat as null pointers for circular linked lists with one unit
+	if(prev == node)
+		prev = 0;
+	if(next == node)
+		next = 0;
+	
 	// Adjust other nodes (if they exist)
 	if(prev != 0){
 		prev->next_ptr = next;
@@ -82,6 +88,10 @@ void TCB_LL_remove(TCB_t **head, TCB_t *node) {
 			*head = 0;
 		}
 	}
+	
+	// Unlink node from list completely
+	node->next_ptr = 0;
+	node->prev_ptr = 0;
 }
 
 TCB_t* TCB_LL_pop_head_linear(TCB_t **head) {
