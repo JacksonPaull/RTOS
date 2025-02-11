@@ -16,17 +16,17 @@ void scheduler_init(TCB_t **RunPt) {
 }
 
 void scheduler_unschedule(TCB_t *thread) {
-	TCB_LL_remove(&scheduled_thread, thread);
+	LL_remove((LL_node_t **) &scheduled_thread, (LL_node_t *) thread);
 }
 
 void scheduler_schedule(TCB_t *thread) {
-	TCB_LL_append_circular(&scheduled_thread, thread);
+	LL_append_circular((LL_node_t **) &scheduled_thread, (LL_node_t *) thread);
 }
 
 // Schedule something to run next, instead of last in line.
 // This can eventually be removed when a priority scheduler is introduced
 void scheduler_schedule_immediate(TCB_t *thread) {
-	TCB_LL_insert_circular(&scheduled_thread, thread);
+	LL_insert_circular((LL_node_t **) &scheduled_thread, (LL_node_t *) thread);
 }
 
 /* round_robin_scheduler

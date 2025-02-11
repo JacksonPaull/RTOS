@@ -2,32 +2,33 @@
 
 Collection of some useful functions for a general linked list in c.
 
-Note: These implementations are for a TCB_t linked list, 
+Note: These implementations are for a LL_node_t linked list, 
 and there is no templating in C.
 
 */
 
 
 #include "../RTOS_Labs_common/OS.h"
+#include "LinkedList.h"
 
-void TCB_LL_create_linear(TCB_t **head, TCB_t *node) {
+void LL_create_linear(LL_node_t **head, LL_node_t *node) {
 	node->prev_ptr = 0;
 	node->next_ptr = 0;
 	*head = node;
 }
 
-void TCB_LL_create_circular(TCB_t **head, TCB_t *node) {
+void LL_create_circular(LL_node_t **head, LL_node_t *node) {
 	node->prev_ptr = node;
 	node->next_ptr = node;
 	*head = node;
 }
 
 
-void TCB_LL_append_linear(TCB_t **head, TCB_t *node_to_add) {
+void LL_append_linear(LL_node_t **head, LL_node_t *node_to_add) {
 	if(*head == 0)
-		return TCB_LL_create_linear(head, node_to_add);
+		return LL_create_linear(head, node_to_add);
 	
-	TCB_t *node = *head;
+	LL_node_t *node = *head;
 	
 	// Move to the end of the list
 	while(node->next_ptr != 0) {
@@ -40,14 +41,14 @@ void TCB_LL_append_linear(TCB_t **head, TCB_t *node_to_add) {
 	node_to_add->next_ptr = 0;
 }
 
-void TCB_LL_append_circular(TCB_t **head, TCB_t *node_to_add) {
+void LL_append_circular(LL_node_t **head, LL_node_t *node_to_add) {
 	if(*head == 0) {
-		return TCB_LL_create_circular(head, node_to_add);
+		return LL_create_circular(head, node_to_add);
 	}
 	
 	// Find adjacent nodes
-	TCB_t *head_node = *head;
-	TCB_t *node = head_node->prev_ptr;
+	LL_node_t *head_node = *head;
+	LL_node_t *node = head_node->prev_ptr;
 	
 	// Link this node to other nodes
 	node_to_add->prev_ptr = node;
@@ -58,14 +59,14 @@ void TCB_LL_append_circular(TCB_t **head, TCB_t *node_to_add) {
 	node->next_ptr = node_to_add;
 }
 
-void TCB_LL_insert_circular(TCB_t **head, TCB_t *node_to_add) {
+void LL_insert_circular(LL_node_t **head, LL_node_t *node_to_add) {
 	if(*head == 0) {
-		return TCB_LL_create_circular(head, node_to_add);
+		return LL_create_circular(head, node_to_add);
 	}
 	
 	// Find adjacent nodes
-	TCB_t *head_node = *head;
-	TCB_t *node = head_node->next_ptr;
+	LL_node_t *head_node = *head;
+	LL_node_t *node = head_node->next_ptr;
 	
 	// Link this node to other nodes
 	node_to_add->prev_ptr = head_node;
@@ -76,9 +77,9 @@ void TCB_LL_insert_circular(TCB_t **head, TCB_t *node_to_add) {
 	node->prev_ptr = node_to_add;
 }
 
-void TCB_LL_remove(TCB_t **head, TCB_t *node) {
-	TCB_t *prev = node->prev_ptr;
-	TCB_t *next = node->next_ptr;
+void LL_remove(LL_node_t **head, LL_node_t *node) {
+	LL_node_t *prev = node->prev_ptr;
+	LL_node_t *next = node->next_ptr;
 	
 	// Treat as null pointers for circular linked lists with one unit
 	if(prev == node)
@@ -112,8 +113,8 @@ void TCB_LL_remove(TCB_t **head, TCB_t *node) {
 	node->prev_ptr = 0;
 }
 
-TCB_t* TCB_LL_pop_head_linear(TCB_t **head) {
-	TCB_t *node = *head;
+LL_node_t* LL_pop_head_linear(LL_node_t **head) {
+	LL_node_t *node = *head;
 	if(node == 0)
 		return 0;
 	
@@ -132,8 +133,8 @@ TCB_t* TCB_LL_pop_head_linear(TCB_t **head) {
 	return node;
 }
 
-TCB_t* TCB_LL_pop_tail_linear(TCB_t **head) {
-	TCB_t *node = *head;
+LL_node_t* LL_LL_pop_tail_linear(LL_node_t **head) {
+	LL_node_t *node = *head;
 	
 	// Return nothing in case of empty list
 	if(node == 0)

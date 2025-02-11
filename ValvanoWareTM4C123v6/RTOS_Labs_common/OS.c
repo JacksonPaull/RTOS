@@ -68,7 +68,7 @@ void DecrementSleepCounters(void) {
 			node->sleep_count = 0; 
 			
 			// remove node from list and reshedule it
-			TCB_LL_remove(&sleeping_thread_list_head, node);
+			LL_remove((LL_node_t **)&sleeping_thread_list_head, (LL_node_t *)node);
 			scheduler_schedule(node);
 		}
 		else {
@@ -141,8 +141,7 @@ void OS_thread_init(void) {
 		prev_thread = thread;
 		thread = &threads[i];
 
-		TCB_LL_append_linear(&inactive_thread_list_head, thread);
-		
+		LL_append_linear((LL_node_t **) &inactive_thread_list_head, (LL_node_t *)thread);
 		
 		thread->id=++thread_cnt;
 		thread->sleep_count = 0;
@@ -208,7 +207,7 @@ void OS_Wait(Sema4Type *semaPt){
 		// Add to semaphore's blocked list and unschedule
 		// This thread will later be rescheduled when OS_Signal is called
 		scheduler_unschedule(RunPt);
-		TCB_LL_append_linear(&semaPt->blocked_threads_head, RunPt);
+		LL_append_linear((LL_node_t **) &semaPt->blocked_threads_head, (LL_node_t *)RunPt);
 	}
 	ContextSwitch(); // Trigger PendSV
 	EnableInterrupts();
@@ -226,7 +225,7 @@ void OS_Signal(Sema4Type *semaPt){
 	
 	// If value <= 0, then awaken a blocked thread
 	if(semaPt->Value <= 0) {
-		TCB_t *thread = TCB_LL_pop_head_linear(&semaPt->blocked_threads_head);
+		TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **)&semaPt->blocked_threads_head);
 		scheduler_schedule(thread);
 	}
 	
@@ -249,7 +248,7 @@ void OS_bWait(Sema4Type *semaPt){
 	
 	// semaPt->Value == 0
 	scheduler_unschedule(RunPt);
-	TCB_LL_append_linear(&semaPt->blocked_threads_head, RunPt);
+	LL_append_linear((LL_node_t **)&semaPt->blocked_threads_head, (LL_node_t *) RunPt);
 	ContextSwitch();
 	EnableInterrupts();
 }; 
@@ -261,7 +260,7 @@ void OS_bWait(Sema4Type *semaPt){
 // output: none
 void OS_bSignal(Sema4Type *semaPt){
 
-	TCB_t *thread = TCB_LL_pop_head_linear(&semaPt->blocked_threads_head);
+	TCB_t *thread = (TCB_t *)LL_pop_head_linear((LL_node_t **)&semaPt->blocked_threads_head);
 	int i = StartCritical();
 	if(thread != 0) {
 		scheduler_schedule(thread);
@@ -288,7 +287,7 @@ void OS_bSignal(Sema4Type *semaPt){
 int OS_AddThread(void(*task)(void), 
    uint32_t stackSize, uint32_t priority){
 	// Take first thread from active list
-	TCB_t *thread = TCB_LL_pop_head_linear(&inactive_thread_list_head);
+	TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **)&inactive_thread_list_head);
 	if(thread == 0) 
 			return 0; // Cannot pull anything from list
 		 
@@ -363,6 +362,28 @@ int OS_AddPeriodicThread(void(*task)(void),
 };
 
 
+
+
+/*----------------------------------------------------------------------------
+  PF1 Interrupt Handler
+ *----------------------------------------------------------------------------*/
+void(*sw1_tasks[MAX_NUM_THREADS])(void); // Every thread gets its own struct here (conservative)
+
+void GPIOPortF_Handler(void){
+	GPIO_PORTF_ICR_R = 0x10;      // acknowledge flag4
+	
+	// TODO Sleep 1ms to debounce?
+	
+	//Schedule thread(s)
+	for(int i = 0; i < MAX_NUM_THREADS; i++) {
+		void(*task)(void) = sw1_tasks[i];
+		if(task == 0) {
+			return;
+		}
+		task();
+	}
+}
+
 void PortFEdge_Init(void) {
 	SYSCTL_RCGCGPIO_R |= 0x00000020; // 1) activate clock for port F
   GPIO_PORTF_LOCK_R = 0x4C4F434B;   // 2) unlock GPIO Port F
@@ -382,23 +403,8 @@ void PortFEdge_Init(void) {
   NVIC_PRI7_R = (NVIC_PRI7_R&0xFF00FFFF)|0x00200000; // (g) priority 1
   NVIC_EN0_R = 0x40000000;      // (h) enable interrupt 30 in NVIC
 	
-}
-
-/*----------------------------------------------------------------------------
-  PF1 Interrupt Handler
- *----------------------------------------------------------------------------*/
-TCB_t *SW1_tasks_head = 0;
-void GPIOPortF_Handler(void){
-	GPIO_PORTF_ICR_R = 0x10;      // acknowledge flag4
-	//Schedule thread(s)
-	
-	// TODO Sleep 1ms to debounce?
-	
-	TCB_t *t = SW1_tasks_head;
-	while(t != 0) {
-		scheduler_schedule_immediate(t);
-		// NOTE: This has an infinite loop, the LL needs to have different pointers than the scheduler uses
-		t = t->next_ptr;
+	for(int i = 0; i < MAX_NUM_THREADS; i++) {
+		sw1_tasks[i] = 0;
 	}
 }
 
@@ -416,13 +422,20 @@ void GPIOPortF_Handler(void){
 // In lab 3, there will be up to four background threads, and this priority field 
 //           determines the relative priority of these four threads
 int OS_AddSW1Task(void(*task)(void), uint32_t priority){
-	TCB_t *thread = TCB_LL_pop_head_linear(&inactive_thread_list_head);
-	if(thread == 0) 
-			return 0; // Cannot pull anything from list
-		 
-	thread->removeAfterScheduling = 1;
-	thread_init_stack(thread, task);
-	TCB_LL_append_linear(&SW1_tasks_head, thread);	// Add to portF controller
+//	TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **) &inactive_thread_list_head);
+//	if(thread == 0) 
+//			return 0; // Cannot pull anything from list
+//		 
+//	thread->removeAfterScheduling = 1;
+//	thread_init_stack(thread, task);
+//	LL_node_t ll_node = SW1_tasks_array[thread->id-1]; // Get the corresponding node
+//	ll_node.data = thread;
+//	LL_append_linear(&SW1_tasks_head, &ll_node);	// Add to portF controller
+	static uint8_t i = 0;
+	if(i >= MAX_NUM_THREADS)
+		return 0;
+	
+	sw1_tasks[i] = task;
 
   return 1; // replace this line with solution
 };
@@ -460,7 +473,7 @@ void OS_Sleep(uint32_t sleepTime){
 	// Disable Interrupts while we mess with the TCBs
 	int i = StartCritical();
 	scheduler_unschedule(thread); // Unschedule current thread
-	TCB_LL_append_linear(&sleeping_thread_list_head, thread); // Add to sleeping list
+	LL_append_linear((LL_node_t **) &sleeping_thread_list_head, (LL_node_t *)thread); // Add to sleeping list
 	ContextSwitch();
 	EndCritical(i);
 };  
@@ -483,7 +496,7 @@ void OS_Kill(void){
 	
 	DisableInterrupts(); // Don't let another thread take over while this thread is in limbo
 	scheduler_unschedule(RunPt);
-	TCB_LL_append_linear(&inactive_thread_list_head, node);
+	LL_append_linear((LL_node_t **) &inactive_thread_list_head, (LL_node_t *)node);
 	EnableInterrupts();
 	
   for(;;){};        // can not return, just wait for interrupt
