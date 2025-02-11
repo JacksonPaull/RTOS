@@ -41,7 +41,7 @@ void TCB_LL_append_linear(TCB_t **head, TCB_t *node_to_add) {
 }
 
 void TCB_LL_append_circular(TCB_t **head, TCB_t *node_to_add) {
-	if(head == 0) {
+	if(*head == 0) {
 		return TCB_LL_create_circular(head, node_to_add);
 	}
 	
@@ -56,6 +56,24 @@ void TCB_LL_append_circular(TCB_t **head, TCB_t *node_to_add) {
 	// Link other nodes to this node (finish adding to the list)
 	head_node->prev_ptr = node_to_add;
 	node->next_ptr = node_to_add;
+}
+
+void TCB_LL_insert_circular(TCB_t **head, TCB_t *node_to_add) {
+	if(*head == 0) {
+		return TCB_LL_create_circular(head, node_to_add);
+	}
+	
+	// Find adjacent nodes
+	TCB_t *head_node = *head;
+	TCB_t *node = head_node->next_ptr;
+	
+	// Link this node to other nodes
+	node_to_add->prev_ptr = head_node;
+	node_to_add->next_ptr = node;
+	
+	// Link other nodes to this node (finish adding to the list)
+	head_node->next_ptr = node_to_add;
+	node->prev_ptr = node_to_add;
 }
 
 void TCB_LL_remove(TCB_t **head, TCB_t *node) {

@@ -63,6 +63,7 @@ void DecrementSleepCounters(void) {
 	// Loop through counters and decrement by period
 	TCB_t *node = sleeping_thread_list_head;
 	while(node != 0) {
+		TCB_t *next_node = node->next_ptr;
 		if(node->sleep_count <= systick_period) {
 			node->sleep_count = 0; 
 			
@@ -73,6 +74,7 @@ void DecrementSleepCounters(void) {
 		else {
 			node->sleep_count -= systick_period;
 		}
+		node = next_node;
 	}
 }
 
@@ -285,13 +287,12 @@ void OS_bSignal(Sema4Type *semaPt){
 // In Lab 3, you can ignore the stackSize fields
 int OS_AddThread(void(*task)(void), 
    uint32_t stackSize, uint32_t priority){
-  // put Lab 2 (and beyond) solution here
-
 	// Take first thread from active list
 	TCB_t *thread = TCB_LL_pop_head_linear(&inactive_thread_list_head);
 	if(thread == 0) 
 			return 0; // Cannot pull anything from list
 		 
+	// TODO Add a thread_init function here instead of os_thread_init?
 	thread_init_stack(thread, task);
 	scheduler_schedule(thread);
      
@@ -344,6 +345,7 @@ uint32_t OS_Id(void){
 // In lab 3, this command will be called 0 1 or 2 times
 // In lab 3, there will be up to four background threads, and this priority field 
 //           determines the relative priority of these four threads
+
 int OS_AddPeriodicThread(void(*task)(void), 
    uint32_t period, uint32_t priority){
   // For lab 2 this system works
@@ -355,7 +357,7 @@ int OS_AddPeriodicThread(void(*task)(void),
 		// all user tasks are just scheduled with high priority
 		 
 
-	Timer4A_Init(task, period, priority);
+	Timer4A_Init(task, period, priority);	// Task basically just adds another thread that runs once and dies
      
   return 1; // replace this line with solution
 };
@@ -392,7 +394,7 @@ void GPIOPortF_Handler(void){
 	
 	TCB_t *t = SW1_tasks_head;
 	while(t != 0) {
-		scheduler_schedule(t);
+		scheduler_schedule_immediate(t);
 		t = t->next_ptr;
 	}
 }
@@ -449,12 +451,15 @@ int OS_AddSW2Task(void(*task)(void), uint32_t priority){
 // You are free to select the time resolution for this function
 // OS_Sleep(0) implements cooperative multitasking
 void OS_Sleep(uint32_t sleepTime){
-	RunPt->sleep_count = sleepTime;
-	DisableInterrupts();
-	scheduler_unschedule(RunPt); // Unschedule current thread
-	TCB_LL_append_linear(&sleeping_thread_list_head, RunPt); // Add to sleeping list
-	EnableInterrupts();
+	TCB_t *thread = RunPt;
+	thread->sleep_count = sleepTime;
+	
+	// Disable Interrupts while we mess with the TCBs
+	int i = StartCritical();
+	scheduler_unschedule(thread); // Unschedule current thread
+	TCB_LL_append_linear(&sleeping_thread_list_head, thread); // Add to sleeping list
 	ContextSwitch();
+	EndCritical(i);
 };  
 
 // ******** OS_Kill ************

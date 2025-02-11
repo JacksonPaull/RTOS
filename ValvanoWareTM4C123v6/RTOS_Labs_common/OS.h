@@ -39,7 +39,7 @@ typedef struct TCB {
 	uint8_t priority;
 	uint8_t removeAfterScheduling;		// For periodic / switch tasks (tells scheduler to unschedule after they run)
 } TCB_t;
-TCB_t *RunPt;
+extern TCB_t *RunPt;
 
 /**
  * \brief Semaphore structure. Feel free to change the type of semaphore, there are lots of good solutions

@@ -665,7 +665,8 @@ int TestmainFIFO(void){   // TestmainFIFO
 //*******************Trampoline for selecting main to execute**********
 int main(void) { 			// main 
   //Testmain1();
-	Testmain2();
+	//Testmain2();
+	Testmain3();
 	//TestmainCS();
 	//realmain();
 }
