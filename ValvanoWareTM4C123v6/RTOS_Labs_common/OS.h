@@ -33,7 +33,7 @@
 
 typedef struct TCB {
 	int id;
-	struct TCB *next_ptr, *prev_ptr; 	// For use in linked lists
+	struct TCB *next_ptr, *prev_ptr, *tertiary_ptr; 	// For use in linked lists
 	unsigned long *sp; 								// Stack pointer
 	uint32_t sleep_count;							// In ms
 	uint8_t priority;

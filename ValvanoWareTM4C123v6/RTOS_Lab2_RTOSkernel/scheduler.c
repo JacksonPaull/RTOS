@@ -7,6 +7,7 @@
 
 TCB_t INIT_TCB;		// TCB Used upon first entry into the scheduler
 TCB_t *scheduled_thread = 0;
+// TODO add a mutex for the scheduler LL
 
 void scheduler_init(TCB_t **RunPt) {
 	// Back up one spot so that on first context switch the first thread runs
@@ -35,7 +36,7 @@ Inputs: None
 Outputs: pointer to next thread that should be run
 */
 TCB_t* round_robin_scheduler(void) {
-	if(scheduled_thread == 0)
+	if(scheduled_thread == 0) // Nothing is scheduled, use the base OS program
 		return &INIT_TCB;
 	scheduled_thread = scheduled_thread->next_ptr;
 	if(scheduled_thread->removeAfterScheduling) {

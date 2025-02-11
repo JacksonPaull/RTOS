@@ -337,7 +337,7 @@ int realmain(void){     // realmain
 // no calls to semaphores
 uint32_t Count1;   // number of times thread1 loops
 uint32_t Count2;   // number of times thread2 loops
-uint32_t Count3;   // number of times thread3 loops
+volatile uint32_t Count3;   // number of times thread3 loops // Volatile bc compiler optimized thread3c out
 uint32_t Count4;   // number of times thread4 loops
 uint32_t Count5;   // number of times thread5 loops
 void Thread1(void){
@@ -666,7 +666,8 @@ int TestmainFIFO(void){   // TestmainFIFO
 int main(void) { 			// main 
   //Testmain1();
 	//Testmain2();
-	Testmain3();
+	//Testmain3();
+	Testmain4();
 	//TestmainCS();
 	//realmain();
 }

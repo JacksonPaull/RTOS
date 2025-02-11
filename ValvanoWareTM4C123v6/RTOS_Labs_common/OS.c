@@ -379,7 +379,7 @@ void PortFEdge_Init(void) {
   GPIO_PORTF_IEV_R &= ~0x10;    //     PF4 falling edge event
   GPIO_PORTF_ICR_R = 0x10;      // (e) clear flag4
   GPIO_PORTF_IM_R |= 0x10;      // (f) arm interrupt on PF4 *** No IME bit as mentioned in Book ***
-  NVIC_PRI7_R = (NVIC_PRI7_R&0xFF00FFFF)|0x00A00000; // (g) priority 5
+  NVIC_PRI7_R = (NVIC_PRI7_R&0xFF00FFFF)|0x00200000; // (g) priority 1
   NVIC_EN0_R = 0x40000000;      // (h) enable interrupt 30 in NVIC
 	
 }
@@ -392,9 +392,12 @@ void GPIOPortF_Handler(void){
 	GPIO_PORTF_ICR_R = 0x10;      // acknowledge flag4
 	//Schedule thread(s)
 	
+	// TODO Sleep 1ms to debounce?
+	
 	TCB_t *t = SW1_tasks_head;
 	while(t != 0) {
 		scheduler_schedule_immediate(t);
+		// NOTE: This has an infinite loop, the LL needs to have different pointers than the scheduler uses
 		t = t->next_ptr;
 	}
 }
