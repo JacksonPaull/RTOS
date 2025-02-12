@@ -27,6 +27,7 @@
 
 extern void ContextSwitch(void);
 extern void StartOS(void);
+extern void OSThreadReset(void);
 void PortFEdge_Init(void);
 
 
@@ -107,7 +108,7 @@ void SysTick_Init(unsigned long period){
 
 
 
-void thread_init_stack(TCB_t* thread, void(*task)(void)) {
+void thread_init_stack(TCB_t* thread, void(*task)(void), void(*return_task)(void)) {
 	int id = thread->id;
 	unsigned long* stack = stacks[id];
 	
@@ -126,12 +127,13 @@ void thread_init_stack(TCB_t* thread, void(*task)(void)) {
 	thread->sp[10] = 0x02020202; //R2
 	thread->sp[11] = 0x03030303; //R3
 	thread->sp[12] = 0x12121212; //R12
-	thread->sp[13] = (unsigned long) &OS_Kill; //LR - Note: any exiting thread should call OS_Kill
-	thread->sp[14] = (unsigned long) task; // PC, should point to thread main task
+	thread->sp[13] = (uint32_t) return_task; //LR - Note: any exiting thread should call OS_Kill
+	thread->sp[14] = (uint32_t) task; // PC, should point to thread main task
 	thread->sp[15] = 0x01000000;	// Set thumb mode in PSR
 	thread->sp[16] = MAGIC;
 	thread->sp[17] = MAGIC;
 }
+
 
 void OS_thread_init(void) {
 	TCB_t* thread = 0;
@@ -146,7 +148,6 @@ void OS_thread_init(void) {
 		thread->id=++thread_cnt;
 		thread->sleep_count = 0;
 		thread->priority = 8;
-		thread->removeAfterScheduling = 0;
 		
 		// TODO init anything else from the thread
 		// Note: Stacks are initialized when making the thread
@@ -292,7 +293,7 @@ int OS_AddThread(void(*task)(void),
 			return 0; // Cannot pull anything from list
 		 
 	// TODO Add a thread_init function here instead of os_thread_init?
-	thread_init_stack(thread, task);
+	thread_init_stack(thread, task, &OS_Kill);
 	scheduler_schedule(thread);
      
   return 1; 
@@ -367,7 +368,8 @@ int OS_AddPeriodicThread(void(*task)(void),
 /*----------------------------------------------------------------------------
   PF1 Interrupt Handler
  *----------------------------------------------------------------------------*/
-void(*sw1_tasks[MAX_NUM_THREADS])(void); // Every thread gets its own struct here (conservative)
+LL_node_t sw1_threads[MAX_NUM_THREADS]; // Every thread gets its own struct here (conservative)
+LL_node_t *sw1_ll_head = 0;
 
 void GPIOPortF_Handler(void){
 	GPIO_PORTF_ICR_R = 0x10;      // acknowledge flag4
@@ -375,12 +377,11 @@ void GPIOPortF_Handler(void){
 	// TODO Sleep 1ms to debounce?
 	
 	//Schedule thread(s)
-	for(int i = 0; i < MAX_NUM_THREADS; i++) {
-		void(*task)(void) = sw1_tasks[i];
-		if(task == 0) {
-			return;
-		}
-		task();
+	LL_node_t *node = sw1_ll_head;
+	while(node != 0) {
+		void (*f)(void) = node->data;
+		f();
+		node = node->next_ptr;
 	}
 }
 
@@ -404,7 +405,10 @@ void PortFEdge_Init(void) {
   NVIC_EN0_R = 0x40000000;      // (h) enable interrupt 30 in NVIC
 	
 	for(int i = 0; i < MAX_NUM_THREADS; i++) {
-		sw1_tasks[i] = 0;
+		LL_node_t* n = &sw1_threads[i];
+		n->next_ptr = 0;
+		n->prev_ptr = 0;
+		n->data = 0;
 	}
 }
 
@@ -425,17 +429,17 @@ int OS_AddSW1Task(void(*task)(void), uint32_t priority){
 //	TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **) &inactive_thread_list_head);
 //	if(thread == 0) 
 //			return 0; // Cannot pull anything from list
-//		 
+		 
 //	thread->removeAfterScheduling = 1;
-//	thread_init_stack(thread, task);
-//	LL_node_t ll_node = SW1_tasks_array[thread->id-1]; // Get the corresponding node
-//	ll_node.data = thread;
-//	LL_append_linear(&SW1_tasks_head, &ll_node);	// Add to portF controller
-	static uint8_t i = 0;
+//	thread->initial_task = task;
+//	thread_init_stack(thread, task, &OSThreadReset);
+	static int i = 0;
 	if(i >= MAX_NUM_THREADS)
 		return 0;
 	
-	sw1_tasks[i] = task;
+	LL_node_t* ll_node = &sw1_threads[i++]; // Get the corresponding node
+	ll_node->data = task;
+	LL_append_linear(&sw1_ll_head, ll_node);	// Add to portF controller This is where we can implement thread priority for switch tasks
 
   return 1; // replace this line with solution
 };
@@ -488,15 +492,15 @@ void OS_Kill(void){
 	// Reset TCB properties
 	node->sleep_count = 0;
 	node->priority = 8;
-	node->removeAfterScheduling = 0;
 	
 	// Note: We don't need to mess with the SP 
 	//				as it will be automatically reset when a new thread is added
 	
 	
 	DisableInterrupts(); // Don't let another thread take over while this thread is in limbo
-	scheduler_unschedule(RunPt);
+	scheduler_unschedule(node);
 	LL_append_linear((LL_node_t **) &inactive_thread_list_head, (LL_node_t *)node);
+	ContextSwitch();
 	EnableInterrupts();
 	
   for(;;){};        // can not return, just wait for interrupt

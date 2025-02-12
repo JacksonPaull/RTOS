@@ -27,7 +27,7 @@
 #define TIME_250US  (TIME_1MS/4)  
 
 // Thread control stuff
-#define MAX_NUM_THREADS 5
+#define MAX_NUM_THREADS 10
 #define STACK_SIZE 512
 #define MAGIC 0x12312399
 
@@ -37,7 +37,7 @@ typedef struct TCB {
 	unsigned long *sp; 								// Stack pointer
 	uint32_t sleep_count;							// In ms
 	uint8_t priority;
-	uint8_t removeAfterScheduling;		// For periodic / switch tasks (tells scheduler to unschedule after they run)
+	//uint8_t removeAfterScheduling;		// For periodic / switch tasks (tells scheduler to unschedule after they run)
 } TCB_t;
 extern TCB_t *RunPt;
 

@@ -31,16 +31,7 @@ STCURRENT 		EQU 	0xE000E018
 
 
 
-StartOS
-;	LDR R0, =RunPt
-;	LDR R1, [R0]
-;	LDR R2, [R1, #8]		; Load prev thread pointer
-;	STR R2, [R0]			; RunPt = RunPt->prev_ptr
-	
-	;LDR SP, [R2, #12]		; Remove R4-R11 from stack (so when they get pushed its all good)
-	;POP {R4-R11}
-	;STR SP, [R2, #12]		; Make sure to update the stack pointer for when this thread is scheduled
-	
+StartOS	
 	CPSIE I					; Enable Interupts
 	BL ContextSwitch		; Call ContextSwitch (and return to infinite loop when done)
 	B OSStartHang			; Enter an infinite loop until the interrupt is serviced
@@ -53,6 +44,7 @@ StartOS
 OSStartHang
     B       OSStartHang        ; Should never get here
 
+	
 
 ;********************************************************************************************************
 ;                               PERFORM A CONTEXT SWITCH (From task level)
@@ -70,6 +62,7 @@ ContextSwitch
 		ORR R1, R1, R2	; R1 <- INT_CTRL | 0x10000000
 		STR R1, [R0]	; INT_CTRL <- R1 = INT_CTRL | 0x10000000
 		BX		LR
+		
     
 
 ;********************************************************************************************************

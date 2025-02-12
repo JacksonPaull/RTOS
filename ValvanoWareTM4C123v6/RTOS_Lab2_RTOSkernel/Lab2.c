@@ -667,7 +667,9 @@ int main(void) { 			// main
   //Testmain1();
 	//Testmain2();
 	//Testmain3();
-	Testmain4();
+	//Testmain4();
+	//Testmain5();
+	TestmainFIFO();
 	//TestmainCS();
 	//realmain();
 }

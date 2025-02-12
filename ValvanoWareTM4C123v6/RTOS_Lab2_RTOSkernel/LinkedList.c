@@ -81,17 +81,11 @@ void LL_remove(LL_node_t **head, LL_node_t *node) {
 	LL_node_t *prev = node->prev_ptr;
 	LL_node_t *next = node->next_ptr;
 	
-	// Treat as null pointers for circular linked lists with one unit
-	if(prev == node)
-		prev = 0;
-	if(next == node)
-		next = 0;
-	
 	// Adjust other nodes (if they exist)
-	if(prev != 0){
+	if(prev != 0 && prev != node){
 		prev->next_ptr = next;
 	}
-	if(next != 0) {
+	if(next != 0 && next != node) {
 		next->prev_ptr = prev;
 	}
 	
@@ -100,9 +94,9 @@ void LL_remove(LL_node_t **head, LL_node_t *node) {
 		if(next != 0) {
 			*head = next;
 		}
-		else if(prev != 0) {
-			*head = prev;
-		}
+//		else if(prev != 0) {
+//			*head = prev;
+//		}
 		else {
 			*head = 0;
 		}

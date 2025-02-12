@@ -29,6 +29,10 @@ void scheduler_schedule_immediate(TCB_t *thread) {
 	LL_insert_circular((LL_node_t **) &scheduled_thread, (LL_node_t *) thread);
 }
 
+void scheduler_jump_forward(void) {
+	scheduled_thread = scheduled_thread->next_ptr;
+}
+
 /* round_robin_scheduler
 Simple round robin scheduler which just goes in order around the list
 
@@ -38,11 +42,15 @@ Outputs: pointer to next thread that should be run
 TCB_t* round_robin_scheduler(void) {
 	if(scheduled_thread == 0) // Nothing is scheduled, use the base OS program
 		return &INIT_TCB;
-	scheduled_thread = scheduled_thread->next_ptr;
-	if(scheduled_thread->removeAfterScheduling) {
-		scheduler_unschedule(scheduled_thread);
-	}
-	return scheduled_thread;
+	TCB_t *thread_to_schedule = scheduled_thread->next_ptr;
+//	if(thread_to_schedule->removeAfterScheduling) {
+//		scheduler_unschedule(thread_to_schedule);
+//	}
+//	else {
+//		scheduled_thread = thread_to_schedule;
+//	}
+	scheduled_thread = thread_to_schedule;
+	return thread_to_schedule;
 }
 
 
