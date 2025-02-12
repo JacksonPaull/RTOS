@@ -525,14 +525,14 @@
               <FilePath>..\inc\Timer4A.h</FilePath>
             </File>
             <File>
-              <FileName>Timer1A.c</FileName>
+              <FileName>Timer3A.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\inc\Timer1A.c</FilePath>
+              <FilePath>..\inc\Timer3A.c</FilePath>
             </File>
             <File>
-              <FileName>Timer1A.h</FileName>
+              <FileName>Timer3A.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\inc\Timer1A.h</FilePath>
+              <FilePath>..\inc\Timer3A.h</FilePath>
             </File>
           </Files>
         </Group>

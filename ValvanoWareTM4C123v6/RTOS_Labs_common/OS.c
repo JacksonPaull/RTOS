@@ -13,8 +13,6 @@
 #include "../inc/CortexM.h"
 #include "../inc/PLL.h"
 #include "../inc/LaunchPad.h"
-#include "../inc/Timer0A.h"
-#include "../inc/Timer1A.h"
 #include "../inc/Timer4A.h"
 #include "../inc/WTimer0A.h"
 #include "../RTOS_Labs_common/OS.h"
@@ -705,13 +703,15 @@ void MsTime_Helper(void) {
 }
 
 # define OS_MS_TIMER_INIT 80000
+#include "../inc/Timer3A.h"
+
 // ********** OS_MsTime_Init **********
 // Initializes the system clock in ms, through timer0A
 // Inputs: None
 // Outputs: None
 void OS_MsTime_Init(void) {
 	// Change from timer 0A to anything else
-	Timer0A_Init(&MsTime_Helper, OS_MS_TIMER_INIT, 0, 1);
+	Timer3A_Init(&MsTime_Helper, OS_MS_TIMER_INIT, 4);
 }
 
 // ******** OS_ClearMsTime ************
@@ -721,7 +721,7 @@ void OS_MsTime_Init(void) {
 void OS_ClearMsTime(void){
 	// Reset timer and counter to their initial config
   OS_MsCount = 0;
-	TIMER0_TAV_R = OS_MS_TIMER_INIT;
+	TIMER3_TAV_R = OS_MS_TIMER_INIT;
 };
 
 // ******** OS_MsTime ************
