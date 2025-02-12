@@ -63,8 +63,8 @@ typedef struct FIFO {
 	uint32_t head;
 	uint32_t tail;
 	
-	Sema4Type flag;
-	Sema4Type mutex;
+	Sema4Type RxDataAvailable;
+	Sema4Type TxRoomLeft;
 } FIFO_t;
 
 /**
@@ -98,6 +98,7 @@ void OS_InitSemaphore(Sema4Type *semaPt, int32_t value);
 // input:  pointer to a counting semaphore
 // output: none
 void OS_Wait(Sema4Type *semaPt); 
+int OS_Wait_noblock(Sema4Type *semaPt); 
 
 // ******** OS_Signal ************
 // increment semaphore 

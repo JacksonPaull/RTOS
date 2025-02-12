@@ -204,14 +204,33 @@ void OS_Wait(Sema4Type *semaPt){
 	DisableInterrupts();
 	
 	semaPt->Value -= 1;
-	if(semaPt->Value < 0) {
+	while(semaPt->Value < 0) { // if(semaPt->Value < 0) {
 		// Add to semaphore's blocked list and unschedule
 		// This thread will later be rescheduled when OS_Signal is called
-		scheduler_unschedule(RunPt);
-		LL_append_linear((LL_node_t **) &semaPt->blocked_threads_head, (LL_node_t *)RunPt);
+//		TCB_t *thread = RunPt;
+//		scheduler_unschedule(thread);
+//		LL_append_linear((LL_node_t **) &semaPt->blocked_threads_head, (LL_node_t *)thread);
+		EnableInterrupts();
+		ContextSwitch();
+		DisableInterrupts();
 	}
-	ContextSwitch(); // Trigger PendSV
+//	ContextSwitch(); // Trigger PendSV
 	EnableInterrupts();
+}; 
+
+// ******** OS_Wait_noblock ************
+// input:  pointer to a counting semaphore
+// output: 1 if successful, 0 if failure
+int OS_Wait_noblock(Sema4Type *semaPt){
+	int i = StartCritical();
+	
+	if(semaPt->Value <= 0) {
+		EndCritical(i);
+		return 0;
+	}
+	semaPt->Value--;
+	EndCritical(i);
+	return 1;
 }; 
 
 // ******** OS_Signal ************
@@ -225,10 +244,10 @@ void OS_Signal(Sema4Type *semaPt){
 	semaPt->Value += 1;
 	
 	// If value <= 0, then awaken a blocked thread
-	if(semaPt->Value <= 0) {
-		TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **)&semaPt->blocked_threads_head);
-		scheduler_schedule(thread);
-	}
+//	if(semaPt->Value <= 0) {
+//		TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **)&semaPt->blocked_threads_head);
+//		scheduler_schedule(thread);
+//	}
 	
 	EndCritical(i);
 }; 
@@ -531,11 +550,11 @@ void OS_Suspend(void){
 void OS_Fifo_Init(uint32_t size){
   // put Lab 2 (and beyond) solution here
   OS_FIFO.data = OS_FIFO_data;	// TODO replace with dynamic allocation (amortized doubling too)
+	OS_FIFO.max_size = size;
 	OS_FIFO.head = 0;
 	OS_FIFO.tail = 0;
-	OS_FIFO.max_size = size+1; // The fifo is essentially null terminated, hence the extra spot
-	OS_InitSemaphore(&OS_FIFO.flag, 0);
-	OS_InitSemaphore(&OS_FIFO.mutex, 1);
+	OS_InitSemaphore(&OS_FIFO.RxDataAvailable, 0);
+	OS_InitSemaphore(&OS_FIFO.TxRoomLeft, size);
 };
 
 // ******** OS_Fifo_Put ************
@@ -547,17 +566,15 @@ void OS_Fifo_Init(uint32_t size){
 // Since this is called by interrupt handlers 
 //  this function can not disable or enable interrupts
 int OS_Fifo_Put(uint32_t data){
-	if((OS_FIFO.tail + 1) % OS_FIFO.max_size == OS_FIFO.head) {
-		// FIFO is full, return 0
+	if(!OS_Wait_noblock(&OS_FIFO.TxRoomLeft)) {
 		return 0;
 	}
 	
-	// FIFO has room
 	// place at tail, increment tail
 	OS_FIFO.data[OS_FIFO.tail] = data;
 	OS_FIFO.tail = (OS_FIFO.tail+1) % OS_FIFO.max_size;
 
-	OS_Signal(&OS_FIFO.flag);
+	OS_Signal(&OS_FIFO.RxDataAvailable);
   return 1;
 };  
 
@@ -568,14 +585,13 @@ int OS_Fifo_Put(uint32_t data){
 // Outputs: data 
 uint32_t OS_Fifo_Get(void){
   // put Lab 2 (and beyond) solution here
-	OS_Wait(&OS_FIFO.flag);	// Wait for data
-	OS_bWait(&OS_FIFO.mutex);	// Mutex when reading data from FIFO
+	OS_Wait(&OS_FIFO.RxDataAvailable);	// Wait for data
 	
 	// Read from head, increment head
 	uint32_t data = OS_FIFO.data[OS_FIFO.head];
 	OS_FIFO.head = (OS_FIFO.head+1) % OS_FIFO.max_size;
   
-	OS_bSignal(&OS_FIFO.mutex);
+	OS_Signal(&OS_FIFO.TxRoomLeft);
   return data;
 };
 
