@@ -60,9 +60,11 @@ void RxFifo_Init(void);
 // add element to end of FIFO
 // return RXFIFOSUCCESS if successful
 int RxFifo_Put(rxDataType data);
+int TxFifo_PutNonBlock(txDataType data);
 // remove element from front of FIFO
 // return RXFIFOSUCCESS if successful
 int RxFifo_Get(rxDataType *datapt);
+int RxFifo_GetNonBlock(rxDataType *datapt);
 // number of elements in FIFO
 // 0 to RXFIFOSIZE-1
 uint32_t RxFifo_Size(void);

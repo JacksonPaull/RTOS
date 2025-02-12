@@ -30,6 +30,7 @@
 
 #include <stdint.h>
 #include "../RTOS_Labs_common/FIFOsimple.h"
+#include "../RTOS_Labs_common/os.h"
 
 
 // Switch between index vs. pointer based implementations
@@ -41,22 +42,35 @@
 uint32_t volatile TxPutI;// put next
 uint32_t volatile TxGetI;// get next
 txDataType static TxFifo[TXFIFOSIZE];
+Sema4Type TxRoomLeft;
 
 // initialize index FIFO
 void TxFifo_Init(void){ 
   TxPutI = TxGetI = 0;  // Empty
-
+	OS_InitSemaphore(&TxRoomLeft, TXFIFOSIZE);
 }
 // add element to end of index FIFO
 // return TXFIFOSUCCESS if successful
 int TxFifo_Put(txDataType data){
-  if((TxPutI-TxGetI) & ~(TXFIFOSIZE-1)){
-    return(TXFIFOFAIL); // Failed, fifo full
-  }
+	OS_Wait(&TxRoomLeft);
+//  if((TxPutI-TxGetI) & ~(TXFIFOSIZE-1)){
+//    return(TXFIFOFAIL); // Failed, fifo full
+//  }
   TxFifo[TxPutI&(TXFIFOSIZE-1)] = data; // put
   TxPutI++;  // Success, update
   return(TXFIFOSUCCESS);
 }
+
+
+int TxFifo_PutNonBlock(txDataType data){
+	if(!OS_Wait_noblock(&TxRoomLeft)) {
+		return (TXFIFOFAIL);
+	}
+  TxFifo[TxPutI&(TXFIFOSIZE-1)] = data; // put
+  TxPutI++;  // Success, update
+  return(TXFIFOSUCCESS);
+}
+
 // remove element from front of index FIFO
 // return TXFIFOSUCCESS if successful
 int TxFifo_Get(txDataType *datapt){
@@ -65,8 +79,10 @@ int TxFifo_Get(txDataType *datapt){
   }
   *datapt = TxFifo[TxGetI&(TXFIFOSIZE-1)];
   TxGetI++;  // Success, update
+	OS_Signal(&TxRoomLeft);
   return(TXFIFOSUCCESS);
 }
+
 // number of elements in index FIFO
 // 0 to TXFIFOSIZE-1
 uint32_t TxFifo_Size(void){
@@ -79,11 +95,12 @@ uint32_t TxFifo_Size(void){
 uint32_t volatile RxPutI;// put next
 uint32_t volatile RxGetI;// get next
 rxDataType static RxFifo[RXFIFOSIZE];
+Sema4Type RxDataAvailable;
 
 // initialize index FIFO
 void RxFifo_Init(void){ 
   RxPutI = RxGetI = 0;  // Empty
-
+	OS_InitSemaphore(&RxDataAvailable, 0);
 }
 // add element to end of index FIFO
 // return RXFIFOSUCCESS if successful
@@ -93,14 +110,24 @@ int RxFifo_Put(rxDataType data){
   }
   RxFifo[RxPutI&(RXFIFOSIZE-1)] = data; // put
   RxPutI++;  // Success, update
+	OS_Signal(&RxDataAvailable);
   return(RXFIFOSUCCESS);
 }
 // remove element from front of index FIFO
 // return TXFIFOSUCCESS if successful
 int RxFifo_Get(rxDataType *datapt){
-  if(RxPutI == RxGetI ){
-    return(RXFIFOFAIL); // Empty if RxPutI=RxGetI
-  }
+	OS_Wait(&RxDataAvailable);
+//  if(RxPutI == RxGetI ){
+//    return(RXFIFOFAIL); // Empty if RxPutI=RxGetI
+//  }
+	
+  *datapt = RxFifo[RxGetI&(RXFIFOSIZE-1)];
+  RxGetI++;  // Success, update
+  return(RXFIFOSUCCESS);
+}
+
+int RxFifo_GetNonBlock(rxDataType *datapt){
+	OS_Wait_noblock(&RxDataAvailable);
   *datapt = RxFifo[RxGetI&(RXFIFOSIZE-1)];
   RxGetI++;  // Success, update
   return(RXFIFOSUCCESS);

@@ -67,6 +67,11 @@ typedef struct FIFO {
 	Sema4Type TxRoomLeft;
 } FIFO_t;
 
+
+
+uint16_t OS_get_num_threads(void);
+int32_t OS_get_max_jitter(void);
+
 /**
  * @details  Initialize operating system, disable interrupts until OS_Launch.
  * Initialize OS controlled I/O: serial, ADC, systick, LaunchPad I/O and timers.

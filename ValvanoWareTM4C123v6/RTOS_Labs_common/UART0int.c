@@ -35,6 +35,7 @@
 #include "../inc/CortexM.h"
 #include "../RTOS_Labs_common/FIFOsimple.h"
 #include "../RTOS_Labs_common/UART0int.h"
+#include "../RTOS_Labs_common/os.h"
 
 #define NVIC_EN0_INT5           0x00000020  // Interrupt 5 enable
 
@@ -114,11 +115,14 @@ void static copySoftwareToHardware(void){
     UART0_DR_R = letter;
   }
 }
+
+
+
 // input ASCII character from UART
 // spin if RxFifo is empty
 char UART_InChar(void){
   char letter;
-  while(RxFifo_Get(&letter) == FIFOFAIL){};
+	RxFifo_Get(&letter);
   return(letter);
 }
 
@@ -128,7 +132,7 @@ char UART_InChar(void){
 //         character if
 char UART_InCharNonBlock(void){
   char letter;
-  if(RxFifo_Get(&letter) == FIFOFAIL){
+  if(RxFifo_GetNonBlock(&letter) == FIFOFAIL){
     return 0;  // empty
   };
   return(letter);
@@ -140,7 +144,7 @@ char UART_InCharNonBlock(void){
 // Output: none
 // spin if TxFifo full
 void UART_OutChar(char data){
-  while(TxFifo_Put(data) == FIFOFAIL){};
+  TxFifo_Put(data);
   UART0_IM_R &= ~UART_IM_TXIM;          // disable TX FIFO interrupt
   copySoftwareToHardware();
   UART0_IM_R |= UART_IM_TXIM;           // enable TX FIFO interrupt
@@ -152,7 +156,7 @@ void UART_OutChar(char data){
 // Output: none
 // Error: return with lost data if TxFifo is full
 void UART_OutCharNonBlock(char data){
-  if(TxFifo_Put(data) == FIFOFAIL) return; // lost data
+  if(TxFifo_PutNonBlock(data) == FIFOFAIL) return; // lost data
   UART0_IM_R &= ~UART_IM_TXIM;          // disable TX FIFO interrupt
   copySoftwareToHardware();
   UART0_IM_R |= UART_IM_TXIM;           // enable TX FIFO interrupt

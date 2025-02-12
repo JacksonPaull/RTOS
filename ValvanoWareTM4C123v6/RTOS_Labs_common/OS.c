@@ -58,6 +58,14 @@ TCB_t *RunPt = 0; // Currently running thread
 TCB_t *inactive_thread_list_head = 0;
 TCB_t *sleeping_thread_list_head = 0;
 
+uint16_t OS_get_num_threads(void) {
+	return thread_cnt;
+}
+
+int32_t OS_get_max_jitter(void) {
+	return MaxJitter;
+}
+
 void DecrementSleepCounters(void) {
 	uint32_t systick_period = (STRELOAD+1) / 80000; // Period of systick in ms
 	
@@ -760,25 +768,25 @@ int fgetc (FILE *f){
   return ch;
 }
 
-//int putc (int ch, FILE *f) { 
-//  if(StreamToDevice==1){  // Lab 4
-//    if(eFile_Write(ch)){          // close file on error
-//       OS_EndRedirectToFile(); // cannot write to file
-//       return 1;                  // failure
-//    }
-//    return 0; // success writing
-//  }
-//  
-//  // default UART output
-//  UART_OutChar(ch);
-//  return ch; 
-//}
+int putc (int ch, FILE *f) { 
+  if(StreamToDevice==1){  // Lab 4
+    if(eFile_Write(ch)){          // close file on error
+       OS_EndRedirectToFile(); // cannot write to file
+       return 1;                  // failure
+    }
+    return 0; // success writing
+  }
+  
+  // default UART output
+  UART_OutChar(ch);
+  return ch; 
+}
 
-//int getc (FILE *f){
-//  char ch = UART_InChar();  // receive from keyboard
-//  UART_OutChar(ch);         // echo
-//  return ch;
-//}
+int getc (FILE *f){
+  char ch = UART_InChar();  // receive from keyboard
+  UART_OutChar(ch);         // echo
+  return ch;
+}
 
 int OS_RedirectToFile(const char *name){  // Lab 4
   eFile_Create(name);              // ignore error if file already exists

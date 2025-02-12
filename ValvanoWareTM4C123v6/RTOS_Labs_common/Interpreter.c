@@ -23,11 +23,7 @@
 #define HELP_MSG_MAX_LEN 256 // Note: probably want to find a better solution for this storage later rather than preallocating everything
 #define ARG_LEN_MAX 16
 
-// Print jitter histogram
-void Jitter(int32_t MaxJitter, uint32_t const JitterSize, uint32_t JitterHistogram[]){
-  // write this for Lab 3 (the latest)
-	
-}
+
 
 
 int ADC(int num_args, ...);
@@ -37,6 +33,10 @@ int clear_screen(int num_args, ...);
 int time(int num_args, ...);
 int ADC_Channel(int num_args, ...);
 int time_reset(int num_args, ...);
+int jitter_hist(int num_args, ...);
+int max_jitter(int num_args, ...);
+int num_threads(int num_args, ...);
+void Jitter(int32_t MaxJitter, uint32_t const JitterSize, uint32_t JitterHistogram[]);
 
 typedef struct Interpreter_Command {
 	char name[CMD_NAME_LEN_MAX];
@@ -53,6 +53,8 @@ const Command commands[] = {
 	{"time", &time, "todo"},
 	{"time_reset", &time_reset, "todo"},
 	{"lcd", &lcd, "todo"},
+	{"max_jitter", &max_jitter, "todo"},
+	{"num_threads", &num_threads, "todo"},
 	
 	{"help", &print_help,
 		"help\r\n\tPrints all help strings\r\n\n"},
@@ -168,6 +170,29 @@ int time_reset(int num_args, ...) {
 	return 0;
 }
 
+// Print jitter histogram
+void Jitter(int32_t MaxJitter, uint32_t const JitterSize, uint32_t JitterHistogram[]){
+  // write this for Lab 3 (the latest)
+	
+}
+
+int jitter_hist(int num_args, ...) {
+	// Call Jitter() after gathering the relevant data
+	return 1;
+}
+
+int max_jitter(int num_args, ...) {
+	int32_t j = OS_get_max_jitter();
+	printf("Max_Jitter: %d\n", j);
+	return 0;
+}
+
+int num_threads(int num_args, ...) {
+	uint16_t nt = OS_get_num_threads();
+	printf("Num_Threads: %u\n", nt);
+	return 0;
+}
+
 int time(int num_args, ...) {
 	uint32_t t = OS_MsTime();
 	printf("OS Time: %u(ms)\r\n", t);
@@ -178,6 +203,8 @@ int clear_screen(int num_args, ...) {
 	printf("\033c");
 	return 0;
 }
+
+
 
 int ADC(int num_args, ...) {
 	va_list args;
