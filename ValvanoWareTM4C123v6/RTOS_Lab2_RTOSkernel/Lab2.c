@@ -311,7 +311,7 @@ int realmain(void){     // realmain
 	
   // attach background tasks
   OS_AddSW1Task(&SW1Push,2);
-  OS_AddPeriodicThread(&DAS,PERIOD,1); // 2 kHz real time sampling of PE3
+	OS_AddPeriodicThread(&DAS,PERIOD,1); // 2 kHz real time sampling of PE3
 
 	// create initial foreground threads
   NumCreated = 0;

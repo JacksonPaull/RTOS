@@ -183,13 +183,13 @@ int jitter_hist(int num_args, ...) {
 
 int max_jitter(int num_args, ...) {
 	int32_t j = OS_get_max_jitter();
-	printf("Max_Jitter: %d\n", j);
+	printf("Max_Jitter: %d\r\n", j);
 	return 0;
 }
 
 int num_threads(int num_args, ...) {
 	uint16_t nt = OS_get_num_threads();
-	printf("Num_Threads: %u\n", nt);
+	printf("Num_Threads: %u\r\n", nt);
 	return 0;
 }
 

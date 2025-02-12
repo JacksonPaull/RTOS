@@ -53,9 +53,6 @@ void TxFifo_Init(void){
 // return TXFIFOSUCCESS if successful
 int TxFifo_Put(txDataType data){
 	OS_Wait(&TxRoomLeft);
-//  if((TxPutI-TxGetI) & ~(TXFIFOSIZE-1)){
-//    return(TXFIFOFAIL); // Failed, fifo full
-//  }
   TxFifo[TxPutI&(TXFIFOSIZE-1)] = data; // put
   TxPutI++;  // Success, update
   return(TXFIFOSUCCESS);
@@ -117,10 +114,6 @@ int RxFifo_Put(rxDataType data){
 // return TXFIFOSUCCESS if successful
 int RxFifo_Get(rxDataType *datapt){
 	OS_Wait(&RxDataAvailable);
-//  if(RxPutI == RxGetI ){
-//    return(RXFIFOFAIL); // Empty if RxPutI=RxGetI
-//  }
-	
   *datapt = RxFifo[RxGetI&(RXFIFOSIZE-1)];
   RxGetI++;  // Success, update
   return(RXFIFOSUCCESS);

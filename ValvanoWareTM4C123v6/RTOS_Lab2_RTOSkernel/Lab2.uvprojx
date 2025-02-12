@@ -524,6 +524,16 @@
               <FileType>5</FileType>
               <FilePath>..\inc\Timer4A.h</FilePath>
             </File>
+            <File>
+              <FileName>Timer1A.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\inc\Timer1A.c</FilePath>
+            </File>
+            <File>
+              <FileName>Timer1A.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\inc\Timer1A.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

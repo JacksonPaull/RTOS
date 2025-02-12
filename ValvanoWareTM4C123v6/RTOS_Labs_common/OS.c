@@ -13,6 +13,8 @@
 #include "../inc/CortexM.h"
 #include "../inc/PLL.h"
 #include "../inc/LaunchPad.h"
+#include "../inc/Timer0A.h"
+#include "../inc/Timer1A.h"
 #include "../inc/Timer4A.h"
 #include "../inc/WTimer0A.h"
 #include "../RTOS_Labs_common/OS.h"
@@ -20,7 +22,6 @@
 #include "../inc/ADCT0ATrigger.h"
 #include "../RTOS_Labs_common/UART0int.h"
 #include "../RTOS_Labs_common/eFile.h"
-#include "../inc/Timer0A.h"
 #include "../RTOS_Lab2_RTOSkernel/LinkedList.h"
 #include "../RTOS_Lab2_RTOSkernel/scheduler.h"
 
@@ -152,8 +153,7 @@ void OS_thread_init(void) {
 		thread = &threads[i];
 
 		LL_append_linear((LL_node_t **) &inactive_thread_list_head, (LL_node_t *)thread);
-		
-		thread->id=++thread_cnt;
+
 		thread->sleep_count = 0;
 		thread->priority = 8;
 		
@@ -184,6 +184,8 @@ void OS_Init(void){
 	// Init anything else used by OS
 	OS_MsTime_Init();
 	OS_thread_init();
+	UART_Init();
+	ST7735_InitR(INITR_REDTAB);
 	
 	// Set PendSV priority to 7;
 	SYSPRI3 = (SYSPRI3 &0xFF0FFFFF) | 0x00E00000;
@@ -320,6 +322,7 @@ int OS_AddThread(void(*task)(void),
 			return 0; // Cannot pull anything from list
 		 
 	// TODO Add a thread_init function here instead of os_thread_init?
+	thread->id = ++thread_cnt;
 	thread_init_stack(thread, task, &OS_Kill);
 	scheduler_schedule(thread);
      
@@ -383,7 +386,7 @@ int OS_AddPeriodicThread(void(*task)(void),
 		// First task is context switch at specified freq
 		// all user tasks are just scheduled with high priority
 		 
-
+	thread_cnt++;
 	Timer4A_Init(task, period, priority);	// Task basically just adds another thread that runs once and dies
      
   return 1; // replace this line with solution
@@ -407,9 +410,10 @@ void GPIOPortF_Handler(void){
 	LL_node_t *node = sw1_ll_head;
 	while(node != 0) {
 		void (*f)(void) = node->data;
-		f();
+		OS_AddThread(f, 64, 0);
 		node = node->next_ptr;
 	}
+	// When priority scheduling is implemented, context switch here
 }
 
 void PortFEdge_Init(void) {
@@ -464,6 +468,7 @@ int OS_AddSW1Task(void(*task)(void), uint32_t priority){
 	if(i >= MAX_NUM_THREADS)
 		return 0;
 	
+	thread_cnt++;
 	LL_node_t* ll_node = &sw1_threads[i++]; // Get the corresponding node
 	ll_node->data = task;
 	LL_append_linear(&sw1_ll_head, ll_node);	// Add to portF controller This is where we can implement thread priority for switch tasks
@@ -682,6 +687,13 @@ uint32_t OS_TimeDifference(uint32_t start, uint32_t stop){
 };
 
 
+// TODO Remove
+
+#define PD0  (*((volatile uint32_t *)0x40007004))
+#define PD1  (*((volatile uint32_t *)0x40007008))
+#define PD2  (*((volatile uint32_t *)0x40007010))
+#define PD3  (*((volatile uint32_t *)0x40007020))
+	
 
 // Private helper function to increment reset counter
 // This will be called every 1ms
@@ -698,7 +710,8 @@ void MsTime_Helper(void) {
 // Inputs: None
 // Outputs: None
 void OS_MsTime_Init(void) {
-	Timer0A_Init(&MsTime_Helper, OS_MS_TIMER_INIT, 1, 1);
+	// Change from timer 0A to anything else
+	Timer0A_Init(&MsTime_Helper, OS_MS_TIMER_INIT, 0, 1);
 }
 
 // ******** OS_ClearMsTime ************
