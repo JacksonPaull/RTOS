@@ -119,7 +119,7 @@ void static copySoftwareToHardware(void){
 
 
 // input ASCII character from UART
-// spin if RxFifo is empty
+// block if RxFifo is empty
 char UART_InChar(void){
   char letter;
 	RxFifo_Get(&letter);
@@ -129,7 +129,7 @@ char UART_InChar(void){
 //------------UART_InCharNonBlock------------
 // input ASCII character from UART
 // output: 0 if RxFifo is empty
-//         character if
+//         character if not empty
 char UART_InCharNonBlock(void){
   char letter;
   if(RxFifo_GetNonBlock(&letter) == FIFOFAIL){

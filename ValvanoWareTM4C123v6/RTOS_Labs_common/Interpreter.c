@@ -24,8 +24,6 @@
 #define ARG_LEN_MAX 16
 
 
-
-
 int ADC(int num_args, ...);
 int lcd(int num_args, ...);
 int print_help(int num_args, ...);
@@ -233,9 +231,6 @@ int ADC_Channel(int num_args, ...) {
 }
 
 int print_help(int num_args, ...) {
-	
-	// Note: There exists a race condition here, but unsure as to what it could be.
-	// Only ISRs being called should be adhering to AAPCS, so they shouldnt prematurely exit this function...
 	printf("HELP\r\n===========================================\r\n\n");
 	Command cmd = commands[0];
 	for(int i = 0; strcmp(cmd.name, "exit") != 0; cmd=commands[++i]) {

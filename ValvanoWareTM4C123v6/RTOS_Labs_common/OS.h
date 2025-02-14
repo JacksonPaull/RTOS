@@ -68,8 +68,19 @@ typedef struct FIFO {
 } FIFO_t;
 
 
-
+/** OS_get_num_threads
+ * @details  Get the total number of allocated threads.
+ * This is different than the number of active threads.
+ * @param  none
+ * @return Total number of allocated threads
+ */
 uint16_t OS_get_num_threads(void);
+
+/** OS_get_max_jitter
+ * @details  Return the max jitter as calculated by the OS
+ * @param  none
+ * @return Maximum measured jitter
+ */
 int32_t OS_get_max_jitter(void);
 
 /**
@@ -103,6 +114,10 @@ void OS_InitSemaphore(Sema4Type *semaPt, int32_t value);
 // input:  pointer to a counting semaphore
 // output: none
 void OS_Wait(Sema4Type *semaPt); 
+
+// ******** OS_Wait_noblock ************
+// input:  pointer to a counting semaphore
+// output: 1 if successful, 0 if failure
 int OS_Wait_noblock(Sema4Type *semaPt); 
 
 // ******** OS_Signal ************

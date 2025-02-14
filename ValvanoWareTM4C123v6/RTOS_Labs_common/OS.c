@@ -57,14 +57,33 @@ TCB_t *RunPt = 0; // Currently running thread
 TCB_t *inactive_thread_list_head = 0;
 TCB_t *sleeping_thread_list_head = 0;
 
+/** OS_get_num_threads
+ * @details  Get the total number of allocated threads.
+ * This is different than the number of active threads.
+ * @param  none
+ * @return Total number of allocated threads
+ */
 uint16_t OS_get_num_threads(void) {
 	return thread_cnt;
 }
 
+
+/** OS_get_max_jitter
+ * @details  Return the max jitter as calculated by the OS
+ * @param  none
+ * @return Maximum measured jitter
+ */
 int32_t OS_get_max_jitter(void) {
 	return MaxJitter;
 }
 
+/** DecrementSleepCounters
+ * @details Decrease the timer on sleeping threads at every invocation of systick
+ * Dynamically calculates the systick period based on the reload value
+ * @param  none
+ * @return none
+ * @brief Handle sleeping threads
+ */
 void DecrementSleepCounters(void) {
 	uint32_t systick_period = (STRELOAD+1) / 80000; // Period of systick in ms
 	
@@ -105,6 +124,13 @@ void OS_UnLockScheduler(unsigned long previous){
 }
 
 
+/** SysTick_init
+ * @details Sets up the systick to trigger repeatedly, once per period
+ * This is used for the frequency at which preemption occurs.
+ * @param  unsigned long period (in 12.5ns units)
+ * @return none
+ * @brief Initialize the SysTick timer
+ */
 void SysTick_Init(unsigned long period){
 	STCTRL &= ~0x1; //Disable systick during setup
   STRELOAD = period-1;
@@ -114,7 +140,17 @@ void SysTick_Init(unsigned long period){
 }
 
 
-
+/** thread_init_stack
+ * @details Initialize the stack for a new thread. Initializes LR to point to return task, 
+ * and PC to point to the birth task. The PSR is set with thumb mode active, but the PSR control bits are all 0
+ * Registers are initialized to a (fixed) garbage value.
+ * A magic value is placed on the bottom of a stack to identify stack corruption
+ * @param thread control block pointer
+ * @param pointer to task the thread will execute after birth
+ * @param pointer to task the thread will execute upon death (usually OS_Kill)
+ * @return none
+ * @brief Set up thread stack before launching
+ */
 void thread_init_stack(TCB_t* thread, void(*task)(void), void(*return_task)(void)) {
 	int id = thread->id;
 	unsigned long* stack = stacks[id];
@@ -142,6 +178,12 @@ void thread_init_stack(TCB_t* thread, void(*task)(void), void(*return_task)(void
 }
 
 
+/** OS_thread_init
+ * @details Preallocate TCBs and add new threads to the inactive pool
+ * @param none
+ * @return none
+ * @brief Set up pool of pre-allocated threads
+ */
 void OS_thread_init(void) {
 	TCB_t* thread = 0;
 	TCB_t* prev_thread=0;
@@ -399,6 +441,11 @@ int OS_AddPeriodicThread(void(*task)(void),
 LL_node_t sw1_threads[MAX_NUM_THREADS]; // Every thread gets its own struct here (conservative)
 LL_node_t *sw1_ll_head = 0;
 
+
+//******** GPIOPortF_Handler *************** 
+// Schedule all thread tasks to run when a PortF interrupt is triggered
+// Inputs: none
+// Outputs: none
 void GPIOPortF_Handler(void){
 	GPIO_PORTF_ICR_R = 0x10;      // acknowledge flag4
 	
@@ -414,6 +461,10 @@ void GPIOPortF_Handler(void){
 	// When priority scheduling is implemented, context switch here
 }
 
+//******** PortFEdge_Init *************** 
+// Set up PortF to trigger an interrupt on falling edge of Sw1
+// Inputs: none
+// Outputs: none
 void PortFEdge_Init(void) {
 	SYSCTL_RCGCGPIO_R |= 0x00000020; // 1) activate clock for port F
   GPIO_PORTF_LOCK_R = 0x4C4F434B;   // 2) unlock GPIO Port F
@@ -455,13 +506,6 @@ void PortFEdge_Init(void) {
 // In lab 3, there will be up to four background threads, and this priority field 
 //           determines the relative priority of these four threads
 int OS_AddSW1Task(void(*task)(void), uint32_t priority){
-//	TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **) &inactive_thread_list_head);
-//	if(thread == 0) 
-//			return 0; // Cannot pull anything from list
-		 
-//	thread->removeAfterScheduling = 1;
-//	thread->initial_task = task;
-//	thread_init_stack(thread, task, &OSThreadReset);
 	static int i = 0;
 	if(i >= MAX_NUM_THREADS)
 		return 0;
@@ -614,9 +658,7 @@ uint32_t OS_Fifo_Get(void){
 //          zero or less than zero if the Fifo is empty 
 //          zero or less than zero if a call to OS_Fifo_Get will spin or block
 int32_t OS_Fifo_Size(void){
-  // put Lab 2 (and beyond) solution here
-   
-  return 0; // replace this line with solution
+  return OS_FIFO.RxDataAvailable.Value;
 };
 
 
@@ -683,14 +725,6 @@ uint32_t OS_TimeDifference(uint32_t start, uint32_t stop){
 
   return 0; // replace this line with solution
 };
-
-
-// TODO Remove
-
-#define PD0  (*((volatile uint32_t *)0x40007004))
-#define PD1  (*((volatile uint32_t *)0x40007008))
-#define PD2  (*((volatile uint32_t *)0x40007010))
-#define PD3  (*((volatile uint32_t *)0x40007020))
 	
 
 // Private helper function to increment reset counter
