@@ -1456,12 +1456,12 @@ void ST7735_Message(uint32_t  d, uint32_t  l, char *pt, int32_t value){
 	if(l >= dev.h || msg_len > dev.w)
 		return;
 	
-	OS_bWait(&LCDFree); // Acquire LCD Lock
+	OS_Wait(&LCDFree); // Acquire LCD Lock
 	ST7735_SetCursor(dev.device_x, l+dev.device_y);
 	ST7735_DrawString(0,StY,"                     ",StTextColor); // Clear line
 	ST7735_OutString(pt);
 	ST7735_OutDec(value);
-	OS_bSignal(&LCDFree);	// Release LCD Lock when done
+	OS_Signal(&LCDFree);	// Release LCD Lock when done
 }
 
 //-----------------------ST7735_OutUDec4-----------------------
