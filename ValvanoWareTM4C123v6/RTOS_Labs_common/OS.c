@@ -13,6 +13,7 @@
 #include "../inc/CortexM.h"
 #include "../inc/PLL.h"
 #include "../inc/LaunchPad.h"
+#include "../inc/Timer3A.h"
 #include "../inc/Timer4A.h"
 #include "../inc/WTimer0A.h"
 #include "../RTOS_Labs_common/OS.h"
@@ -29,6 +30,16 @@ extern void StartOS(void);
 extern void OSThreadReset(void);
 void PortFEdge_Init(void);
 
+// For use with OS_time and related functions
+#define TRIGGERS_TO_MS 53687
+#define TRIGGERS_TO_S 53
+#define TRIGGERS_TO_US 53687091
+
+#define BUS_TO_MS 80000
+#define BUS_TO_US 80
+#define BUS_TO_S 80000000
+
+uint32_t OS_timer_triggers = 0;
 
 // Performance Measurements 
 int32_t MaxJitter;             // largest time jitter between interrupts in usec
@@ -44,9 +55,6 @@ uint32_t OS_FIFO_data[MAX_FIFO_SIZE];
 FIFO_t OS_FIFO;
 
 
-//Note: current max run time will be 2^16 * 1000s ~= 2 years, which seems reasonable
-//uint16_t OS_MsTimeResetCount = 0; // Number of times the OS timer has rolled over, allowing for greater run-times
-uint32_t OS_MsCount = 0;
 uint16_t thread_cnt = 0;
 uint16_t thread_cnt_alive = 0;
 
@@ -108,6 +116,7 @@ void DecrementSleepCounters(void) {
 	}
 	EndCritical(i);
 }
+
 
 /*------------------------------------------------------------------------------
   Systick Interrupt Handler
@@ -728,48 +737,33 @@ uint32_t OS_MailBox_Recv(void){
 // return the system time 
 // Inputs:  none
 // Outputs: time in 12.5ns units, 0 to 4294967295 = 2**32-1
-// The time resolution should be less than or equal to 1us, and the precision 32 bits
-// It is ok to change the resolution and precision of this function as long as 
-//   this function and OS_TimeDifference have the same resolution and precision 
 uint32_t OS_Time(void){
   // put Lab 2 (and beyond) solution here
-
-  return 0; // replace this line with solution
+  return ~TIMER3_TAV_R;
 };
 
 // ******** OS_TimeDifference ************
 // Calculates difference between two times
 // Inputs:  two times measured with OS_Time
 // Outputs: time difference in 12.5ns units 
-// The time resolution should be less than or equal to 1us, and the precision at least 12 bits
-// It is ok to change the resolution and precision of this function as long as 
-//   this function and OS_Time have the same resolution and precision 
 uint32_t OS_TimeDifference(uint32_t start, uint32_t stop){
-  // put Lab 2 (and beyond) solution here
-
-  return 0; // replace this line with solution
+  return stop - start; // replace this line with solution
 };
 	
-
-// Private helper function to increment reset counter
-// This will be called every 1ms
-// no overflow checking will be implemented to save a few clock cycles
-// Overflow will happen at around 50hrs of runtime, which is ok
+uint32_t OS_ms_reset_time = 0;
+// Triggers once every 53.687 seconds
 void MsTime_Helper(void) {
-	//Increment counter
-	OS_MsCount += 1;
+	OS_timer_triggers++;
+	OS_ms_reset_time = 0;
 }
 
-# define OS_MS_TIMER_INIT 80000
-#include "../inc/Timer3A.h"
 
 // ********** OS_MsTime_Init **********
-// Initializes the system clock in ms, through timer0A
+// Initializes the system clock in ms, through timer3A
 // Inputs: None
 // Outputs: None
 void OS_MsTime_Init(void) {
-	// Change from timer 0A to anything else
-	Timer3A_Init(&MsTime_Helper, OS_MS_TIMER_INIT, 4);
+	Timer3A_Init(&MsTime_Helper, 0, 0);
 }
 
 // ******** OS_ClearMsTime ************
@@ -778,19 +772,18 @@ void OS_MsTime_Init(void) {
 // Outputs: none
 void OS_ClearMsTime(void){
 	// Reset timer and counter to their initial config
-  OS_MsCount = 0;
-	TIMER3_TAV_R = OS_MS_TIMER_INIT;
+  OS_timer_triggers = 0;
+	OS_ms_reset_time = OS_Time();
 };
 
 // ******** OS_MsTime ************
 // reads the current time in msec
 // Inputs:  none
 // Outputs: time in ms units
-// You are free to select the time resolution for this function
-// For Labs 2 and beyond, it is ok to make the resolution to match the first call to OS_AddPeriodicThread
 uint32_t OS_MsTime(void){
-	// TODO: Replace the MsTime function with a system timer on us resolution, and convert to ms here
-	return OS_MsCount;
+	// Note: We can take the logical not of the timer as this gives us the time elapsed in bus cycles
+	uint32_t clk_time = OS_TimeDifference(OS_ms_reset_time, ~TIMER3_TAV_R);
+	return OS_timer_triggers * TRIGGERS_TO_MS + clk_time / BUS_TO_MS;
 };
 
 
