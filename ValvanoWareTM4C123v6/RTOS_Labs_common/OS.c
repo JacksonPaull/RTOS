@@ -42,10 +42,17 @@ void PortFEdge_Init(void);
 uint32_t OS_timer_triggers = 0;
 
 // Performance Measurements 
-int32_t MaxJitter;             // largest time jitter between interrupts in usec
 #define JITTERSIZE 64
-uint32_t const JitterSize=JITTERSIZE;
-uint32_t JitterHistogram[JITTERSIZE]={0,};
+#define MAX_JITTER_TRACKERS 3
+
+typedef struct Jitter {
+	uint32_t maxJitter;
+	uint32_t JitterHistogram[JITTERSIZE];
+	uint32_t last_time;
+} Jitter_t;
+
+Jitter_t Jitters[MAX_JITTER_TRACKERS];
+
 
 // OS Mailbox and FIFIO
 # define MAX_FIFO_SIZE 64
@@ -66,6 +73,8 @@ TCB_t *RunPt = 0; // Currently running thread
 TCB_t *inactive_thread_list_head = 0;
 TCB_t *sleeping_thread_list_head = 0;
 
+
+
 /** OS_get_num_threads
  * @details  Get the total number of allocated threads.
  * This is different than the number of active threads.
@@ -73,17 +82,46 @@ TCB_t *sleeping_thread_list_head = 0;
  * @return Total number of allocated threads
  */
 uint16_t OS_get_num_threads(void) {
-	return thread_cnt;
+	return thread_cnt_alive;
 }
 
+// TODO - does this need to have an init?
+
+uint32_t OS_Jitter(uint8_t id) {
+	uint32_t jitter;
+	
+	Jitter_t J = Jitters[id];
+	uint32_t time = OS_Time();
+	
+	int diff = time - J.last_time;
+	if(diff < 0) {
+		jitter = -diff;
+	}
+	else {
+		jitter = diff;
+	}
+	if(jitter > J.maxJitter) {
+		J.maxJitter = jitter;
+	}
+	
+	J.JitterHistogram[jitter]++;
+	
+	J.last_time = time;
+	
+	return jitter;
+}
+
+uint32_t* OS_Jitter_Histogram(uint8_t id) {
+	return Jitters[id].JitterHistogram;
+}
 
 /** OS_get_max_jitter
  * @details  Return the max jitter as calculated by the OS
  * @param  none
  * @return Maximum measured jitter
  */
-int32_t OS_get_max_jitter(void) {
-	return MaxJitter;
+int32_t OS_get_max_jitter(uint8_t id) {
+	return Jitters[id].maxJitter;
 }
 
 /** DecrementSleepCounters
@@ -165,7 +203,7 @@ void SysTick_Init(unsigned long period){
  * @brief Set up thread stack before launching
  */
 void thread_init_stack(TCB_t* thread, void(*task)(void), void(*return_task)(void)) {
-	int id = thread->id;
+	uint8_t id = thread->stack_id;
 	unsigned long* stack = stacks[id];
 	
 	thread->sp = stack+STACK_SIZE-18*sizeof(unsigned long); // Start at bottom of stack and init registers on stack 
@@ -209,11 +247,12 @@ void OS_thread_init(void) {
 
 		thread->sleep_count = 0;
 		thread->priority = 8;
+		thread->stack_id = 0;
 		
 		// TODO init anything else from the thread
 		// Note: Stacks are initialized when making the thread
 			// This also ensures that any program which exits without 
-			//first clearing the stack won't mess up any new threads
+			// first clearing the stack won't mess up any new threads
 	}
 }
 
@@ -243,7 +282,7 @@ void OS_Init(void){
 	// Set PendSV priority to 7;
 	SYSPRI3 = (SYSPRI3 &0xFF0FFFFF) | 0x00E00000;
 	
-	//TODO Init UART, any OS controlled ADCs, etc
+	//TODO  any OS controlled ADCs, etc
 
 }; 
 
@@ -263,22 +302,18 @@ void OS_InitSemaphore(Sema4Type *semaPt, int32_t value){
 // input:  pointer to a counting semaphore
 // output: none
 void OS_Wait(Sema4Type *semaPt){
-  // put Lab 2 (and beyond) solution here
 	DisableInterrupts();
 	
-	
-	while(semaPt->Value <= 0) { // if(semaPt->Value < 0) {
+	semaPt->Value -= 1;
+	if(semaPt->Value < 0) {
 		// Add to semaphore's blocked list and unschedule
 		// This thread will later be rescheduled when OS_Signal is called
-//		TCB_t *thread = RunPt;
-//		scheduler_unschedule(thread);
-//		LL_append_linear((LL_node_t **) &semaPt->blocked_threads_head, (LL_node_t *)thread);
-		EnableInterrupts();
-		ContextSwitch();
-		DisableInterrupts();
+		TCB_t *thread = RunPt;
+		scheduler_unschedule(thread);
+		LL_append_linear((LL_node_t **) &semaPt->blocked_threads_head, (LL_node_t *)thread);
 	}
-	semaPt->Value -= 1;
-//	ContextSwitch(); // Trigger PendSV
+	
+	ContextSwitch(); // Trigger PendSV
 	EnableInterrupts();
 }; 
 
@@ -306,13 +341,11 @@ int OS_Wait_noblock(Sema4Type *semaPt){
 void OS_Signal(Sema4Type *semaPt){
 	int i = StartCritical();
 	semaPt->Value += 1;
-	
 	// If value <= 0, then awaken a blocked thread
-//	if(semaPt->Value <= 0) {
-//		TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **)&semaPt->blocked_threads_head);
-//		scheduler_schedule(thread);
-//	}
-	
+	if(semaPt->Value <= 0) {
+		TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **)&semaPt->blocked_threads_head);
+		scheduler_schedule(thread);
+	}
 	EndCritical(i);
 }; 
 
@@ -329,8 +362,7 @@ void OS_bWait(Sema4Type *semaPt){
 		EnableInterrupts();
 		return;
 	}
-	
-	// semaPt->Value == 0
+
 	scheduler_unschedule(RunPt);
 	LL_append_linear((LL_node_t **)&semaPt->blocked_threads_head, (LL_node_t *) RunPt);
 	ContextSwitch();
@@ -338,13 +370,9 @@ void OS_bWait(Sema4Type *semaPt){
 }; 
 
 // ******** OS_bSignal ************
-// Lab2 spinlock, set to 1
-// Lab3 wakeup blocked thread if appropriate 
 // input:  pointer to a binary semaphore
 // output: none
 void OS_bSignal(Sema4Type *semaPt){
-
-	
 	int i = StartCritical();
 	TCB_t *thread = (TCB_t *)LL_pop_head_linear((LL_node_t **)&semaPt->blocked_threads_head);
 	if(thread != 0) {
@@ -380,14 +408,11 @@ int OS_AddThread(void(*task)(void),
 		return 0; // Cannot pull anything from list
 	}
 		 
-	// TODO Add a thread_init function here instead of os_thread_init?
-	if(thread->id == 0) {
-		thread->id = ++thread_cnt;
-	} else {
-		++thread_cnt;
+	thread->id = ++thread_cnt;
+	if(thread->stack_id == 0) {
+		thread->stack_id = thread->id;
 	}
 	++thread_cnt_alive;
-	
 	
 	thread_init_stack(thread, task, &OS_Kill);
 	scheduler_schedule(thread);

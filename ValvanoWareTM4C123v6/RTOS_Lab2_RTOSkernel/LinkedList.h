@@ -28,6 +28,13 @@ typedef struct LL_NODE {
 	void *data;
 } LL_node_t;
 
+
+// TODO Update linked lists to use this head and create mutual exclusivity
+typedef struct LL_HEAD {
+	Sema4Type mutex;
+	LL_node_t *head_node;
+} LL_Head_t;
+
 // ************************************** FUNCTIONS **************************************
 
 //******** LL_append_linear *************** 

@@ -34,11 +34,11 @@
 
 typedef struct TCB {
 	struct TCB *next_ptr, *prev_ptr; 	// For use in linked lists
-	int id;
+	uint8_t id;
 	unsigned long *sp; 								// Stack pointer
 	uint32_t sleep_count;							// In ms
 	uint8_t priority;
-	//uint8_t removeAfterScheduling;		// For periodic / switch tasks (tells scheduler to unschedule after they run)
+	uint8_t stack_id;									// Remove when memory manager is implemented.
 } TCB_t;
 extern TCB_t *RunPt;
 
@@ -82,8 +82,9 @@ uint16_t OS_get_num_threads(void);
  * @param  none
  * @return Maximum measured jitter
  */
-int32_t OS_get_max_jitter(void);
+int32_t OS_get_max_jitter(uint8_t id);
 
+uint32_t OS_Jitter(uint8_t id);
 /**
  * @details  Initialize operating system, disable interrupts until OS_Launch.
  * Initialize OS controlled I/O: serial, ADC, systick, LaunchPad I/O and timers.
