@@ -44,7 +44,8 @@ uint32_t OS_timer_triggers = 0;
 // Performance Measurements 
 #define MAX_JITTER_TRACKERS 3
 Jitter_t Jitters[MAX_JITTER_TRACKERS];
-
+uint32_t os_int_time_enabled = 0;				// In 1us units
+uint32_t os_int_time_disabled = 0;			// In 1us units
 
 // OS Mailbox and FIFIO
 # define MAX_FIFO_SIZE 64
@@ -100,7 +101,6 @@ uint32_t OS_Jitter(uint8_t id) {
 		jitter = (diff - J.period + 4)/8;
 	}
 	
-	
 	if(jitter > J.maxJitter) {
 		J.maxJitter = jitter;
 	}
@@ -132,6 +132,51 @@ Jitter_t* OS_get_jitter_struct(uint8_t id) {
 int32_t OS_get_max_jitter(uint8_t id) {
 	return Jitters[id].maxJitter;
 }
+
+double OS_get_percent_time_ints_disabled(void) {
+	return (double)(os_int_time_disabled)/(os_int_time_disabled + os_int_time_enabled);
+}
+
+double OS_get_percent_time_ints_enabled(void) {
+	return (double)(os_int_time_enabled)/(os_int_time_disabled + os_int_time_enabled);
+}
+
+uint32_t OS_get_time_ints_disabled(void) {
+	return os_int_time_disabled;
+}
+
+uint32_t OS_get_time_ints_enabled(void) {
+	return os_int_time_enabled;
+}
+
+void OS_reset_int_time(void) {
+	os_int_time_enabled = 0;
+	os_int_time_disabled = 0;
+}
+
+
+// Track the time 
+void OS_track_ints(uint8_t I) {
+	static uint32_t last_time = 0;
+	static uint8_t last_I = 1;
+	
+	uint32_t time = OS_Time();
+	
+	uint32_t time_diff = (time - last_time) / 80; // In units of microseconds
+	if(last_I) { // Interrupts were enabled, mark the time they were enabled for
+		os_int_time_enabled += time_diff;
+	}
+	else {
+		os_int_time_disabled += time_diff;
+	}
+	
+	last_I = I;
+	last_time = time;
+};
+
+
+
+
 
 /** DecrementSleepCounters
  * @details Decrease the timer on sleeping threads at every invocation of systick

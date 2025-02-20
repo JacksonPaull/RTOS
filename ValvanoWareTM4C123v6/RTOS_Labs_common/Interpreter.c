@@ -16,6 +16,7 @@
 #include "../RTOS_Labs_common/UART0int.h"
 #include "../RTOS_Labs_common/eDisk.h"
 #include "../RTOS_Labs_common/eFile.h"
+#include "Interpreter.h"
 
 
 #define CMD_NAME_LEN_MAX 64
@@ -33,6 +34,9 @@ int time_reset(int num_args, ...);
 int jitter_hist(int num_args, ...);
 int max_jitter(int num_args, ...);
 int num_threads(int num_args, ...);
+int int_time_reset(int num_args, ...);
+int int_time(int num_args, ...);
+
 
 typedef struct Interpreter_Command {
 	char name[CMD_NAME_LEN_MAX];
@@ -51,6 +55,10 @@ const Command commands[] = {
 	{"lcd", &lcd, "todo"},
 	{"max_jitter", &max_jitter, "todo"},
 	{"num_threads", &num_threads, "todo"},
+	{"int_time", &int_time, 
+	"int_time <enabled/disabled> <total/percentage>\r\n"},
+	{"int_time_reset", &int_time_reset, 
+	"todo"},
 	
 	{"jitter_hist", &jitter_hist, "jitter_hist <id> <lcd_id>\r\n\t"
 		"id: ID of jitter tracker to print out\r\n\t"},
@@ -149,6 +157,53 @@ void Interpreter(void){
 		}
 	}
 }
+
+
+int int_time_reset(int num_args, ...) {
+	// No args
+	OS_reset_int_time();
+	return 0;
+}
+
+
+int int_time(int num_args, ...) {
+	va_list args;
+	va_start(args, num_args);
+	uint32_t enabled = strtoul(va_arg(args, char*), NULL, 10);
+	uint32_t percentage = strtoul(va_arg(args, char*), NULL, 10);
+	va_end(args);
+	
+	if(enabled > 1 || percentage > 1) {
+		printf("Error: <enabled> and <percentage> must be 0 or 1");
+	}
+	
+	double p;
+	uint32_t t;
+	switch(2*enabled + percentage) {
+		case 0b11:
+			p = OS_get_percent_time_ints_enabled();
+			printf("%%time interrupts  enabled: %.2f\r\n", p);
+			break;
+		
+		case 0b10:
+			t = OS_get_time_ints_enabled();
+			printf("total time interrupts enabled: %d(us)", t);
+			break;
+		
+		case 0b01:
+			p = OS_get_percent_time_ints_disabled();
+			printf("%%time interrupts disabled: %.2f\r\n", p);
+			break;
+		
+		case 0b00:
+			t = OS_get_time_ints_disabled();
+			printf("total time interrupts disabled: %d(us)", t);
+			break;	
+	}
+	
+	return 0;
+}
+
 
 int lcd(int num_args, ...) {
 	va_list args;

@@ -103,6 +103,15 @@ uint32_t OS_get_jitter_size(void);
 uint32_t OS_Jitter(uint8_t id);
 uint32_t* OS_get_Jitter_Histogram(uint8_t id);
 Jitter_t* OS_get_jitter_struct(uint8_t id);
+void OS_init_Jitter(uint8_t id, uint32_t period);
+void OS_track_ints(uint8_t I);
+
+double OS_get_percent_time_ints_disabled(void);
+double OS_get_percent_time_ints_enabled(void);
+uint32_t OS_get_time_ints_disabled(void);
+uint32_t OS_get_time_ints_enabled(void);
+void OS_reset_int_time(void);
+
 /**
  * @details  Initialize operating system, disable interrupts until OS_Launch.
  * Initialize OS controlled I/O: serial, ADC, systick, LaunchPad I/O and timers.

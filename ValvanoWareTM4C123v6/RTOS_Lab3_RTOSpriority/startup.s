@@ -594,8 +594,9 @@ PWM1Fault_Handler
         EXPORT  StartCritical
         EXPORT  EndCritical
         EXPORT  WaitForInterrupt
+		IMPORT OS_track_ints
 
-PF1		EQU		0x4005D008	; Port F1 (masked) register
+; PF1		EQU		0x4005D008	; Port F1 (masked) register
 ;*********** DisableInterrupts ***************
 ; disable interrupts
 ; inputs:  none
@@ -603,11 +604,9 @@ PF1		EQU		0x4005D008	; Port F1 (masked) register
 DisableInterrupts
 		CPSID  I
 		
-		; Track when interrupts are enabled / disabled on portF1
-		LDR R0, =PF1
-		LDR R0, [R0]
-		MOV R1, #0
-		STR R1, [R0]		; PF1 = 0
+		; Track when interrupts are enabled / disabled
+		MOV R0, #0
+		BL OS_track_ints
 		
         BX     LR
 
@@ -618,11 +617,9 @@ DisableInterrupts
 EnableInterrupts
 		CPSIE  I
 
-		; Track when interrupts are enabled / disabled on portF1
-		LDR R0, =PF1
-		LDR R0, [R0]
-		MOV R1, #1
-		STR R1, [R0]		; PF1 = 1
+		; Track when interrupts are enabled / disabled
+		MOV R0, #1
+		BL OS_track_ints
 
         BX     LR
 
@@ -631,15 +628,14 @@ EnableInterrupts
 ; inputs:  none
 ; outputs: previous I bit
 StartCritical
-		MRS    R0, PRIMASK  ; save old status
+		MRS    R1, PRIMASK  ; save old status
         CPSID  I            ; mask all (except faults)
 		
-		; Track when interrupts are enabled / disabled on portF1
-		LDR R1, =PF1
-		LDR R1, [R1]
-		MOV R2, #0
-		STR R2, [R1]		; PF1 = 0
+		; Track when interrupts are enabled / disabled
+		MOV R0, #0
+		BL OS_track_ints
 
+		MOV R0, R1
         BX     LR
 
 ;*********** EndCritical ************************
@@ -649,10 +645,8 @@ StartCritical
 EndCritical
         MSR    PRIMASK, R0
 		
-		; Track when interrupts are enabled / disabled on portF1
-		LDR R1, =PF1
-		LDR R1, [R1]
-		STR R0, [R1]		; PF1 = Previous I Bit
+		; Track when interrupts are enabled / disabled
+		BL OS_track_ints
 		
         BX     LR
 

@@ -686,7 +686,9 @@ int Testmain6(void){       // Testmain6 Lab 3
   NumCreated += OS_AddThread(&Thread7,128,1); 
   NumCreated += OS_AddThread(&Thread6,128,2); 
   OS_AddPeriodicThread(&TaskA,TIME_1MS,0);           // 1 ms, higher priority
+	OS_init_Jitter(0, TIME_1MS);
   OS_AddPeriodicThread(&TaskB,2*TIME_1MS,1);         // 2 ms, lower priority
+	OS_init_Jitter(1, TIME_2MS);
  
   OS_Launch(TIME_2MS); // 2ms, doesn't return, interrupts enabled in here
   return 0;             // this never executes
