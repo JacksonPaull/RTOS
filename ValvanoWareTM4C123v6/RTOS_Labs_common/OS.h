@@ -28,16 +28,23 @@
 #define TIME_250US  (TIME_1MS/4)  
 
 // Thread control stuff
-#define MAX_NUM_THREADS 10
+#define MAX_NUM_THREADS 16
+
+// Note: Periodic threads and switch tasks DO have their own stack
+//			 and therefore they take away from the total pool of threads (when allocated)
+#define MAX_PERIODIC_THREADS 4
+#define MAX_SWITCH_TASKS 4
+#define MAX_THREAD_PRIORITY 32
 #define STACK_SIZE 512
 #define MAGIC 0x12312399
 
 typedef struct TCB {
 	struct TCB *next_ptr, *prev_ptr; 	// For use in linked lists
+	uint8_t priority;
 	uint8_t id;
 	unsigned long *sp; 								// Stack pointer
 	uint32_t sleep_count;							// In ms
-	uint8_t priority;
+	uint8_t isBackgroundThread;				// Boolean for whether the thread is background (i.e. periodic or switch)
 	uint8_t stack_id;									// Remove when memory manager is implemented.
 } TCB_t;
 extern TCB_t *RunPt;
@@ -69,6 +76,15 @@ typedef struct FIFO {
 } FIFO_t;
 
 
+#define JITTERSIZE 64
+typedef struct Jitter {
+	uint32_t maxJitter;
+	uint32_t JitterHistogram[JITTERSIZE];
+	uint32_t last_time;
+	uint32_t period;
+} Jitter_t;
+
+
 /** OS_get_num_threads
  * @details  Get the total number of allocated threads.
  * This is different than the number of active threads.
@@ -83,8 +99,10 @@ uint16_t OS_get_num_threads(void);
  * @return Maximum measured jitter
  */
 int32_t OS_get_max_jitter(uint8_t id);
-
+uint32_t OS_get_jitter_size(void);
 uint32_t OS_Jitter(uint8_t id);
+uint32_t* OS_get_Jitter_Histogram(uint8_t id);
+Jitter_t* OS_get_jitter_struct(uint8_t id);
 /**
  * @details  Initialize operating system, disable interrupts until OS_Launch.
  * Initialize OS controlled I/O: serial, ADC, systick, LaunchPad I/O and timers.

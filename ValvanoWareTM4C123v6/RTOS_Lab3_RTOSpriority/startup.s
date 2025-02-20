@@ -595,12 +595,20 @@ PWM1Fault_Handler
         EXPORT  EndCritical
         EXPORT  WaitForInterrupt
 
+PF1		EQU		0x4005D008	; Port F1 (masked) register
 ;*********** DisableInterrupts ***************
 ; disable interrupts
 ; inputs:  none
 ; outputs: none
 DisableInterrupts
-        CPSID  I
+		CPSID  I
+		
+		; Track when interrupts are enabled / disabled on portF1
+		LDR R0, =PF1
+		LDR R0, [R0]
+		MOV R1, #0
+		STR R1, [R0]		; PF1 = 0
+		
         BX     LR
 
 ;*********** EnableInterrupts ***************
@@ -608,7 +616,14 @@ DisableInterrupts
 ; inputs:  none
 ; outputs: none
 EnableInterrupts
-        CPSIE  I
+		CPSIE  I
+
+		; Track when interrupts are enabled / disabled on portF1
+		LDR R0, =PF1
+		LDR R0, [R0]
+		MOV R1, #1
+		STR R1, [R0]		; PF1 = 1
+
         BX     LR
 
 ;*********** StartCritical ************************
@@ -616,8 +631,15 @@ EnableInterrupts
 ; inputs:  none
 ; outputs: previous I bit
 StartCritical
-        MRS    R0, PRIMASK  ; save old status
+		MRS    R0, PRIMASK  ; save old status
         CPSID  I            ; mask all (except faults)
+		
+		; Track when interrupts are enabled / disabled on portF1
+		LDR R1, =PF1
+		LDR R1, [R1]
+		MOV R2, #0
+		STR R2, [R1]		; PF1 = 0
+
         BX     LR
 
 ;*********** EndCritical ************************
@@ -626,6 +648,12 @@ StartCritical
 ; outputs: none
 EndCritical
         MSR    PRIMASK, R0
+		
+		; Track when interrupts are enabled / disabled on portF1
+		LDR R1, =PF1
+		LDR R1, [R1]
+		STR R0, [R1]		; PF1 = Previous I Bit
+		
         BX     LR
 
 ;*********** WaitForInterrupt ************************

@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include "../RTOS_Labs_common/OS.h"
 #include "../RTOS_Labs_common/ST7735.h"
 #include "../RTOS_Labs_common/ADC.h"
 #include "../inc/ADCT0ATrigger.h"
@@ -34,7 +33,6 @@ int time_reset(int num_args, ...);
 int jitter_hist(int num_args, ...);
 int max_jitter(int num_args, ...);
 int num_threads(int num_args, ...);
-void Jitter(int32_t MaxJitter, uint32_t const JitterSize, uint32_t JitterHistogram[]);
 
 typedef struct Interpreter_Command {
 	char name[CMD_NAME_LEN_MAX];
@@ -53,6 +51,9 @@ const Command commands[] = {
 	{"lcd", &lcd, "todo"},
 	{"max_jitter", &max_jitter, "todo"},
 	{"num_threads", &num_threads, "todo"},
+	
+	{"jitter_hist", &jitter_hist, "jitter_hist <id> <lcd_id>\r\n\t"
+		"id: ID of jitter tracker to print out\r\n\t"},
 	
 	{"help", &print_help,
 		"help\r\n\tPrints all help strings\r\n\n"},
@@ -168,19 +169,42 @@ int time_reset(int num_args, ...) {
 	return 0;
 }
 
-// Print jitter histogram
-void Jitter(int32_t MaxJitter, uint32_t const JitterSize, uint32_t JitterHistogram[]){
-  // write this for Lab 3 (the latest)
+// Print jitter histogram on specified lcd
+void Jitter(Jitter_t* J, uint8_t lcd_id){
 	
+	ST7735_Message(lcd_id, 0, "max_jitter= ", J->maxJitter);
+	int j = 1;
+	for(int i = 0; i < JITTERSIZE; i++) {
+		uint32_t cnt = J->JitterHistogram[i];
+		if(cnt == 0)
+			continue;
+		
+		char buf[9];
+		sprintf(buf, "%d.%dus | ", i/10, i%10); 
+		ST7735_Message(lcd_id, j, buf, cnt);
+		j++;
+	}
 }
 
 int jitter_hist(int num_args, ...) {
-	// Call Jitter() after gathering the relevant data
-	return 1;
+	va_list args;
+	va_start(args, num_args);
+	uint8_t id = strtoul(va_arg(args, char*), NULL, 10);
+	uint8_t lcd_id = strtoul(va_arg(args, char*), NULL, 10);
+	va_end(args);
+	
+	Jitter_t* J = OS_get_jitter_struct(id);
+	Jitter(J, lcd_id);
+	return 0;
 }
 
 int max_jitter(int num_args, ...) {
-	int32_t j = OS_get_max_jitter();
+	va_list args;
+	va_start(args, num_args);
+	uint32_t id = strtoul(va_arg(args, char*), NULL, 10);
+	va_end(args);
+	
+	int32_t j = OS_get_max_jitter(id);
 	printf("Max_Jitter: %d\r\n", j);
 	return 0;
 }

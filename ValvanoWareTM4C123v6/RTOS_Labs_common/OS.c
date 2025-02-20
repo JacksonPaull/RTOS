@@ -42,15 +42,7 @@ void PortFEdge_Init(void);
 uint32_t OS_timer_triggers = 0;
 
 // Performance Measurements 
-#define JITTERSIZE 64
 #define MAX_JITTER_TRACKERS 3
-
-typedef struct Jitter {
-	uint32_t maxJitter;
-	uint32_t JitterHistogram[JITTERSIZE];
-	uint32_t last_time;
-} Jitter_t;
-
 Jitter_t Jitters[MAX_JITTER_TRACKERS];
 
 
@@ -85,21 +77,30 @@ uint16_t OS_get_num_threads(void) {
 	return thread_cnt_alive;
 }
 
-// TODO - does this need to have an init?
-
-uint32_t OS_Jitter(uint8_t id) {
-	uint32_t jitter;
+void OS_init_Jitter(uint8_t id, uint32_t period) {
+	Jitters[id].maxJitter = 0;
+	Jitters[id].last_time = 0;
+	Jitters[id].period = period;
 	
+	for(int i = 0; i < JITTERSIZE; i++) {
+		Jitters[id].JitterHistogram[i] = 0;
+	}
+}
+
+uint32_t OS_Jitter(uint8_t id) {	
+	uint32_t jitter;
 	Jitter_t J = Jitters[id];
 	uint32_t time = OS_Time();
 	
-	int diff = time - J.last_time;
-	if(diff < 0) {
-		jitter = -diff;
+	int diff = OS_TimeDifference(J.last_time, time);
+	if(diff < J.period) {
+		jitter = (J.period - diff + 4)/8; //in 0.1us
 	}
 	else {
-		jitter = diff;
+		jitter = (diff - J.period + 4)/8;
 	}
+	
+	
 	if(jitter > J.maxJitter) {
 		J.maxJitter = jitter;
 	}
@@ -111,8 +112,16 @@ uint32_t OS_Jitter(uint8_t id) {
 	return jitter;
 }
 
-uint32_t* OS_Jitter_Histogram(uint8_t id) {
+uint32_t* OS_get_Jitter_Histogram(uint8_t id) {
 	return Jitters[id].JitterHistogram;
+}
+
+uint32_t OS_get_jitter_size(void) {
+	return JITTERSIZE;
+}
+
+Jitter_t* OS_get_jitter_struct(uint8_t id) {
+	return &Jitters[id];
 }
 
 /** OS_get_max_jitter
@@ -166,12 +175,20 @@ void SysTick_Handler(void) {
 	ContextSwitch();
 }
 
+void BackgroundThreadExit(void) {
+	scheduler_unlock(0); // Force unlock
+	thread_cnt_alive--;
+	
+	ContextSwitch();
+	for(;;){}; // Wait for interrupt
+}
+
 unsigned long OS_LockScheduler(void){
   // lab 4 might need this for disk formating
-  return 0;// replace with solution
+  return scheduler_lock();
 }
 void OS_UnLockScheduler(unsigned long previous){
-  // lab 4 might need this for disk formating
+ scheduler_unlock(previous);
 }
 
 
@@ -413,6 +430,7 @@ int OS_AddThread(void(*task)(void),
 		thread->stack_id = thread->id;
 	}
 	++thread_cnt_alive;
+	thread->isBackgroundThread = 0;
 	
 	thread_init_stack(thread, task, &OS_Kill);
 	scheduler_schedule(thread);
@@ -448,6 +466,54 @@ uint32_t OS_Id(void){
 };
 
 
+
+typedef struct Periodic_TCB {
+	uint32_t period; // in bus cycles
+	TCB_t *TCB;
+	void* task;
+} Periodic_TCB_t;
+
+
+uint8_t NumPeriodicThreads = 0;
+Periodic_TCB_t Periodic_Threads[MAX_PERIODIC_THREADS];
+uint32_t PeriodicThreadTime = 0;
+uint32_t PeriodGCD = 0;
+uint32_t PeriodLCM = 0;
+void PeriodicThreadHandler() {
+	// Add period to counter 
+	PeriodicThreadTime += PeriodGCD;
+	
+	// Check all periodic tasks and launch them as needed
+	for(int i = 0; i < NumPeriodicThreads; i++) {
+		Periodic_TCB_t* t = &Periodic_Threads[i];
+		if(PeriodicThreadTime % t->period == 0) {
+			// Schedule thread (need to init the stack each time)
+			thread_init_stack(t->TCB, t->task, &BackgroundThreadExit);
+			scheduler_schedule(t->TCB);
+		}
+	}
+}
+
+
+// Calculate GCD through euclidean algorithm
+uint32_t CalcGCD(uint32_t i1, uint32_t i2) {
+	while(i1 > 0 && i2 > 0) {
+		if(i1 == i2)
+			return i1;
+		
+		if(i1 > i2) {
+			i1 -= i2;
+		}
+		else {
+			i2 -= i1;
+		}
+	}
+	if(i1 > 0)
+		return i1;
+
+	return i2;
+}
+
 //******** OS_AddPeriodicThread *************** 
 // add a background periodic task
 // typically this function receives the highest priority
@@ -460,26 +526,48 @@ uint32_t OS_Id(void){
 // This task can not spin, block, loop, sleep, or kill
 // This task can call OS_Signal  OS_bSignal   OS_AddThread
 // This task does not have a Thread ID
-// In lab 1, this command will be called 1 time
-// In lab 2, this command will be called 0 or 1 times
-// In lab 2, the priority field can be ignored
-// In lab 3, this command will be called 0 1 or 2 times
-// In lab 3, there will be up to four background threads, and this priority field 
-//           determines the relative priority of these four threads
 
+
+/* Note: Adding periodic tasks with a very low GCD is a bad idea
+					It would yield a lot of 'unnecessary' interrupts.
+					Choose periods with the same units (ideally in ms or s) to avoid this,
+					as the GCD will be at least 1(unit)s */
 int OS_AddPeriodicThread(void(*task)(void), 
    uint32_t period, uint32_t priority){
-  // For lab 2 this system works
-  
-	// TODO (future labs) modify systick
-		// counter that goes from 0 to uintmax
-		// counter % period == 0 --> trigger task / schedule thread
-		// First task is context switch at specified freq
-		// all user tasks are just scheduled with high priority
 		 
-	thread_cnt++;
-	Timer4A_Init(task, period, priority);	// Task basically just adds another thread that runs once and dies
-     
+  
+	TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **) &inactive_thread_list_head);
+	if(thread == 0) {
+		// Can't allocate thread / stack
+		return 0;
+	}
+	
+	NumPeriodicThreads++;
+	
+	// Initialize thread
+	thread->id = thread_cnt++;
+	thread->isBackgroundThread = 1;
+	thread->priority = priority;
+
+	Periodic_TCB_t *t = &Periodic_Threads[NumPeriodicThreads];
+	t->period = period;
+	t->TCB = thread;
+	t->task = task;
+	
+	
+	if(NumPeriodicThreads == 1) {
+		Timer4A_Init(&PeriodicThreadHandler, period, 2);
+		PeriodGCD = period;
+		PeriodLCM = period;
+	}
+	else {
+		// Update Period (and counter)
+		uint32_t old = PeriodGCD;
+		PeriodGCD = CalcGCD(PeriodGCD, period);
+		PeriodLCM = (period/PeriodGCD)*old; // Explot the fact that lcm * gcd = m * n
+		
+		PeriodicThreadTime += Timer4A_change_period(PeriodGCD);
+	}
   return 1; // replace this line with solution
 };
 
@@ -489,9 +577,15 @@ int OS_AddPeriodicThread(void(*task)(void),
 /*----------------------------------------------------------------------------
   PF1 Interrupt Handler
  *----------------------------------------------------------------------------*/
-LL_node_t sw1_threads[MAX_NUM_THREADS]; // Every thread gets its own struct here (conservative)
-LL_node_t *sw1_ll_head = 0;
-void (*sw1task)(void) = 0;
+typedef struct SW_Task {
+	TCB_t *TCB;
+	void *task;
+} SW_Task_t;
+
+SW_Task_t sw1_tasks[MAX_SWITCH_TASKS];
+SW_Task_t sw2_tasks[MAX_SWITCH_TASKS];
+uint8_t num_sw1_tasks = 0;
+uint8_t num_sw2_tasks = 0;
 
 
 //******** GPIOPortF_Handler *************** 
@@ -499,21 +593,29 @@ void (*sw1task)(void) = 0;
 // Inputs: none
 // Outputs: none
 void GPIOPortF_Handler(void){
-	if(sw1task != 0) {
-		sw1task();
-	}
 	GPIO_PORTF_ICR_R = 0x10;      // acknowledge flag4
 	
-	// TODO Sleep 1ms to debounce?
+	// If switch 1 pressed
+	if(GPIO_PORTF_RIS_R & 0x10) {
+		// Schedule all switch 1 tasks
+		for(int i = 0; i < num_sw1_tasks; i++) {
+			SW_Task_t *sw = &sw1_tasks[i];
+			thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit);
+			scheduler_schedule(sw->TCB);
+		}		
+		GPIO_PORTF_ICR_R |= 0x10;
+	}
 	
-	//Schedule thread(s)
-//	LL_node_t *node = sw1_ll_head;
-//	while(node != 0) {
-//		void (*f)(void) = node->data;
-//		OS_AddThread(f, 64, 0);
-//		node = node->next_ptr;
-//	}
-	// When priority scheduling is implemented, context switch here
+	// If switch 2 pressed
+	if(GPIO_PORTF_RIS_R & 0x01) {
+		// Schedule all switch 2 tasks
+		for(int i = 0; i < num_sw2_tasks; i++) {
+			SW_Task_t *sw = &sw2_tasks[i];
+			thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit);
+			scheduler_schedule(sw->TCB);
+		}		
+		GPIO_PORTF_ICR_R |= 0x01;
+	}
 }
 
 //******** PortFEdge_Init *************** 
@@ -526,25 +628,18 @@ void PortFEdge_Init(void) {
   GPIO_PORTF_CR_R = 0x1F;           // allow changes to PF4-0
   GPIO_PORTF_DIR_R |=  0x0E;    // output on PF3,2,1 
   GPIO_PORTF_DIR_R &= ~0x11;    // (c) make PF4,0 in (built-in button)
-  GPIO_PORTF_AFSEL_R &= ~0x1F;  //     disable alt funct on PF4,0
-  GPIO_PORTF_DEN_R |= 0x1F;     //     enable digital I/O on PF4   
-  GPIO_PORTF_PCTL_R &= ~0x000FFFFF; // configure PF4 as GPIO
+  GPIO_PORTF_AFSEL_R &= ~0x11;  //     disable alt funct on PF4,0
+  GPIO_PORTF_DEN_R |= 0x1F;     //     enable digital I/O on PF4,3,2,1,0  
+  GPIO_PORTF_PCTL_R &= ~0x000FFFFF; // configure PF4,3,2,1,0 as GPIO
   GPIO_PORTF_AMSEL_R = 0;       //     disable analog functionality on PF
   GPIO_PORTF_PUR_R |= 0x11;     //     enable weak pull-up on PF4
-  GPIO_PORTF_IS_R &= ~0x10;     // (d) PF4 is edge-sensitive
-  GPIO_PORTF_IBE_R &= ~0x10;    //     PF4 is not both edges
-  GPIO_PORTF_IEV_R &= ~0x10;    //     PF4 falling edge event
-  GPIO_PORTF_ICR_R = 0x10;      // (e) clear flag4
-  GPIO_PORTF_IM_R |= 0x10;      // (f) arm interrupt on PF4 *** No IME bit as mentioned in Book ***
+  GPIO_PORTF_IS_R &= ~0x11;     // (d) PF4/0 is edge-sensitive
+  GPIO_PORTF_IBE_R &= ~0x11;    //     PF4/0 is not both edges
+  GPIO_PORTF_IEV_R &= ~0x11;    //     PF4/0 falling edge event
+  GPIO_PORTF_ICR_R = 0x11;      // (e) clear flag4/0
+  GPIO_PORTF_IM_R |= 0x11;      // (f) arm interrupt on PF4,0 *** No IME bit as mentioned in Book ***
   NVIC_PRI7_R = (NVIC_PRI7_R&0xFF00FFFF)|0x00200000; // (g) priority 1
   NVIC_EN0_R = 0x40000000;      // (h) enable interrupt 30 in NVIC
-	
-//	for(int i = 0; i < MAX_NUM_THREADS; i++) {
-//		LL_node_t* n = &sw1_threads[i];
-//		n->next_ptr = 0;
-//		n->prev_ptr = 0;
-//		n->data = 0;
-//	}
 }
 
 //******** OS_AddSW1Task *************** 
@@ -561,17 +656,22 @@ void PortFEdge_Init(void) {
 // In lab 3, there will be up to four background threads, and this priority field 
 //           determines the relative priority of these four threads
 int OS_AddSW1Task(void(*task)(void), uint32_t priority){
-	static int i = 0;
-//	if(i >= MAX_NUM_THREADS)
-//		return 0;
-//	
-//	thread_cnt++;
-//	LL_node_t* ll_node = &sw1_threads[i++]; // Get the corresponding node
-//	ll_node->data = task;
-//	LL_append_linear(&sw1_ll_head, ll_node);	// Add to portF controller This is where we can implement thread priority for switch tasks
+	TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **) &inactive_thread_list_head);
+	if(thread == 0) {
+		return 0; // Can't allocate a thread
+	}
+	
+	thread->priority = priority;
+	thread->isBackgroundThread = 1;
+	thread->id = ++thread_cnt;
+	++thread_cnt_alive;
+	
+	SW_Task_t *sw = &sw1_tasks[num_sw1_tasks];
+	sw->task = task;
+	sw->TCB = thread;
 
-	sw1task = task;
-  return 1; // replace this line with solution
+	num_sw1_tasks++;
+  return 1;
 };
 
 //******** OS_AddSW2Task *************** 
@@ -588,9 +688,22 @@ int OS_AddSW1Task(void(*task)(void), uint32_t priority){
 // In lab 3, there will be up to four background threads, and this priority field 
 //           determines the relative priority of these four threads
 int OS_AddSW2Task(void(*task)(void), uint32_t priority){
-  // put Lab 2 (and beyond) solution here
-    
-  return 0; // replace this line with solution
+  TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **) &inactive_thread_list_head);
+	if(thread == 0) {
+		return 0; // Can't allocate a thread
+	}
+	
+	thread->priority = priority;
+	thread->isBackgroundThread = 1;
+	thread->id = ++thread_cnt;
+	++thread_cnt_alive;
+	
+	SW_Task_t *sw = &sw2_tasks[num_sw2_tasks];
+	sw->task = task;
+	sw->TCB = thread;
+
+	num_sw2_tasks++;
+  return 1;
 };
 
 

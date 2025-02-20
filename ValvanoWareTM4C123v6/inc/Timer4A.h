@@ -30,5 +30,6 @@
 // Outputs: none
 void Timer4A_Init(void(*task)(void), uint32_t period, uint32_t priority);
 
+uint32_t Timer4A_change_period(uint32_t new_period);
 
 void Timer4A_Stop(void);

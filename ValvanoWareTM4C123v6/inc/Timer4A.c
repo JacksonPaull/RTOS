@@ -48,6 +48,23 @@ void Timer4A_Init(void(*task)(void), uint32_t period, uint32_t priority){
   TIMER4_CTL_R = 0x00000001;    // 10) enable TIMER4A
 }
 
+// ***************** Timer4A_change_period ****************
+// Activate Timer4 interrupts to run user task periodically
+// Inputs:  New period (in bus cycles)
+// Outputs: Previous counter value (in bus cycles)
+uint32_t Timer4A_change_period(uint32_t new_period) {
+	TIMER4_CTL_R = 0x00000000;    // 1) disable TIMER4A during setup
+	volatile uint32_t current_time = TIMER4_TAILR_R - TIMER4_TAV_R;
+	TIMER4_TAILR_R = new_period-1;
+	TIMER4_TAV_R = current_time % new_period;
+	if(current_time > new_period){
+		// Trigger a timer interrupt manually (interrupt 70)
+		NVIC_PEND2_R |= 0x00000040; 
+	}
+	TIMER4_CTL_R = 0x00000001;    //enable TIMER4A
+	return (current_time / new_period) * new_period; // Remove remainder
+}
+
 void Timer4A_Handler(void){
   TIMER4_ICR_R = TIMER_ICR_TATOCINT;// acknowledge TIMER4A timeout
   (*PeriodicTask4)();               // execute user task

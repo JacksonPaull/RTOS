@@ -30,10 +30,10 @@ typedef struct LL_NODE {
 
 
 // TODO Update linked lists to use this head and create mutual exclusivity
-typedef struct LL_HEAD {
-	Sema4Type mutex;
-	LL_node_t *head_node;
-} LL_Head_t;
+//typedef struct LL_HEAD {
+//	Sema4Type mutex;
+//	LL_node_t *head_node;
+//} LL_Head_t;
 
 // ************************************** FUNCTIONS **************************************
 

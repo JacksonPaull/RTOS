@@ -17,7 +17,7 @@
         EXPORT  PendSV_Handler
         EXPORT  SVC_Handler
 		
-		IMPORT round_robin_scheduler
+		IMPORT scheduler_next
 
 
 NVIC_INT_CTRL   EQU     0xE000ED04                              ; Interrupt control state register.
@@ -26,8 +26,7 @@ NVIC_SYSPRI15   EQU     0xE000ED23                              ; Systick priori
 NVIC_LEVEL14    EQU           0xEF                              ; Systick priority value (second lowest).
 NVIC_LEVEL15    EQU           0xFF                              ; PendSV priority value (lowest).
 NVIC_PENDSVSET  EQU     0x10000000                              ; Value to trigger PendSV exception.
-STCURRENT 		EQU 	0xE000E018
-
+STCURRENT 		EQU 	0xE000E018								; Systick current value (reset on context switch)
 
 
 
@@ -103,7 +102,7 @@ ContextSwitch
 PendSV_Handler
 	; 1) Call the scheduler	
 	PUSH {LR}
-	BL round_robin_scheduler	; R0 <-- pointer to next thread
+	BL scheduler_next	; R0 <-- pointer to next thread
 	POP {LR}
 	
 	; 2) Reset STCURRENT=0
@@ -115,14 +114,19 @@ PendSV_Handler
 	CPSID I
 	LDR R1, =RunPt
 	LDR R2, [R1]		; R2 = run_pt
+	
+	CMP R0, R2			; Exit early if the new thread is the current thread
+	BEQ PendSV_exit
+	
 	PUSH {R4-R11}		; Save registers
 	STR SP, [R2, #12] 	; Save stack pointer in TCB
 	STR R0, [R1]		; run_pt = next_pt
 	LDR SP, [R0, #12]	; Load new stack pointer
 	POP {R4-R11}		; Restore registers
+	
+PendSV_exit
 	CPSIE I
-
-    BX	LR                 ; Exception return will restore remaining context   
+    BX	LR              ; Exception return will restore remaining context   
     
 
 ;********************************************************************************************************
