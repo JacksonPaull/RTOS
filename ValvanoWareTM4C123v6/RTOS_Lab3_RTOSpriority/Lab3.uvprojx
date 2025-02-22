@@ -519,6 +519,11 @@
               <FileType>5</FileType>
               <FilePath>.\PriorityQueue.h</FilePath>
             </File>
+            <File>
+              <FileName>Timer3A.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\inc\Timer3A.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

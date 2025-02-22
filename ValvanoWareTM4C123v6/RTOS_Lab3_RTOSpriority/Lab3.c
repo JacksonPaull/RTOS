@@ -399,6 +399,9 @@ int Testmain1(void){  // Testmain1
   NumCreated += OS_AddThread(&Thread2,128,0); 
   NumCreated += OS_AddThread(&Thread3,128,0); 
   // Count1 Count2 Count3 should be equal or off by one at all times
+	// TODO: Check the scheduler to see if all the threads are properly added and that
+	// The scheduler is implementing priority correctly
+	
   OS_Launch(TIME_2MS); // doesn't return, interrupts enabled in here
   return 0;            // this never executes
 }
@@ -864,5 +867,14 @@ int TestmainFIFO(void){   // TestmainFIFO
 
 //*******************Trampoline for selecting main to execute**********
 int main(void) { 			// main 
-  realmain();
+//  Testmain1();	// Passed
+//	Testmain2();	// Passed
+//	Testmain3();	// Passed
+	Testmain4();
+//	Testmain5();
+//	Testmain6();
+//	Testmain7();
+//	TestmainCS();
+//	TestmainFIFO();
+//	realmain();
 }

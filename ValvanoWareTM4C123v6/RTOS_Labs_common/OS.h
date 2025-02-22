@@ -28,14 +28,14 @@
 #define TIME_250US  (TIME_1MS/4)  
 
 // Thread control stuff
-#define MAX_NUM_THREADS 16
+#define MAX_NUM_THREADS 12
 
 // Note: Periodic threads and switch tasks DO have their own stack
 //			 and therefore they take away from the total pool of threads (when allocated)
 #define MAX_PERIODIC_THREADS 4
 #define MAX_SWITCH_TASKS 4
-#define MAX_THREAD_PRIORITY 32
-#define STACK_SIZE 512
+#define MAX_THREAD_PRIORITY 16
+#define STACK_SIZE 256
 #define MAGIC 0x12312399
 
 typedef struct TCB {

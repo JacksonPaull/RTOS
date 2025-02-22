@@ -160,18 +160,18 @@ void OS_track_ints(uint8_t I) {
 	static uint32_t last_time = 0;
 	static uint8_t last_I = 1;
 	
-	uint32_t time = OS_Time();
+//	uint32_t time = OS_Time();
+//	
+//	uint32_t time_diff = (time - last_time) / 80; // In units of microseconds
+//	if(last_I) { // Interrupts were enabled, mark the time they were enabled for
+//		os_int_time_enabled += time_diff;
+//	}
+//	else {
+//		os_int_time_disabled += time_diff;
+//	}
 	
-	uint32_t time_diff = (time - last_time) / 80; // In units of microseconds
-	if(last_I) { // Interrupts were enabled, mark the time they were enabled for
-		os_int_time_enabled += time_diff;
-	}
-	else {
-		os_int_time_disabled += time_diff;
-	}
-	
-	last_I = I;
-	last_time = time;
+//	last_I = I;
+//	last_time = time;
 };
 
 
@@ -333,10 +333,12 @@ void OS_Init(void){
 	LaunchPad_Init();
 	PortFEdge_Init();
 	
-	DisableInterrupts();
+	
 	
 	// Init anything else used by OS
 	OS_MsTime_Init();
+	
+	DisableInterrupts();	// Disable after the OS clock is init so that we can track time ints disabled
 	OS_thread_init();
 	UART_Init();
 	ST7735_InitR(INITR_REDTAB);
@@ -470,12 +472,15 @@ int OS_AddThread(void(*task)(void),
 		return 0; // Cannot pull anything from list
 	}
 		 
+	// Init all TCB attributes
 	thread->id = ++thread_cnt;
 	if(thread->stack_id == 0) {
 		thread->stack_id = thread->id;
 	}
 	++thread_cnt_alive;
 	thread->isBackgroundThread = 0;
+	thread->sleep_count = 0;
+	thread->priority = priority;
 	
 	thread_init_stack(thread, task, &OS_Kill);
 	scheduler_schedule(thread);
@@ -763,11 +768,11 @@ void OS_Sleep(uint32_t sleepTime){
 	thread->sleep_count = sleepTime;
 	
 	// Disable Interrupts while we mess with the TCBs
-	int i = StartCritical();
+	DisableInterrupts();
 	scheduler_unschedule(thread); // Unschedule current thread
 	LL_append_linear((LL_node_t **) &sleeping_thread_list_head, (LL_node_t *)thread); // Add to sleeping list
 	ContextSwitch();
-	EndCritical(i);
+	EnableInterrupts();
 };  
 
 // ******** OS_Kill ************
@@ -780,7 +785,7 @@ void OS_Kill(void){
 	
 	// Reset TCB properties
 	node->sleep_count = 0;
-	node->priority = 8;
+	node->isBackgroundThread = 0;
 	thread_cnt_alive--;
 	
 	// Note: We don't need to mess with the SP 

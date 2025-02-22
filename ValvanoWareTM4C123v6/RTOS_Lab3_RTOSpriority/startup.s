@@ -605,9 +605,10 @@ DisableInterrupts
 		CPSID  I
 		
 		; Track when interrupts are enabled / disabled
-		MOV R0, #0
-		BL OS_track_ints
-		
+		;MOV R0, #0
+		;PUSH{LR}
+		;BL OS_track_ints
+		;POP{LR}
         BX     LR
 
 ;*********** EnableInterrupts ***************
@@ -618,9 +619,10 @@ EnableInterrupts
 		CPSIE  I
 
 		; Track when interrupts are enabled / disabled
-		MOV R0, #1
-		BL OS_track_ints
-
+		;MOV R0, #1
+		;PUSH{LR}
+		;BL OS_track_ints
+		;POP{LR}
         BX     LR
 
 ;*********** StartCritical ************************
@@ -632,10 +634,11 @@ StartCritical
         CPSID  I            ; mask all (except faults)
 		
 		; Track when interrupts are enabled / disabled
-		MOV R0, #0
-		BL OS_track_ints
-
-		MOV R0, R1
+		;MOV R0, #0
+		;PUSH{LR}
+		;BL OS_track_ints
+		;POP{LR}
+		;MOV R0, R1
         BX     LR
 
 ;*********** EndCritical ************************
@@ -646,7 +649,9 @@ EndCritical
         MSR    PRIMASK, R0
 		
 		; Track when interrupts are enabled / disabled
-		BL OS_track_ints
+		;PUSH{LR}
+		;BL OS_track_ints
+		;POP{LR}
 		
         BX     LR
 

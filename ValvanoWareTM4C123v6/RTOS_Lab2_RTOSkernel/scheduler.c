@@ -42,8 +42,8 @@ void scheduler_init(TCB_t **RunPt) {
 
 void scheduler_unschedule(TCB_t *thread) {
 	// Find appropriate list and remove
-	TCB_t *head = Priority_Levels[thread->priority+1];
-	LL_remove((LL_node_t **) &head, (LL_node_t *) thread);
+	TCB_t **head = &Priority_Levels[thread->priority+1];
+	LL_remove((LL_node_t **) head, (LL_node_t *) thread);
 }
 
 void scheduler_schedule(TCB_t *thread) {
@@ -53,8 +53,8 @@ void scheduler_schedule(TCB_t *thread) {
 		return;
 	}
 	
-	TCB_t *head = Priority_Levels[thread->priority+1];
-	LL_append_circular((LL_node_t **) &head, (LL_node_t *) thread);
+	TCB_t **head = &Priority_Levels[thread->priority+1];
+	LL_append_circular((LL_node_t **) head, (LL_node_t *) thread);
 }
 
 // Schedule something to run next, instead of last in line.
@@ -66,8 +66,8 @@ void scheduler_schedule_immediate(TCB_t *thread) {
 		return;
 	}
 	
-	TCB_t *head = Priority_Levels[thread->priority+1];
-	LL_insert_circular((LL_node_t **) &head, (LL_node_t *) thread);
+	TCB_t **head = &Priority_Levels[thread->priority+1];
+	LL_insert_circular((LL_node_t **) head, (LL_node_t *) thread);
 }
 
 
@@ -97,7 +97,8 @@ TCB_t* scheduler_next(void) {
 	uint8_t i = 0;
 	// Find first LL with a non-null pointer
 	while((head == 0) && (i < MAX_THREAD_PRIORITY)) {
-		head = Priority_Levels[i++];
+		head = Priority_Levels[i];
+		i++;
 	}
 	i--;
 	
