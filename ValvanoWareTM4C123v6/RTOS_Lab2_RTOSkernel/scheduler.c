@@ -12,7 +12,7 @@ TCB_t INIT_TCB;		// TCB Used upon first entry into the scheduler
 // +2 for a list for background threads (priority queue)
 TCB_t *Priority_Levels[MAX_THREAD_PRIORITY+2];
 uint8_t locked = 0;
-
+Sema4Type sch_mutex;
 
 // TODO Add Mutex for scheduler 
 

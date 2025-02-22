@@ -23,7 +23,7 @@ void PrioQ_insert(PrioQ_node_t **head, PrioQ_node_t *node) {
 	
 	// Check if need to redefine head
 	PrioQ_node_t* prev_node = *head;
-	if(prev_node->priority < node->priority) {
+	if(prev_node->priority > node->priority) {
 		// Insert at head
 		prev_node->prev_ptr = node;
 		node->next_ptr = prev_node;
@@ -34,7 +34,7 @@ void PrioQ_insert(PrioQ_node_t **head, PrioQ_node_t *node) {
 	
 	while(prev_node->next_ptr != 0) {
 		PrioQ_node_t *n = prev_node->next_ptr;
-		if((prev_node->priority <= node->priority) && (node->priority <  n->priority)) {
+		if((prev_node->priority >= node->priority) && (node->priority >  n->priority)) {
 			// Insert here
 			node->next_ptr = n;
 			node->prev_ptr = prev_node;

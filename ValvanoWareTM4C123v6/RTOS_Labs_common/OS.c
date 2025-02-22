@@ -197,7 +197,6 @@ void DecrementSleepCounters(void) {
 			node->sleep_count = 0; 
 			
 			// remove node from list and reshedule it
-			
 			LL_remove((LL_node_t **)&sleeping_thread_list_head, (LL_node_t *)node);
 			scheduler_schedule(node);
 		}
@@ -225,6 +224,7 @@ void BackgroundThreadExit(void) {
 	thread_cnt_alive--;
 	
 	ContextSwitch();
+	EnableInterrupts(); // Just in case a thread exits with interrupts disabled somehow
 	for(;;){}; // Wait for interrupt
 }
 
@@ -374,10 +374,10 @@ void OS_Wait(Sema4Type *semaPt){
 		// This thread will later be rescheduled when OS_Signal is called
 		TCB_t *thread = RunPt;
 		scheduler_unschedule(thread);
-		LL_append_linear((LL_node_t **) &semaPt->blocked_threads_head, (LL_node_t *)thread);
+		PrioQ_insert((PrioQ_node_t **) &semaPt->blocked_threads_head, (PrioQ_node_t *)thread);
+		ContextSwitch(); // Trigger PendSV
 	}
 	
-	ContextSwitch(); // Trigger PendSV
 	EnableInterrupts();
 }; 
 
@@ -407,7 +407,7 @@ void OS_Signal(Sema4Type *semaPt){
 	semaPt->Value += 1;
 	// If value <= 0, then awaken a blocked thread
 	if(semaPt->Value <= 0) {
-		TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **)&semaPt->blocked_threads_head);
+		TCB_t *thread = (TCB_t *) PrioQ_pop((PrioQ_node_t **)&semaPt->blocked_threads_head);
 		scheduler_schedule(thread);
 	}
 	EndCritical(i);
@@ -428,7 +428,7 @@ void OS_bWait(Sema4Type *semaPt){
 	}
 
 	scheduler_unschedule(RunPt);
-	LL_append_linear((LL_node_t **)&semaPt->blocked_threads_head, (LL_node_t *) RunPt);
+	PrioQ_insert((PrioQ_node_t **)&semaPt->blocked_threads_head, (PrioQ_node_t *) RunPt);
 	ContextSwitch();
 	EnableInterrupts();
 }; 
@@ -438,7 +438,7 @@ void OS_bWait(Sema4Type *semaPt){
 // output: none
 void OS_bSignal(Sema4Type *semaPt){
 	int i = StartCritical();
-	TCB_t *thread = (TCB_t *)LL_pop_head_linear((LL_node_t **)&semaPt->blocked_threads_head);
+	TCB_t *thread = (TCB_t *)PrioQ_pop((PrioQ_node_t **)&semaPt->blocked_threads_head);
 	if(thread != 0) {
 		scheduler_schedule(thread);
 		semaPt->Value = 0;
@@ -527,11 +527,12 @@ typedef struct Periodic_TCB {
 uint8_t NumPeriodicThreads = 0;
 Periodic_TCB_t Periodic_Threads[MAX_PERIODIC_THREADS];
 uint32_t PeriodicThreadTime = 0;
-uint32_t PeriodGCD = 0;
-uint32_t PeriodLCM = 0;
+uint32_t PeriodGCD;	// Resolution to increment by
+uint32_t PeriodLCM;	// Max value necessary to count to
 void PeriodicThreadHandler() {
 	// Add period to counter 
-	PeriodicThreadTime += PeriodGCD;
+	DisableInterrupts();
+	PeriodicThreadTime = (PeriodicThreadTime + PeriodGCD) % PeriodLCM;
 	
 	// Check all periodic tasks and launch them as needed
 	for(int i = 0; i < NumPeriodicThreads; i++) {
@@ -540,8 +541,10 @@ void PeriodicThreadHandler() {
 			// Schedule thread (need to init the stack each time)
 			thread_init_stack(t->TCB, t->task, &BackgroundThreadExit);
 			scheduler_schedule(t->TCB);
+			ContextSwitch();	// Switch to scheduled task asap
 		}
 	}
+	EnableInterrupts();
 }
 
 
@@ -581,7 +584,12 @@ uint32_t CalcGCD(uint32_t i1, uint32_t i2) {
 /* Note: Adding periodic tasks with a very low GCD is a bad idea
 					It would yield a lot of 'unnecessary' interrupts.
 					Choose periods with the same units (ideally in ms or s) to avoid this,
-					as the GCD will be at least 1(unit)s */
+					as the GCD will be at least 1(unit)s 
+					^ This can be solved by using multiple timers with different 'base' resolutions e.g. us and ms separately
+
+					Further, the LCM of the period of these tasks should be less than 53 seconds.
+					^ This can be fixed by using a long long instead of a long for lcm and gcd
+*/
 int OS_AddPeriodicThread(void(*task)(void), 
    uint32_t period, uint32_t priority){
 		 
@@ -592,8 +600,6 @@ int OS_AddPeriodicThread(void(*task)(void),
 		return 0;
 	}
 	
-	NumPeriodicThreads++;
-	
 	// Initialize thread
 	thread->id = thread_cnt++;
 	thread->isBackgroundThread = 1;
@@ -603,9 +609,11 @@ int OS_AddPeriodicThread(void(*task)(void),
 	t->period = period;
 	t->TCB = thread;
 	t->task = task;
+
 	
-	
+	NumPeriodicThreads++;
 	if(NumPeriodicThreads == 1) {
+		// Initialize the timer to run
 		Timer4A_Init(&PeriodicThreadHandler, period, 2);
 		PeriodGCD = period;
 		PeriodLCM = period;
@@ -614,9 +622,10 @@ int OS_AddPeriodicThread(void(*task)(void),
 		// Update Period (and counter)
 		uint32_t old = PeriodGCD;
 		PeriodGCD = CalcGCD(PeriodGCD, period);
-		PeriodLCM = (period/PeriodGCD)*old; // Explot the fact that lcm * gcd = m * n
+		PeriodLCM = (period/PeriodGCD)*old; // Exploit the fact that lcm * gcd = m * n
 		
 		PeriodicThreadTime += Timer4A_change_period(PeriodGCD);
+		PeriodicThreadTime = PeriodicThreadTime % PeriodLCM;
 	}
   return 1; // replace this line with solution
 };
@@ -643,8 +652,7 @@ uint8_t num_sw2_tasks = 0;
 // Inputs: none
 // Outputs: none
 void GPIOPortF_Handler(void){
-	GPIO_PORTF_ICR_R = 0x10;      // acknowledge flag4
-	
+	DisableInterrupts();
 	// If switch 1 pressed
 	if(GPIO_PORTF_RIS_R & 0x10) {
 		// Schedule all switch 1 tasks
@@ -666,6 +674,7 @@ void GPIOPortF_Handler(void){
 		}		
 		GPIO_PORTF_ICR_R |= 0x01;
 	}
+	EnableInterrupts();
 }
 
 //******** PortFEdge_Init *************** 
@@ -768,6 +777,7 @@ void OS_Sleep(uint32_t sleepTime){
 	thread->sleep_count = sleepTime;
 	
 	// Disable Interrupts while we mess with the TCBs
+	
 	DisableInterrupts();
 	scheduler_unschedule(thread); // Unschedule current thread
 	LL_append_linear((LL_node_t **) &sleeping_thread_list_head, (LL_node_t *)thread); // Add to sleeping list
@@ -780,20 +790,19 @@ void OS_Sleep(uint32_t sleepTime){
 // input:  none
 // output: none
 void OS_Kill(void){
-	DisableInterrupts(); // Don't let another thread take over while this thread is in limbo
 	TCB_t *node = RunPt;
 	
 	// Reset TCB properties
 	node->sleep_count = 0;
 	node->isBackgroundThread = 0;
-	thread_cnt_alive--;
 	
 	// Note: We don't need to mess with the SP 
 	//				as it will be automatically reset when a new thread is added
 	
 	
-	
+	DisableInterrupts();
 	scheduler_unschedule(node);
+	thread_cnt_alive--;
 	LL_append_linear((LL_node_t **) &inactive_thread_list_head, (LL_node_t *)node);
 	ContextSwitch();
 	EnableInterrupts();

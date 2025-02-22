@@ -138,21 +138,23 @@ void LL_remove(LL_node_t **head, LL_node_t *node) {
 	LL_node_t *next = node->next_ptr;
 	
 	// Adjust other nodes (if they exist)
-	if(prev != 0 && prev != node){
+	// Note: if the list has only one element, prev->next_ptr = node = node->next_ptr = next
+	if(prev != 0){
 		prev->next_ptr = next;
 	}
-	if(next != 0 && next != node) {
+	if(next != 0) {
 		next->prev_ptr = prev;
 	}
 	
 	// Adjust head if we are removing the head
 	if(*head == node) {
-		if(next != 0) {
+		if(next != node) {
 			*head = next;
 		}
 		else {
 			*head = 0;
 		}
+		
 	}
 	
 	// Unlink node from list completely
