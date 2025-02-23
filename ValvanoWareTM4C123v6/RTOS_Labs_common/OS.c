@@ -90,24 +90,31 @@ void OS_init_Jitter(uint8_t id, uint32_t period) {
 
 uint32_t OS_Jitter(uint8_t id) {	
 	uint32_t jitter;
-	Jitter_t J = Jitters[id];
+	Jitter_t* J = &Jitters[id];
 	uint32_t time = OS_Time();
+
 	
-	int diff = OS_TimeDifference(J.last_time, time);
-	if(diff < J.period) {
-		jitter = (J.period - diff + 4)/8; //in 0.1us
+	int diff = OS_TimeDifference(J->last_time, time);
+	J->last_time = time;
+	
+	if(diff < J->period) {
+		jitter = (J->period - diff + 4)/8; //in 0.1us
 	}
 	else {
-		jitter = (diff - J.period + 4)/8;
+		jitter = (diff - J->period + 4)/8;
 	}
 	
-	if(jitter > J.maxJitter) {
-		J.maxJitter = jitter;
+	if(jitter > J->maxJitter) {
+		J->maxJitter = jitter;
 	}
 	
-	J.JitterHistogram[jitter]++;
+	if(jitter < JITTERSIZE) {
+		J->JitterHistogram[jitter]++;
+	} else {
+		printf("Extreme jitter recorded! (%d)", jitter);
+	}
 	
-	J.last_time = time;
+	
 	
 	return jitter;
 }

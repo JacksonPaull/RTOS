@@ -665,7 +665,7 @@ void Thread7(void){  // foreground thread
   OS_Kill();
 }
 #define workA 500       // {5,50,500 us} work in Task A
-#define counts1us 10    // number of OS_Time counts per 1us
+#define counts1us 80    // number of OS_Time counts per 1us
 void TaskA(void){       // called every {1000, 2990us} in background
   PD1 = 0x02;      // debugging profile  
 	OS_Jitter(0);		 // Track jitter using tracker 0
@@ -871,9 +871,9 @@ int main(void) { 			// main
 //	Testmain2();	// Passed
 //	Testmain3();	// Passed
 //	Testmain4();	// Passed - TODO Separate systick from sleeping threads and uncomment pendsv systick reset
-	Testmain5();
-//	Testmain6();
-//	Testmain7();
+//	Testmain5();	// Passed
+	Testmain6();	// Issue lies in adding multiple periodic threads, probably in gcd calc or something
+	Testmain7();
 //	TestmainCS();
 //	TestmainFIFO();
 //	realmain();
