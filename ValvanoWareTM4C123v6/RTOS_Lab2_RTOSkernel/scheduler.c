@@ -11,17 +11,16 @@ TCB_t INIT_TCB;		// TCB Used upon first entry into the scheduler
 // +1 for inclusive max_priority (i.e. max_prio = 8 -> thread.priority = 8 is valid)
 // +2 for a list for background threads (priority queue)
 TCB_t *Priority_Levels[MAX_THREAD_PRIORITY+2];
-uint8_t locked = 0;
+volatile uint8_t locked = 0;
 Sema4Type sch_mutex;
 
 // TODO Add Mutex for scheduler 
 
-unsigned long scheduler_lock(void) {
+void scheduler_lock(void) {
 	locked = 1;
-	return 0;
 }
 
-void scheduler_unlock(unsigned long prev) {
+void scheduler_unlock(void) {
 	locked = 0;
 }
 
@@ -90,7 +89,7 @@ TCB_t* scheduler_next(void) {
 	// Note: This is where priority elevation can occur
 	
 	// If locked (by a background thread) no preemption occurs
-	if(locked)
+	if(locked == 1)
 		return RunPt;
 	
 	TCB_t *head = 0;
@@ -108,7 +107,7 @@ TCB_t* scheduler_next(void) {
 	
 	// For background threads only
 	if(i == 0) {
-		scheduler_lock();
+		locked = 1;
 		return (TCB_t *)PrioQ_pop((PrioQ_node_t **) &Priority_Levels[0]);	
 	}
 	

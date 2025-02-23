@@ -115,8 +115,8 @@ PendSV_Handler
 	LDR R1, =RunPt
 	LDR R2, [R1]		; R2 = run_pt
 	
-	CMP R0, R2			; Exit early if the new thread is the current thread
-	BEQ PendSV_exit
+	;CMP R0, R2			; Exit early if the new thread is the current thread
+	;BEQ PendSV_exit
 	
 	PUSH {R4-R11}		; Save registers
 	STR SP, [R2, #12] 	; Save stack pointer in TCB

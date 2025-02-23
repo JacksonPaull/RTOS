@@ -364,7 +364,7 @@ int realmain(void){ // realmain
 uint32_t Count1;   // number of times thread1 loops
 uint32_t Count2;   // number of times thread2 loops
 volatile uint32_t Count3;   // number of times thread3 loops
-uint32_t Count4;   // number of times thread4 loops
+volatile uint32_t Count4;   // number of times thread4 loops
 uint32_t Count5;   // number of times thread5 loops
 void Thread1(void){
   Count1 = 0;          

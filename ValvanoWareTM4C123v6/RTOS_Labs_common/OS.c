@@ -220,7 +220,7 @@ void SysTick_Handler(void) {
 }
 
 void BackgroundThreadExit(void) {
-	scheduler_unlock(0); // Force unlock
+	scheduler_unlock(); // Force unlock
 	thread_cnt_alive--;
 	
 	ContextSwitch();
@@ -230,10 +230,11 @@ void BackgroundThreadExit(void) {
 
 unsigned long OS_LockScheduler(void){
   // lab 4 might need this for disk formating
-  return scheduler_lock();
+  scheduler_lock();
+	return 0;
 }
 void OS_UnLockScheduler(unsigned long previous){
- scheduler_unlock(previous);
+ scheduler_unlock();
 }
 
 
@@ -660,6 +661,7 @@ void GPIOPortF_Handler(void){
 			SW_Task_t *sw = &sw1_tasks[i];
 			thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit);
 			scheduler_schedule(sw->TCB);
+			ContextSwitch();
 		}		
 		GPIO_PORTF_ICR_R |= 0x10;
 	}
@@ -671,6 +673,7 @@ void GPIOPortF_Handler(void){
 			SW_Task_t *sw = &sw2_tasks[i];
 			thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit);
 			scheduler_schedule(sw->TCB);
+			ContextSwitch();
 		}		
 		GPIO_PORTF_ICR_R |= 0x01;
 	}

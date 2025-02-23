@@ -14,8 +14,8 @@ void scheduler_update_priority(TCB_t *thread, uint8_t new_priority);
 
 // Note: The scheduler locks itself, and 
 // background threads unlock it when they finish running
-void scheduler_unlock(unsigned long);
-unsigned long scheduler_lock(void);
+void scheduler_unlock(void);
+void scheduler_lock(void);
 
 
 #endif
