@@ -31,7 +31,7 @@ void (*PeriodicTask4)(void);   // user function
 //          period in units (1/clockfreq)
 //          priority 0 (highest) to 7 (lowest)
 // Outputs: none
-void Timer4A_Init(void(*task)(void), uint32_t period, uint32_t priority){
+void Timer4A_InitPeriodic(void(*task)(void), uint32_t period, uint32_t priority){
   SYSCTL_RCGCTIMER_R |= 0x10;   // 0) activate TIMER4
   PeriodicTask4 = task;         // user function
   TIMER4_CTL_R = 0x00000000;    // 1) disable TIMER4A during setup
@@ -48,22 +48,31 @@ void Timer4A_Init(void(*task)(void), uint32_t period, uint32_t priority){
   TIMER4_CTL_R = 0x00000001;    // 10) enable TIMER4A
 }
 
-// ***************** Timer4A_change_period ****************
-// Activate Timer4 interrupts to run user task periodically
-// Inputs:  New period (in bus cycles)
-// Outputs: Previous counter value (in bus cycles)
-uint32_t Timer4A_change_period(uint32_t new_period) {
-	TIMER4_CTL_R = 0x00000000;    // 1) disable TIMER4A during setup
-	volatile uint32_t current_time = TIMER4_TAILR_R - TIMER4_TAV_R;
-	TIMER4_TAILR_R = new_period-1;
-	TIMER4_TAV_R = current_time % new_period;
-	if(current_time > new_period){
-		// Trigger a timer interrupt manually (interrupt 70)
-		NVIC_PEND2_R |= 0x00000040; 
-	}
-	TIMER4_CTL_R = 0x00000001;    //enable TIMER4A
-	return (current_time / new_period) * new_period; // Remove remainder
+void Timer4A_InitOneShot(void(*task)(void), uint32_t period, uint32_t priority){
+  SYSCTL_RCGCTIMER_R |= 0x10;   // 0) activate TIMER4
+  PeriodicTask4 = task;         // user function
+  TIMER4_CTL_R = 0x00000000;    // 1) disable TIMER4A during setup
+  TIMER4_CFG_R = 0x00000000;    // 2) configure for 32-bit mode
+  TIMER4_TAMR_R = 0x00000001;   // 3) configure for one shot mode, default down-count settings
+  TIMER4_TAILR_R = period-1;    // 4) reload value
+  TIMER4_TAPR_R = 0;            // 5) bus clock resolution
+  TIMER4_ICR_R = 0x00000001;    // 6) clear TIMER3A timeout flag
+  TIMER4_IMR_R = 0x00000001;    // 7) arm timeout interrupt
+  NVIC_PRI17_R = (NVIC_PRI17_R&0xFF00FFFF)|(priority<<21); // priority
+// interrupts enabled in the main program after all devices initialized
+// vector number 86, interrupt number 70
+  NVIC_EN2_R = 0x00000040;      // 9) enable interrupt 70 in NVIC
+  TIMER4_CTL_R = 0x00000001;    // 10) enable TIMER4A
 }
+
+void Timer4A_RestartOneShot(uint32_t new_period) {
+	if(new_period) {
+		TIMER4_TAILR_R = new_period-1;    // 4) reload value
+	}
+	TIMER4_CTL_R = 0x00000001;    // 10) enable TIMER4A
+}
+
+
 
 void Timer4A_Handler(void){
   TIMER4_ICR_R = TIMER_ICR_TATOCINT;// acknowledge TIMER4A timeout

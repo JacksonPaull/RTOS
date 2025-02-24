@@ -41,25 +41,30 @@ void scheduler_init(TCB_t **RunPt) {
 
 void scheduler_unschedule(TCB_t *thread) {
 	// Find appropriate list and remove
+	int I = StartCritical();
 	TCB_t **head = &Priority_Levels[thread->priority+1];
 	LL_remove((LL_node_t **) head, (LL_node_t *) thread);
+	EndCritical(I);
 }
 
 void scheduler_schedule(TCB_t *thread) {
 	// Find appropriate list and insert
+	int I = StartCritical();
 	if(thread->isBackgroundThread) {
 		PrioQ_insert((PrioQ_node_t **) &Priority_Levels[0], (PrioQ_node_t *) thread);
-		return;
 	}
-	
-	TCB_t **head = &Priority_Levels[thread->priority+1];
-	LL_append_circular((LL_node_t **) head, (LL_node_t *) thread);
+	else {
+		TCB_t **head = &Priority_Levels[thread->priority+1];
+		LL_append_circular((LL_node_t **) head, (LL_node_t *) thread);
+	}
+	EndCritical(I);
 }
 
 // Schedule something to run next, instead of last in line.
 // This can eventually be removed when a priority scheduler is introduced
 void scheduler_schedule_immediate(TCB_t *thread) {
 	// Find appropriate list and insert
+	int I = StartCritical();
 	if(thread->isBackgroundThread) {
 		PrioQ_insert((PrioQ_node_t **) &Priority_Levels[0], (PrioQ_node_t *) thread);
 		return;
@@ -67,6 +72,7 @@ void scheduler_schedule_immediate(TCB_t *thread) {
 	
 	TCB_t **head = &Priority_Levels[thread->priority+1];
 	LL_insert_circular((LL_node_t **) head, (LL_node_t *) thread);
+	EndCritical(I);
 }
 
 
@@ -86,11 +92,15 @@ Inputs: None
 Outputs: pointer to next thread that should be run
 */
 TCB_t* scheduler_next(void) {
+	TCB_t *thread_to_schedule;
 	// Note: This is where priority elevation can occur
 	
 	// If locked (by a background thread) no preemption occurs
-	if(locked == 1)
+	int I = StartCritical();
+	if(locked == 1){
+		EndCritical(I);
 		return RunPt;
+	}
 	
 	TCB_t *head = 0;
 	uint8_t i = 0;
@@ -101,19 +111,23 @@ TCB_t* scheduler_next(void) {
 	}
 	i--;
 	
-	if(head == 0) // Nothing is scheduled, use the base OS program
+	if(head == 0) { // Nothing is scheduled, use the base OS program
+		EndCritical(I);
 		return &INIT_TCB;
-	
+	}
 	
 	// For background threads only
 	if(i == 0) {
 		locked = 1;
-		return (TCB_t *)PrioQ_pop((PrioQ_node_t **) &Priority_Levels[0]);	
+		thread_to_schedule = (TCB_t *)PrioQ_pop((PrioQ_node_t **) &Priority_Levels[0]);
+		EndCritical(I);
+		return thread_to_schedule;
 	}
 	
 	// Execute round robin scheduling on that list
-	TCB_t *thread_to_schedule = head->next_ptr;
+	thread_to_schedule = head->next_ptr;
 	Priority_Levels[i] = thread_to_schedule;
+	EndCritical(I);
 	return thread_to_schedule;
 }
 

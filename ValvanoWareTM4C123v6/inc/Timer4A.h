@@ -28,8 +28,10 @@
 //          period in units (1/clockfreq)
 //          priority 0 (highest) to 7 (lowest)
 // Outputs: none
-void Timer4A_Init(void(*task)(void), uint32_t period, uint32_t priority);
+void Timer4A_InitPeriodic(void(*task)(void), uint32_t period, uint32_t priority);
 
-uint32_t Timer4A_change_period(uint32_t new_period);
+void Timer4A_InitOneShot(void(*task)(void), uint32_t period, uint32_t priority);
+
+void Timer4A_RestartOneShot(uint32_t new_period);
 
 void Timer4A_Stop(void);

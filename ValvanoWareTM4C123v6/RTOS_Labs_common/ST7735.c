@@ -120,8 +120,6 @@
 #include "../RTOS_Labs_common/OS.h"
 #include "../RTOS_Labs_common/eDisk.h"
 
-extern void StartCritical(void);
-extern void EndCritical(void);
 // these defines are in two places, here and in eDisk.c
 #define SDC_CS_PB0 1
 #define SDC_CS_PD7 0

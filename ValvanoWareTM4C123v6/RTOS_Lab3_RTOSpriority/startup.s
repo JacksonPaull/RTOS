@@ -630,10 +630,11 @@ EnableInterrupts
 ; inputs:  none
 ; outputs: previous I bit
 StartCritical
-		MRS    R1, PRIMASK  ; save old status
+		MRS    R0, PRIMASK  ; save old status
         CPSID  I            ; mask all (except faults)
 		
 		; Track when interrupts are enabled / disabled
+		;MOV R1, R0
 		;MOV R0, #0
 		;PUSH{LR}
 		;BL OS_track_ints

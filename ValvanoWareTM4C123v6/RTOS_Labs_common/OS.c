@@ -7,10 +7,8 @@
 // Jan 12, 2020, valvano@mail.utexas.edu
 
 
-#include <stdint.h>
 #include <stdio.h>
-#include "../inc/tm4c123gh6pm.h"
-#include "../inc/CortexM.h"
+
 #include "../inc/PLL.h"
 #include "../inc/LaunchPad.h"
 #include "../inc/Timer3A.h"
@@ -80,7 +78,7 @@ uint16_t OS_get_num_threads(void) {
 
 void OS_init_Jitter(uint8_t id, uint32_t period) {
 	Jitters[id].maxJitter = 0;
-	Jitters[id].last_time = 0;
+	Jitters[id].last_time = OS_Time();
 	Jitters[id].period = period;
 	
 	for(int i = 0; i < JITTERSIZE; i++) {
@@ -91,11 +89,10 @@ void OS_init_Jitter(uint8_t id, uint32_t period) {
 uint32_t OS_Jitter(uint8_t id) {	
 	uint32_t jitter;
 	Jitter_t* J = &Jitters[id];
-	uint32_t time = OS_Time();
+	uint32_t time = ~TIMER3_TAV_R;
 
-	
 	int diff = OS_TimeDifference(J->last_time, time);
-	J->last_time = time;
+	
 	
 	if(diff < J->period) {
 		jitter = (J->period - diff + 4)/8; //in 0.1us
@@ -114,8 +111,7 @@ uint32_t OS_Jitter(uint8_t id) {
 		printf("Extreme jitter recorded! (%d)", jitter);
 	}
 	
-	
-	
+	J->last_time = time;
 	return jitter;
 }
 
@@ -526,54 +522,54 @@ uint32_t OS_Id(void){
 
 
 typedef struct Periodic_TCB {
+	struct Periodic_TCB *next, *prev;
+	uint8_t priority;
 	uint32_t period; // in bus cycles
+	uint32_t cnt;
 	TCB_t *TCB;
-	void* task;
+	void (*task)(void);
 } Periodic_TCB_t;
 
 
 uint8_t NumPeriodicThreads = 0;
 Periodic_TCB_t Periodic_Threads[MAX_PERIODIC_THREADS];
-uint32_t PeriodicThreadTime = 0;
-uint32_t PeriodGCD;	// Resolution to increment by
-uint32_t PeriodLCM;	// Max value necessary to count to
+Periodic_TCB_t *Periodic_PrioQ;
+
 void PeriodicThreadHandler() {
-	// Add period to counter 
 	DisableInterrupts();
-	PeriodicThreadTime = (PeriodicThreadTime + PeriodGCD) % PeriodLCM;
+	uint32_t min_cnt = 0xFFFFFFFF;
 	
 	// Check all periodic tasks and launch them as needed
-	for(int i = 0; i < NumPeriodicThreads; i++) {
-		Periodic_TCB_t* t = &Periodic_Threads[i];
-		if(PeriodicThreadTime % t->period == 0) {
+	Periodic_TCB_t *node = Periodic_PrioQ;
+	while(node != 0) {
+		
+		// counter -= timer period
+		node->cnt -= TIMER4_TAILR_R+1; 
+		
+		if(node->cnt == 0) {
+			node->cnt = node->period;
+			
+			// Note: An issue arises using this method when two threads attempt to be scheduled simultaneously, not sure what yet
 			// Schedule thread (need to init the stack each time)
-			thread_init_stack(t->TCB, t->task, &BackgroundThreadExit);
-			scheduler_schedule(t->TCB);
-			ContextSwitch();	// Switch to scheduled task asap
+//			thread_init_stack(node->TCB, node->task, &BackgroundThreadExit);
+//			scheduler_schedule(node->TCB);
+//			ContextSwitch();	// Switch to scheduled task asap
+			
+			node->task();
 		}
+		
+		if(node->cnt < min_cnt) {
+			min_cnt = node->cnt;
+		}
+		
+		node = node->next;
 	}
+	
+	// Reset timer based on min cnt value
+	Timer4A_RestartOneShot(min_cnt);
 	EnableInterrupts();
 }
 
-
-// Calculate GCD through euclidean algorithm
-uint32_t CalcGCD(uint32_t i1, uint32_t i2) {
-	while(i1 > 0 && i2 > 0) {
-		if(i1 == i2)
-			return i1;
-		
-		if(i1 > i2) {
-			i1 -= i2;
-		}
-		else {
-			i2 -= i1;
-		}
-	}
-	if(i1 > 0)
-		return i1;
-
-	return i2;
-}
 
 //******** OS_AddPeriodicThread *************** 
 // add a background periodic task
@@ -589,22 +585,14 @@ uint32_t CalcGCD(uint32_t i1, uint32_t i2) {
 // This task does not have a Thread ID
 
 
-/* Note: Adding periodic tasks with a very low GCD is a bad idea
-					It would yield a lot of 'unnecessary' interrupts.
-					Choose periods with the same units (ideally in ms or s) to avoid this,
-					as the GCD will be at least 1(unit)s 
-					^ This can be solved by using multiple timers with different 'base' resolutions e.g. us and ms separately
-
-					Further, the LCM of the period of these tasks should be less than 53 seconds.
-					^ This can be fixed by using a long long instead of a long for lcm and gcd
-*/
 int OS_AddPeriodicThread(void(*task)(void), 
    uint32_t period, uint32_t priority){
 		 
-  
+  int i = StartCritical();
 	TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **) &inactive_thread_list_head);
 	if(thread == 0) {
 		// Can't allocate thread / stack
+		EndCritical(i);
 		return 0;
 	}
 	
@@ -613,28 +601,20 @@ int OS_AddPeriodicThread(void(*task)(void),
 	thread->isBackgroundThread = 1;
 	thread->priority = priority;
 
-	Periodic_TCB_t *t = &Periodic_Threads[NumPeriodicThreads];
+	Periodic_TCB_t *t = &Periodic_Threads[NumPeriodicThreads++];
 	t->period = period;
 	t->TCB = thread;
 	t->task = task;
-
+	t->cnt = period;
+	t->priority = priority;
 	
-	NumPeriodicThreads++;
+	PrioQ_insert((PrioQ_node_t **) &Periodic_PrioQ, (PrioQ_node_t *)t);
+
 	if(NumPeriodicThreads == 1) {
-		// Initialize the timer to run
-		Timer4A_Init(&PeriodicThreadHandler, period, 2);
-		PeriodGCD = period;
-		PeriodLCM = period;
+		// Set the timer to start running on first added thread
+		Timer4A_InitOneShot(&PeriodicThreadHandler, period, PERIODIC_TIMER_PRIO);
 	}
-	else {
-		// Update Period (and counter)
-		uint32_t old = PeriodGCD;
-		PeriodGCD = CalcGCD(PeriodGCD, period);
-		PeriodLCM = (period/PeriodGCD)*old; // Exploit the fact that lcm * gcd = m * n
-		
-		PeriodicThreadTime += Timer4A_change_period(PeriodGCD);
-		PeriodicThreadTime = PeriodicThreadTime % PeriodLCM;
-	}
+	EndCritical(i);
   return 1; // replace this line with solution
 };
 
@@ -945,7 +925,6 @@ uint32_t OS_MailBox_Recv(void){
 // Inputs:  none
 // Outputs: time in 12.5ns units, 0 to 4294967295 = 2**32-1
 uint32_t OS_Time(void){
-  // put Lab 2 (and beyond) solution here
   return ~TIMER3_TAV_R;
 };
 
