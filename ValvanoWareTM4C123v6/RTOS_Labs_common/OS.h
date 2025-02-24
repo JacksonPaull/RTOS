@@ -91,13 +91,14 @@ typedef struct FIFO {
 
 
 #define JITTERSIZE 32
+#define JITTER_UNITSIZE 5
 typedef struct Jitter {
 	uint32_t maxJitter;
 	uint32_t JitterHistogram[JITTERSIZE];
 	uint32_t last_time;
 	uint32_t period;
 	uint32_t resolution;
-	char unit[4];
+	char unit[JITTER_UNITSIZE];
 } Jitter_t;
 
 
@@ -114,10 +115,7 @@ uint16_t OS_get_num_threads(void);
  * @param  none
  * @return Maximum measured jitter
  */
-int32_t OS_get_max_jitter(uint8_t id);
-uint32_t OS_get_jitter_size(void);
 uint32_t OS_Jitter(uint8_t id);
-uint32_t* OS_get_Jitter_Histogram(uint8_t id);
 Jitter_t* OS_get_jitter_struct(uint8_t id);
 void OS_init_Jitter(uint8_t id, uint32_t period, uint32_t resolution, char unit[]);
 void OS_track_ints(uint8_t I);

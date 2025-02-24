@@ -235,7 +235,7 @@ void Jitter(Jitter_t* J, uint8_t lcd_id){
 			continue;
 		
 		char buf[9];
-		sprintf(buf, "%d.%d(%s) | ", i/10, i%10, J->unit); 
+		sprintf(buf, "%d(%s) | ", i, J->unit); 
 		ST7735_Message(lcd_id, j, buf, cnt);
 		j++;
 	}
@@ -259,8 +259,8 @@ int max_jitter(int num_args, ...) {
 	uint32_t id = strtoul(va_arg(args, char*), NULL, 10);
 	va_end(args);
 	
-	int32_t j = OS_get_max_jitter(id);
-	printf("Max_Jitter: %d\r\n", j);
+	Jitter_t* J = OS_get_jitter_struct(id);
+	printf("Max_Jitter: %d\r\n", J->maxJitter);
 	return 0;
 }
 

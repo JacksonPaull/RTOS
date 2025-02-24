@@ -692,9 +692,9 @@ int Testmain6(void){       // Testmain6 Lab 3
   NumCreated += OS_AddThread(&Thread7,128,1); 
   NumCreated += OS_AddThread(&Thread6,128,2); 
   OS_AddPeriodicThread(&TaskA,TIME_1MS,0);           // 1 ms, higher priority
-	OS_init_Jitter(0, TIME_1MS, TIME_10US, "10us");
-  OS_AddPeriodicThread(&TaskB,TIME_1MS,1);         // 2 ms, lower priority
-	OS_init_Jitter(1, TIME_2MS, TIME_10US, "10us");
+	OS_init_Jitter(0, TIME_1MS, TIME_1US, "us");
+  OS_AddPeriodicThread(&TaskB,2*TIME_1MS,1);         // 2 ms, lower priority
+	OS_init_Jitter(1, TIME_2MS, TIME_1US, "us");
  
   OS_Launch(TIME_2MS); // 2ms, doesn't return, interrupts enabled in here
   return 0;             // this never executes
@@ -870,14 +870,16 @@ int TestmainFIFO(void){   // TestmainFIFO
 
 //*******************Trampoline for selecting main to execute**********
 int main(void) { 			// main 
+//	TestmainCS();	// Passed
+//	TestmainFIFO();	// Passed
 //  Testmain1();	// Passed
 //	Testmain2();	// Passed
 //	Testmain3();	// Passed
-//	Testmain4();	// Passed - TODO Separate systick from sleeping threads and uncomment pendsv systick reset
+//	Testmain4();	// Passed
 //	Testmain5();	// Passed
-	Testmain6();	// Issue lies in adding multiple periodic threads, probably in gcd calc or something
+	Testmain6();	// Passed
 //	Testmain7();
-//	TestmainCS();
-//	TestmainFIFO();
+
+
 //	realmain();
 }

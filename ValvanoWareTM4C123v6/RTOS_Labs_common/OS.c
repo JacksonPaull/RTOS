@@ -79,10 +79,10 @@ uint16_t OS_get_num_threads(void) {
 
 void OS_init_Jitter(uint8_t id, uint32_t period, uint32_t resolution, char unit[]) {
 	Jitters[id].maxJitter = 0;
-	Jitters[id].last_time = OS_Time();
+	Jitters[id].last_time = 0;
 	Jitters[id].period = period;
 	Jitters[id].resolution = resolution;
-	for(int i = 0; i < 4; i++) {
+	for(int i = 0; i < JITTER_UNITSIZE; i++) {
 		Jitters[id].unit[i] = unit[i];
 	}
 	
@@ -94,10 +94,16 @@ void OS_init_Jitter(uint8_t id, uint32_t period, uint32_t resolution, char unit[
 uint32_t OS_Jitter(uint8_t id) {	
 	uint32_t jitter;
 	Jitter_t* J = &Jitters[id];
-	uint32_t time = ~TIMER3_TAV_R;
+	uint32_t time = OS_Time();
+	
+	// Ignore first jitter (system setup)
+	if(J->last_time == 0) {
+		J->last_time = time;
+		return 0;
+	}
 
 	int diff = OS_TimeDifference(J->last_time, time);
-	
+	J->last_time = time;
 	
 	if(diff < J->period) {
 		jitter = (J->period - diff + 4)/J->resolution; //in 0.1us
@@ -121,26 +127,11 @@ uint32_t OS_Jitter(uint8_t id) {
 	return jitter;
 }
 
-uint32_t* OS_get_Jitter_Histogram(uint8_t id) {
-	return Jitters[id].JitterHistogram;
-}
-
-uint32_t OS_get_jitter_size(void) {
-	return JITTERSIZE;
-}
 
 Jitter_t* OS_get_jitter_struct(uint8_t id) {
 	return &Jitters[id];
 }
 
-/** OS_get_max_jitter
- * @details  Return the max jitter as calculated by the OS
- * @param  none
- * @return Maximum measured jitter
- */
-int32_t OS_get_max_jitter(uint8_t id) {
-	return Jitters[id].maxJitter;
-}
 
 double OS_get_percent_time_ints_disabled(void) {
 	return (double)(os_int_time_disabled)/(os_int_time_disabled + os_int_time_enabled);
