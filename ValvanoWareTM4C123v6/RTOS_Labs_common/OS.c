@@ -224,6 +224,7 @@ void BackgroundThreadExit(void) {
 	thread_cnt_alive--;
 	
 	ContextSwitch();
+	EnableInterrupts(); // Force interrupt enable
 	for(;;){}; // Wait for interrupt
 }
 
