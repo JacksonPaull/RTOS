@@ -877,9 +877,9 @@ int main(void) { 			// main
 //	Testmain3();	// Passed
 //	Testmain4();	// Passed
 //	Testmain5();	// Passed
-	Testmain6();	// Passed
-//	Testmain7();
+//	Testmain6();	// Passed
+//	Testmain7();	// Passed
 
 
-//	realmain();
+	realmain();
 }
