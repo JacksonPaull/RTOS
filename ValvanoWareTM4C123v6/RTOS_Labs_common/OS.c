@@ -77,10 +77,14 @@ uint16_t OS_get_num_threads(void) {
 	return thread_cnt_alive;
 }
 
-void OS_init_Jitter(uint8_t id, uint32_t period) {
+void OS_init_Jitter(uint8_t id, uint32_t period, uint32_t resolution, char unit[]) {
 	Jitters[id].maxJitter = 0;
 	Jitters[id].last_time = OS_Time();
 	Jitters[id].period = period;
+	Jitters[id].resolution = resolution;
+	for(int i = 0; i < 4; i++) {
+		Jitters[id].unit[i] = unit[i];
+	}
 	
 	for(int i = 0; i < JITTERSIZE; i++) {
 		Jitters[id].JitterHistogram[i] = 0;
@@ -96,10 +100,10 @@ uint32_t OS_Jitter(uint8_t id) {
 	
 	
 	if(diff < J->period) {
-		jitter = (J->period - diff + 4)/8; //in 0.1us
+		jitter = (J->period - diff + 4)/J->resolution; //in 0.1us
 	}
 	else {
-		jitter = (diff - J->period + 4)/8;
+		jitter = (diff - J->period + 4)/J->resolution;
 	}
 	
 	if(jitter > J->maxJitter) {
@@ -108,9 +112,10 @@ uint32_t OS_Jitter(uint8_t id) {
 	
 	if(jitter < JITTERSIZE) {
 		J->JitterHistogram[jitter]++;
-	} else {
-		printf("Extreme jitter recorded! (%d)", jitter);
 	}
+//	else {
+//		printf("Extreme jitter recorded! (%d)", jitter);
+//	}
 	
 	J->last_time = time;
 	return jitter;
@@ -228,7 +233,6 @@ void BackgroundThreadExit(void) {
 	thread_cnt_alive--;
 	
 	ContextSwitch();
-	EnableInterrupts(); // Just in case a thread exits with interrupts disabled somehow
 	for(;;){}; // Wait for interrupt
 }
 
@@ -458,6 +462,27 @@ void OS_bSignal(Sema4Type *semaPt){
 }; 
 
 
+TCB_t* SpawnThread(uint8_t isBackgroundThread, uint8_t priority) {
+	int i = StartCritical();
+	TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **)&inactive_thread_list_head);
+	if(thread == 0) {
+		EndCritical(i);
+		return 0; // Cannot pull anything from list
+	}
+	
+	// Init all TCB attributes
+	thread->id = ++thread_cnt;
+	if(thread->stack_id == 0) {
+		thread->stack_id = thread->id;
+	}
+	thread->isBackgroundThread = isBackgroundThread;
+	thread->sleep_count = 0;
+	thread->priority = priority;
+	
+	return thread;
+}
+
+
 
 //******** OS_AddThread *************** 
 // add a foregound thread to the scheduler
@@ -472,26 +497,17 @@ int OS_AddThread(void(*task)(void),
    uint32_t stackSize, uint32_t priority){
 	// Take first thread from active list
 		 
-	int i = StartCritical();
-	TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **)&inactive_thread_list_head);
-	if(thread == 0) {
-		EndCritical(i);
-		return 0; // Cannot pull anything from list
-	}
-		 
-	// Init all TCB attributes
-	thread->id = ++thread_cnt;
-	if(thread->stack_id == 0) {
-		thread->stack_id = thread->id;
-	}
-	++thread_cnt_alive;
-	thread->isBackgroundThread = 0;
-	thread->sleep_count = 0;
-	thread->priority = priority;
 	
+		 
+	TCB_t *thread = SpawnThread(0, priority);
+	if(thread == 0) {
+		return 0;
+	}
+	
+	int I = StartCritical();
 	thread_init_stack(thread, task, &OS_Kill);
 	scheduler_schedule(thread);
-  EndCritical(i);
+  EndCritical(I);
   return 1; 
 };
 
@@ -554,11 +570,11 @@ void PeriodicThreadHandler() {
 			
 			// Note: An issue arises using this method when two threads attempt to be scheduled simultaneously, not sure what yet
 			// Schedule thread (need to init the stack each time)
-//			thread_init_stack(node->TCB, node->task, &BackgroundThreadExit);
-//			scheduler_schedule(node->TCB);
-//			ContextSwitch();	// Switch to scheduled task asap
+			thread_init_stack(node->TCB, node->task, &BackgroundThreadExit);
+			scheduler_schedule(node->TCB);
+			ContextSwitch();	// Switch to scheduled task asap
 			
-			node->task();
+			//node->task();
 		}
 		
 		if(node->cnt < min_cnt) {
@@ -592,25 +608,21 @@ int OS_AddPeriodicThread(void(*task)(void),
    uint32_t period, uint32_t priority){
 		 
   int i = StartCritical();
-	TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **) &inactive_thread_list_head);
+	TCB_t *thread = SpawnThread(1, priority);
 	if(thread == 0) {
 		// Can't allocate thread / stack
 		EndCritical(i);
 		return 0;
 	}
 	
-	// Initialize thread
-	thread->id = thread_cnt++;
-	thread->isBackgroundThread = 1;
-	thread->priority = priority;
 
 	Periodic_TCB_t *t = &Periodic_Threads[NumPeriodicThreads++];
 	t->period = period;
 	t->TCB = thread;
 	t->task = task;
 	t->cnt = period;
-	t->priority = priority;
 	
+	t->priority = priority;
 	PrioQ_insert((PrioQ_node_t **) &Periodic_PrioQ, (PrioQ_node_t *)t);
 
 	if(NumPeriodicThreads == 1) {
@@ -708,15 +720,10 @@ void PortFEdge_Init(void) {
 // In lab 3, there will be up to four background threads, and this priority field 
 //           determines the relative priority of these four threads
 int OS_AddSW1Task(void(*task)(void), uint32_t priority){
-	TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **) &inactive_thread_list_head);
+	TCB_t *thread = SpawnThread(1, priority);
 	if(thread == 0) {
 		return 0; // Can't allocate a thread
 	}
-	
-	thread->priority = priority;
-	thread->isBackgroundThread = 1;
-	thread->id = ++thread_cnt;
-	++thread_cnt_alive;
 	
 	SW_Task_t *sw = &sw1_tasks[num_sw1_tasks];
 	sw->task = task;
@@ -740,15 +747,10 @@ int OS_AddSW1Task(void(*task)(void), uint32_t priority){
 // In lab 3, there will be up to four background threads, and this priority field 
 //           determines the relative priority of these four threads
 int OS_AddSW2Task(void(*task)(void), uint32_t priority){
-  TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **) &inactive_thread_list_head);
+  TCB_t *thread = SpawnThread(1, priority);
 	if(thread == 0) {
 		return 0; // Can't allocate a thread
 	}
-	
-	thread->priority = priority;
-	thread->isBackgroundThread = 1;
-	thread->id = ++thread_cnt;
-	++thread_cnt_alive;
 	
 	SW_Task_t *sw = &sw2_tasks[num_sw2_tasks];
 	sw->task = task;
@@ -936,7 +938,9 @@ uint32_t OS_Time(void){
 // Inputs:  two times measured with OS_Time
 // Outputs: time difference in 12.5ns units 
 uint32_t OS_TimeDifference(uint32_t start, uint32_t stop){
-  return stop - start; // replace this line with solution
+
+	return stop - start; 
+
 };
 	
 uint32_t OS_ms_reset_time = 0;

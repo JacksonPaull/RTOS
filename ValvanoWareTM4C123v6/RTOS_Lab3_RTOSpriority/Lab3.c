@@ -671,7 +671,7 @@ void Thread7(void){  // foreground thread
 #define counts1us 80    // number of OS_Time counts per 1us
 void TaskA(void){       // called every {1000, 2990us} in background
   PD1 = 0x02;      // debugging profile  
-	//OS_Jitter(0);		 // Track jitter using tracker 0
+	OS_Jitter(0);		 // Track jitter using tracker 0
   CountA++;
   PseudoWork(workA*counts1us); //  do work (100ns time resolution)
   PD1 = 0x00;      // debugging profile  
@@ -679,7 +679,7 @@ void TaskA(void){       // called every {1000, 2990us} in background
 #define workB 250       // 250 us work in Task B
 void TaskB(void){       // called every pB in background
   PD2 = 0x04;      // debugging profile  
-	//OS_Jitter(1);		 // Track jitter using tracker 1
+	OS_Jitter(1);		 // Track jitter using tracker 1
   CountB++;
   PseudoWork(workB*counts1us); //  do work (100ns time resolution)
   PD2 = 0x00;      // debugging profile  
@@ -692,9 +692,9 @@ int Testmain6(void){       // Testmain6 Lab 3
   NumCreated += OS_AddThread(&Thread7,128,1); 
   NumCreated += OS_AddThread(&Thread6,128,2); 
   OS_AddPeriodicThread(&TaskA,TIME_1MS,0);           // 1 ms, higher priority
-	OS_init_Jitter(0, TIME_1MS);
-  OS_AddPeriodicThread(&TaskB,10*TIME_1MS,1);         // 2 ms, lower priority
-	OS_init_Jitter(1, TIME_2MS);
+	OS_init_Jitter(0, TIME_1MS, TIME_10US, "10us");
+  OS_AddPeriodicThread(&TaskB,TIME_1MS,1);         // 2 ms, lower priority
+	OS_init_Jitter(1, TIME_2MS, TIME_10US, "10us");
  
   OS_Launch(TIME_2MS); // 2ms, doesn't return, interrupts enabled in here
   return 0;             // this never executes
@@ -873,9 +873,9 @@ int main(void) { 			// main
 //  Testmain1();	// Passed
 //	Testmain2();	// Passed
 //	Testmain3();	// Passed
-	Testmain4();	// Passed - TODO Separate systick from sleeping threads and uncomment pendsv systick reset
+//	Testmain4();	// Passed - TODO Separate systick from sleeping threads and uncomment pendsv systick reset
 //	Testmain5();	// Passed
-//	Testmain6();	// Issue lies in adding multiple periodic threads, probably in gcd calc or something
+	Testmain6();	// Issue lies in adding multiple periodic threads, probably in gcd calc or something
 //	Testmain7();
 //	TestmainCS();
 //	TestmainFIFO();

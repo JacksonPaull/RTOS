@@ -28,6 +28,10 @@
 #define TIME_10MS   (10*TIME_1MS) 
 #define TIME_500US  (TIME_1MS/2)  
 #define TIME_250US  (TIME_1MS/4)  
+#define TIME_100US	8000
+#define TIME_10US		800
+#define TIME_1US		80
+#define TIME_100NS	8
 
 // Thread control stuff
 #define MAX_NUM_THREADS 12
@@ -37,7 +41,7 @@
 #define MAX_PERIODIC_THREADS 2
 #define PERIODIC_TIMER_PRIO 2
 #define MAX_SWITCH_TASKS 4
-#define MAX_THREAD_PRIORITY 16
+#define MAX_THREAD_PRIORITY 5
 #define STACK_SIZE 256
 #define MAGIC 0x12312399
 
@@ -46,12 +50,18 @@ typedef struct TCB {
 	struct TCB *next_ptr, *prev_ptr; 	// For use in linked lists
 	uint8_t priority;
 	uint8_t id;
-	unsigned long *sp; 								// Stack pointer
-	uint32_t sleep_count;							// In ms
 	uint8_t isBackgroundThread;				// Boolean for whether the thread is background (i.e. periodic or switch)
 	uint8_t stack_id;									// Remove when memory manager is implemented.
+	unsigned long *sp; 								// Stack pointer
+	uint32_t sleep_count;							// In ms
+	
 } TCB_t;
+
+
 extern TCB_t *RunPt;
+extern uint16_t thread_cnt;
+extern uint16_t thread_cnt_alive;
+
 
 /**
  * \brief Semaphore structure. Feel free to change the type of semaphore, there are lots of good solutions
@@ -80,12 +90,14 @@ typedef struct FIFO {
 } FIFO_t;
 
 
-#define JITTERSIZE 64
+#define JITTERSIZE 32
 typedef struct Jitter {
 	uint32_t maxJitter;
 	uint32_t JitterHistogram[JITTERSIZE];
 	uint32_t last_time;
 	uint32_t period;
+	uint32_t resolution;
+	char unit[4];
 } Jitter_t;
 
 
@@ -107,7 +119,7 @@ uint32_t OS_get_jitter_size(void);
 uint32_t OS_Jitter(uint8_t id);
 uint32_t* OS_get_Jitter_Histogram(uint8_t id);
 Jitter_t* OS_get_jitter_struct(uint8_t id);
-void OS_init_Jitter(uint8_t id, uint32_t period);
+void OS_init_Jitter(uint8_t id, uint32_t period, uint32_t resolution, char unit[]);
 void OS_track_ints(uint8_t I);
 
 double OS_get_percent_time_ints_disabled(void);

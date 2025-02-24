@@ -235,7 +235,7 @@ void Jitter(Jitter_t* J, uint8_t lcd_id){
 			continue;
 		
 		char buf[9];
-		sprintf(buf, "%d.%dus | ", i/10, i%10); 
+		sprintf(buf, "%d.%d(%s) | ", i/10, i%10, J->unit); 
 		ST7735_Message(lcd_id, j, buf, cnt);
 		j++;
 	}

@@ -34,7 +34,7 @@ void PrioQ_insert(PrioQ_node_t **head, PrioQ_node_t *node) {
 	
 	while(prev_node->next_ptr != 0) {
 		PrioQ_node_t *n = prev_node->next_ptr;
-		if((prev_node->priority >= node->priority) && (node->priority >  n->priority)) {
+		if((prev_node->priority >= node->priority) && (node->priority <  n->priority)) {
 			// Insert here
 			node->next_ptr = n;
 			node->prev_ptr = prev_node;
@@ -59,5 +59,9 @@ PrioQ_node_t* PrioQ_pop(PrioQ_node_t **head) {
 	if(head_node != 0) {
 		*head = head_node->next_ptr;
 	}
+	
+	//unlink
+	head_node->next_ptr = 0;
+	head_node->prev_ptr = 0;
 	return head_node;
 }
