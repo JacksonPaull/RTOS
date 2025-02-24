@@ -508,8 +508,10 @@ int Testmain3(void){  // Testmain3
 Sema4Type Readyd;        // set in background
 int Lost;
 void BackgroundThread1d(void){   // called at 1000 Hz
-  Count1++;
+  PD0 ^= 0x1;
+	Count1++;
   OS_Signal(&Readyd);
+	PD0 ^= 0x1;
 }
 void Thread5d(void){
   for(;;){
@@ -550,7 +552,8 @@ void BackgroundThread5d(void){   // called when Select button pushed
 }
       
 int Testmain4(void){   // Testmain4
-  Count4 = 0;          
+  Count4 = 0;   
+	PortD_Init();	
   OS_Init();           // initialize, disable interrupts
   // Count2 + Count5 should equal Count1
   // With priorities, Count5 should be zero 
@@ -871,8 +874,8 @@ int main(void) { 			// main
 //	Testmain2();	// Passed
 //	Testmain3();	// Passed
 	Testmain4();	// Passed - TODO Separate systick from sleeping threads and uncomment pendsv systick reset
-	Testmain5();	// Passed
-	Testmain6();	// Issue lies in adding multiple periodic threads, probably in gcd calc or something
+//	Testmain5();	// Passed
+//	Testmain6();	// Issue lies in adding multiple periodic threads, probably in gcd calc or something
 //	Testmain7();
 //	TestmainCS();
 //	TestmainFIFO();

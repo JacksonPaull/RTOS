@@ -106,9 +106,9 @@ PendSV_Handler
 	POP {LR}
 	
 	; 2) Reset STCURRENT=0 (TODO Divorce systick and sleeping threads, then add this back)
-	;LDR R1, =STCURRENT
-	;MOV R2, #0
-	;STR R2, [R1]
+	LDR R1, =STCURRENT
+	MOV R2, #0
+	STR R2, [R1]
 	
 	; 3) Perform the context switch
 	CPSID I

@@ -13,6 +13,7 @@
 #include "../inc/LaunchPad.h"
 #include "../inc/Timer3A.h"
 #include "../inc/Timer4A.h"
+#include "../inc/Timer5A.h"
 #include "../inc/WTimer0A.h"
 #include "../RTOS_Labs_common/OS.h"
 #include "../RTOS_Labs_common/ST7735.h"
@@ -189,14 +190,14 @@ void OS_track_ints(uint8_t I) {
  * @brief Handle sleeping threads
  */
 void DecrementSleepCounters(void) {
-	uint32_t systick_period = (STRELOAD+1) / 80000; // Period of systick in ms
+	const uint32_t period = 1;
 	
 	// Loop through counters and decrement by period
 	int i = StartCritical();
 	TCB_t *node = sleeping_thread_list_head;
 	while(node != 0) {
 		TCB_t *next_node = node->next_ptr;
-		if(node->sleep_count <= systick_period) {
+		if(node->sleep_count <= period) {
 			node->sleep_count = 0; 
 			
 			// remove node from list and reshedule it
@@ -204,7 +205,7 @@ void DecrementSleepCounters(void) {
 			scheduler_schedule(node);
 		}
 		else {
-			node->sleep_count -= systick_period;
+			node->sleep_count -= period;
 		}
 		node = next_node;
 	}
@@ -341,6 +342,8 @@ void OS_Init(void){
 	
 	// Init anything else used by OS
 	OS_MsTime_Init();
+	Timer5A_Init(&DecrementSleepCounters, TIME_1MS, 1);
+	
 	
 	DisableInterrupts();	// Disable after the OS clock is init so that we can track time ints disabled
 	OS_thread_init();
