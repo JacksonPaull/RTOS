@@ -23,6 +23,8 @@
 /**
  * \brief Times assuming a 80 MHz
  */      
+ 
+#define TIME_1S			80000000
 #define TIME_1MS    80000          
 #define TIME_2MS    (2*TIME_1MS)  
 #define TIME_10MS   (10*TIME_1MS) 

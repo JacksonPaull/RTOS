@@ -311,6 +311,8 @@ void OS_thread_init(void) {
 		thread->sleep_count = 0;
 		thread->priority = 8;
 		thread->stack_id = 0;
+		thread->next_ptr = 0;
+		thread->prev_ptr = 0;
 		
 		// TODO init anything else from the thread
 		// Note: Stacks are initialized when making the thread
@@ -371,15 +373,22 @@ void OS_InitSemaphore(Sema4Type *semaPt, int32_t value){
 void OS_Wait(Sema4Type *semaPt){
 	DisableInterrupts();
 	
-	semaPt->Value -= 1;
-	if(semaPt->Value < 0) {
-		// Add to semaphore's blocked list and unschedule
-		// This thread will later be rescheduled when OS_Signal is called
-		TCB_t *thread = RunPt;
-		scheduler_unschedule(thread);
-		PrioQ_insert((PrioQ_node_t **) &semaPt->blocked_threads_head, (PrioQ_node_t *)thread);
-		ContextSwitch(); // Trigger PendSV
+//	semaPt->Value -= 1;
+//	if(semaPt->Value < 0) {
+//		// Add to semaphore's blocked list and unschedule
+//		// This thread will later be rescheduled when OS_Signal is called
+//		TCB_t *thread = RunPt;
+//		scheduler_unschedule(thread);
+//		PrioQ_insert((PrioQ_node_t **) &semaPt->blocked_threads_head, (PrioQ_node_t *)thread);
+//		ContextSwitch(); // Trigger PendSV
+//	}
+	while(semaPt->Value <= 0) {
+		EnableInterrupts();
+		ContextSwitch();
+		DisableInterrupts();
 	}
+	
+	semaPt->Value -= 1;
 	
 	EnableInterrupts();
 }; 
@@ -409,10 +418,10 @@ void OS_Signal(Sema4Type *semaPt){
 	int i = StartCritical();
 	semaPt->Value += 1;
 	// If value <= 0, then awaken a blocked thread
-	if(semaPt->Value <= 0) {
-		TCB_t *thread = (TCB_t *) PrioQ_pop((PrioQ_node_t **)&semaPt->blocked_threads_head);
-		scheduler_schedule(thread);
-	}
+//	if(semaPt->Value <= 0) {
+//		TCB_t *thread = (TCB_t *) PrioQ_pop((PrioQ_node_t **)&semaPt->blocked_threads_head);
+//		scheduler_schedule(thread);
+//	}
 	EndCritical(i);
 }; 
 
@@ -424,15 +433,21 @@ void OS_Signal(Sema4Type *semaPt){
 void OS_bWait(Sema4Type *semaPt){
   // TODO Write in ASM with LDREX and STREX?
 	DisableInterrupts();
-	if(semaPt->Value == 1) {
-		semaPt->Value = 0;
+	while(semaPt->Value == 0) {
 		EnableInterrupts();
-		return;
+		ContextSwitch();
+		DisableInterrupts();
 	}
+	semaPt->Value = 0;
+//	if(semaPt->Value == 1) {
+//		semaPt->Value = 0;
+//		EnableInterrupts();
+//		return;
+//	}
 
-	scheduler_unschedule(RunPt);
-	PrioQ_insert((PrioQ_node_t **)&semaPt->blocked_threads_head, (PrioQ_node_t *) RunPt);
-	ContextSwitch();
+//	scheduler_unschedule(RunPt);
+//	PrioQ_insert((PrioQ_node_t **)&semaPt->blocked_threads_head, (PrioQ_node_t *) RunPt);
+//	ContextSwitch();
 	EnableInterrupts();
 }; 
 
@@ -440,17 +455,18 @@ void OS_bWait(Sema4Type *semaPt){
 // input:  pointer to a binary semaphore
 // output: none
 void OS_bSignal(Sema4Type *semaPt){
-	int i = StartCritical();
-	TCB_t *thread = (TCB_t *)PrioQ_pop((PrioQ_node_t **)&semaPt->blocked_threads_head);
-	if(thread != 0) {
-		scheduler_schedule(thread);
-		semaPt->Value = 0;
-	}
-	else {
-		semaPt->Value = 1;
-	}
-	
-	EndCritical(i);
+//	int i = StartCritical();
+//	TCB_t *thread = (TCB_t *)PrioQ_pop((PrioQ_node_t **)&semaPt->blocked_threads_head);
+//	if(thread != 0) {
+//		scheduler_schedule(thread);
+//		semaPt->Value = 0;
+//	}
+//	else {
+//		semaPt->Value = 1;
+//	}
+//	
+//	EndCritical(i);
+	semaPt->Value = 1;
 }; 
 
 
@@ -544,15 +560,14 @@ typedef struct Periodic_TCB {
 
 uint8_t NumPeriodicThreads = 0;
 Periodic_TCB_t Periodic_Threads[MAX_PERIODIC_THREADS];
-Periodic_TCB_t *Periodic_PrioQ;
 
 void PeriodicThreadHandler() {
 	DisableInterrupts();
 	uint32_t min_cnt = 0xFFFFFFFF;
 	
 	// Check all periodic tasks and launch them as needed
-	Periodic_TCB_t *node = Periodic_PrioQ;
-	while(node != 0) {
+	for( int i = 0; i < NumPeriodicThreads; i++) {
+		Periodic_TCB_t *node = &Periodic_Threads[i];
 		
 		// counter -= timer period
 		node->cnt -= TIMER4_TAILR_R+1; 
@@ -572,8 +587,6 @@ void PeriodicThreadHandler() {
 		if(node->cnt < min_cnt) {
 			min_cnt = node->cnt;
 		}
-		
-		node = node->next;
 	}
 	
 	// Reset timer based on min cnt value
@@ -613,9 +626,6 @@ int OS_AddPeriodicThread(void(*task)(void),
 	t->TCB = thread;
 	t->task = task;
 	t->cnt = period;
-	
-	t->priority = priority;
-	PrioQ_insert((PrioQ_node_t **) &Periodic_PrioQ, (PrioQ_node_t *)t);
 
 	if(NumPeriodicThreads == 1) {
 		// Set the timer to start running on first added thread
@@ -633,7 +643,7 @@ int OS_AddPeriodicThread(void(*task)(void),
  *----------------------------------------------------------------------------*/
 typedef struct SW_Task {
 	TCB_t *TCB;
-	void *task;
+	void (*task)(void);
 } SW_Task_t;
 
 SW_Task_t sw1_tasks[MAX_SWITCH_TASKS];
@@ -656,6 +666,7 @@ void GPIOPortF_Handler(void){
 			thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit);
 			scheduler_schedule(sw->TCB);
 			ContextSwitch();
+			//sw->task();
 		}		
 		GPIO_PORTF_ICR_R |= 0x10;
 	}
@@ -668,6 +679,7 @@ void GPIOPortF_Handler(void){
 			thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit);
 			scheduler_schedule(sw->TCB);
 			ContextSwitch();
+			//sw->task();
 		}		
 		GPIO_PORTF_ICR_R |= 0x01;
 	}

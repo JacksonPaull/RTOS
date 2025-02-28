@@ -51,7 +51,7 @@ void cr4_fft_64_stm32(void *pssOUT, void *pssIN, unsigned short Nbin);
 short PID_stm32(short Error, short *Coeff);
 
 uint32_t NumCreated;   // number of foreground threads created
-uint32_t IdleCount;    // CPU idle counter
+volatile uint32_t IdleCount;    // CPU idle counter
 uint32_t PIDWork;      // current number of PID calculations finished
 uint32_t FilterWork;   // number of digital filter calculations finished
 uint32_t NumSamples;   // incremented every ADC sample, in Producer
@@ -66,10 +66,10 @@ int32_t x[64],y[64];           // input and output arrays for FFT
 // Idle reference count for 10ms of completely idle CPU
 // This should really be calibrated in a 10ms delay loop in OS_Init()
 uint32_t IdleCountRef = 30769;
-uint32_t CPUUtil;       // calculated CPU utilization (in 0.01%)
+volatile uint32_t CPUUtil;       // calculated CPU utilization (in 0.01%)
 
 //---------------------User debugging-----------------------
-uint32_t DataLost;     // data sent by Producer, but not received by Consumer
+volatile uint32_t DataLost;     // data sent by Producer, but not received by Consumer
 
 #define PD0  (*((volatile uint32_t *)0x40007004))
 #define PD1  (*((volatile uint32_t *)0x40007008))
@@ -103,8 +103,8 @@ void DAS(void){
   uint32_t input;  
   if(NumSamples < RUNLENGTH){   // finite time run
     PD0 ^= 0x01;
+		OS_Jitter(0);
     input = ADC_In();           // channel set when calling ADC_Init
-    PD0 ^= 0x01;
     DASoutput = Filter(input);
     FilterWork++;        // calculation finished
     PD0 ^= 0x01;
@@ -124,7 +124,6 @@ void ButtonWork(void){
 	Jitter_t *J = OS_get_jitter_struct(0);
   PD1 ^= 0x02;
   ST7735_Message(1,0,"NumCreated   =",NumCreated); 
-  PD1 ^= 0x02;
   OS_Sleep(50);     // set this to sleep for 50msec
   ST7735_Message(1,1,"CPUUtil 0.01%=",CPUUtil);
   ST7735_Message(1,2,"DataLost     =",DataLost);
@@ -328,7 +327,7 @@ int realmain(void){ // realmain
 	
   // initialize communication channels
   OS_MailBox_Init();
-  OS_Fifo_Init(64);    // ***note*** 4 is not big enough*****
+  OS_Fifo_Init(32);    // ***note*** 4 is not big enough*****
 
   // hardware init
   ADC_Init(0);  // sequencer 3, channel 0, PE3, sampling in DAS() 
@@ -336,7 +335,8 @@ int realmain(void){ // realmain
   // attach background tasks
   OS_AddSW1Task(&SW1Push,2);
   OS_AddSW2Task(&SW2Push,2);  // added in Lab 3
-  OS_AddPeriodicThread(&DAS,PERIOD1,1); // 2 kHz real time sampling of PE3
+  OS_AddPeriodicThread(&DAS,PERIOD1,2); // 2 kHz real time sampling of PE3
+	OS_init_Jitter(0, PERIOD1, TIME_100NS, "0.1us");
   OS_AddPeriodicThread(&PID,PERIOD2,2); // Lab 3 PID, lowest priority
 
   // create initial foreground threads

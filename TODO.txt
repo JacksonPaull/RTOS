@@ -1,16 +1,8 @@
-Lab 3 code / data
-- Remove prioq for background threads, just use array
-- re-introduce spinlock implementation (remove from header file after profiling)
-- profile
-	- Table 3.1
-	- Logic analyzer plot of blocking sleeping and killing (round robin)
-	- LA plot of blocking sleeping and killing (priority)
-- Add interupt enable / disabled trackers
+Bug:
+There is a heisenbug when activating switch tasks. It happens very infrequently,
+almost undoutedly related to the scheduling process
 
-Lab 3 report
-- Objective paragraph
-- Documentation of how jitter is tracked
-- Note about using testmain6 to test jitter
-- Documentation of how blocking semaphores are implemented
-- Note about using testmain7 to test bocking semaphores
-- Analysis
+Features need to add:
+ensure interpreter works with real main
+enable code to dump time interrupts are disabled/enabled
+add compile time switch for debugging tools
