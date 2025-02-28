@@ -341,7 +341,7 @@ int realmain(void){ // realmain
 
   // create initial foreground threads
   NumCreated = 0;
-  NumCreated += OS_AddThread(&Consumer,128,1); 
+  NumCreated += OS_AddThread(&Consumer,128,2); 
   NumCreated += OS_AddThread(&Interpreter,128,2); 
   NumCreated += OS_AddThread(&Idle,128,5);  // Lab 3, at lowest priority 
  

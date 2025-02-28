@@ -266,7 +266,7 @@ void SysTick_Init(unsigned long period){
  * @brief Set up thread stack before launching
  */
 void thread_init_stack(TCB_t* thread, void(*task)(void), void(*return_task)(void)) {
-	uint8_t id = thread->stack_id;
+	uint8_t id = thread->stack_id - 1;
 	unsigned long* stack = stacks[id];
 	
 	thread->sp = stack+STACK_SIZE-18*sizeof(unsigned long); // Start at bottom of stack and init registers on stack 

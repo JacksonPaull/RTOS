@@ -1427,8 +1427,8 @@ typedef struct device {
 } device;
 
 static const device devices[2] = {
-	{0,0, 8, 21}, // LCD 0
-	{0,8, 8, 21}  // LCD 1
+	{0,0, 8, 20}, // LCD 0
+	{0,8, 8, 20}  // LCD 1
 };
 
 //------------ST7735_Message------------
@@ -1438,27 +1438,32 @@ static const device devices[2] = {
 //        pt      pointer to a null terminated string to be printed
 //        value   signed integer to be printed
 void ST7735_Message(uint32_t  d, uint32_t  l, char *pt, int32_t value){
-  // write this as part of Labs 1 and 2
-	
-	
 	device dev = devices[d];
-	uint32_t val_len = 0;
+	if(l >= dev.h)
+		return;
+	
+	uint8_t val_len = 0;
 	int32_t value_copy = value;
 	do {
 		value_copy /= 10;
 		val_len++;
 	} while (value_copy != 0);
-	uint32_t msg_len = strlen(pt) + val_len;
 	
-	// Check bounds
-	if(l >= dev.h || msg_len > dev.w)
-		return;
+	char blank[dev.w];
+	int8_t w = dev.w - strlen(pt) - val_len ;	// Allow negative values so that the loop wont trigger if msg overflows
+	if(w > 0) {
+		
+		for(int i = 0; i < w; i++) {
+			blank[i] = ' ';
+		}
+		blank[w] = 0;
+	}
 	
 	OS_Wait(&LCDFree); // Acquire LCD Lock
 	ST7735_SetCursor(dev.device_x, l+dev.device_y);
-	ST7735_DrawString(0,StY,"                     ",StTextColor); // Clear line
 	ST7735_OutString(pt);
 	ST7735_OutDec(value);
+	ST7735_OutString(blank);	// Clear the rest of the line
 	OS_Signal(&LCDFree);	// Release LCD Lock when done
 }
 
