@@ -40,7 +40,7 @@
 //			 and therefore they take away from the total pool of threads (when allocated)
 #define MAX_PERIODIC_THREADS 2
 #define PERIODIC_TIMER_PRIO 2
-#define MAX_SWITCH_TASKS 4
+#define MAX_SWITCH_TASKS 2
 #define MAX_THREAD_PRIORITY 10
 #define STACK_SIZE 128
 #define MAGIC 0x12312399

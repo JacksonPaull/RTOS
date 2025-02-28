@@ -158,12 +158,12 @@ void OS_reset_int_time(void) {
 // Track the time 
 void OS_track_ints(uint8_t I) {
 	static uint32_t last_time = 0;
-	static uint8_t last_I = 1;
+	static uint8_t last_I = 0;
 	
 //	uint32_t time = OS_Time();
 //	
 //	uint32_t time_diff = (time - last_time) / 80; // In units of microseconds
-//	if(last_I) { // Interrupts were enabled, mark the time they were enabled for
+//	if(last_I == 0) { // Interrupts were enabled, mark the time they were enabled for
 //		os_int_time_enabled += time_diff;
 //	}
 //	else {
