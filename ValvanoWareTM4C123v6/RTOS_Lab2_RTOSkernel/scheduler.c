@@ -12,9 +12,8 @@ TCB_t INIT_TCB;		// TCB Used upon first entry into the scheduler
 // +2 for a list for background threads (priority queue)
 TCB_t *Priority_Levels[MAX_THREAD_PRIORITY+2];
 volatile uint8_t locked = 0;
-Sema4Type sch_mutex;
 
-// TODO Add Mutex for scheduler 
+// TODO Add Mutex(s) for scheduler 
 
 void scheduler_lock(void) {
 	locked = 1;
@@ -40,10 +39,12 @@ void scheduler_init(TCB_t **RunPt) {
 }
 
 void scheduler_unschedule(TCB_t *thread) {
+	int i = StartCritical();
 	// Find appropriate list and remove
 	thread_cnt_alive--;
 	TCB_t **head = &Priority_Levels[thread->priority+1];
 	LL_remove((LL_node_t **) head, (LL_node_t *) thread);
+	EndCritical(i);
 }
 
 void scheduler_schedule(TCB_t *thread) {
@@ -60,21 +61,6 @@ void scheduler_schedule(TCB_t *thread) {
 	}
 	EndCritical(I);
 }
-
-// Schedule something to run next, instead of last in line.
-// This can eventually be removed when a priority scheduler is introduced
-void scheduler_schedule_immediate(TCB_t *thread) {
-	// Find appropriate list and insert
-	if(thread->isBackgroundThread) {
-		PrioQ_insert((PrioQ_node_t **) &Priority_Levels[0], (PrioQ_node_t *) thread);
-	}
-	else {
-		TCB_t **head = &Priority_Levels[thread->priority+1];
-		LL_insert_circular((LL_node_t **) head, (LL_node_t *) thread);
-	}
-}
-
-
 
 
 /* scheduler_update_priority

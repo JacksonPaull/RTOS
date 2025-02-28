@@ -9,7 +9,6 @@ TCB_t* scheduler_next(void);
 void scheduler_init(TCB_t **RunPt);
 void scheduler_unschedule(TCB_t *thread);
 void scheduler_schedule(TCB_t *thread);
-void scheduler_schedule_immediate(TCB_t *thread);
 void scheduler_update_priority(TCB_t *thread, uint8_t new_priority);
 
 // Note: The scheduler locks itself, and 
