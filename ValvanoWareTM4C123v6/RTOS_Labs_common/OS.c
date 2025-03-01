@@ -336,8 +336,6 @@ void OS_Init(void){
 	LaunchPad_Init();
 	PortFEdge_Init();
 	
-	
-	
 	// Init anything else used by OS
 	OS_MsTime_Init();
 	Timer5A_Init(&DecrementSleepCounters, TIME_1MS, 1);
@@ -416,7 +414,7 @@ int OS_Wait_noblock(Sema4Type *semaPt){
 // output: none
 void OS_Signal(Sema4Type *semaPt){
 	int i = StartCritical();
-	semaPt->Value += 1;
+	semaPt->Value++;
 	// If value <= 0, then awaken a blocked thread
 //	if(semaPt->Value <= 0) {
 //		TCB_t *thread = (TCB_t *) PrioQ_pop((PrioQ_node_t **)&semaPt->blocked_threads_head);
@@ -577,11 +575,11 @@ void PeriodicThreadHandler() {
 			
 			// Note: An issue arises using this method when two threads attempt to be scheduled simultaneously, not sure what yet
 			// Schedule thread (need to init the stack each time)
-			thread_init_stack(node->TCB, node->task, &BackgroundThreadExit);
-			scheduler_schedule(node->TCB);
-			ContextSwitch();	// Switch to scheduled task asap
+			//thread_init_stack(node->TCB, node->task, &BackgroundThreadExit);
+			//scheduler_schedule(node->TCB);
+			//ContextSwitch();	// Switch to scheduled task asap
 			
-			//node->task();
+			node->task();
 		}
 		
 		if(node->cnt < min_cnt) {
@@ -663,10 +661,10 @@ void GPIOPortF_Handler(void){
 		// Schedule all switch 1 tasks
 		for(int i = 0; i < num_sw1_tasks; i++) {
 			SW_Task_t *sw = &sw1_tasks[i];
-			thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit);
-			scheduler_schedule(sw->TCB);
-			ContextSwitch();
-			//sw->task();
+			//thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit);
+			//scheduler_schedule(sw->TCB);
+			//ContextSwitch();
+			sw->task();
 		}		
 		GPIO_PORTF_ICR_R |= 0x10;
 	}
@@ -676,10 +674,10 @@ void GPIOPortF_Handler(void){
 		// Schedule all switch 2 tasks
 		for(int i = 0; i < num_sw2_tasks; i++) {
 			SW_Task_t *sw = &sw2_tasks[i];
-			thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit);
-			scheduler_schedule(sw->TCB);
-			ContextSwitch();
-			//sw->task();
+			//thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit);
+			//scheduler_schedule(sw->TCB);
+			//ContextSwitch();
+			sw->task();
 		}		
 		GPIO_PORTF_ICR_R |= 0x01;
 	}
