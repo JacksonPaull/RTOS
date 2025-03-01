@@ -197,7 +197,7 @@ void Consumer(void){
   uint32_t data,DCcomponent;   // 12-bit raw ADC sample, 0 to 4095
   uint32_t t;                  // time in 2.5 ms
   ADC0_InitTimer0ATriggerSeq0(1, FS, &Producer); // start ADC sampling, channel 1, PE2, 400 Hz
-  NumCreated += OS_AddThread(&Display,128,2); 
+  NumCreated += OS_AddThread(&Display,128,0); 
   while(NumSamples < RUNLENGTH) { 
     PD2 = 0x04;
     for(t = 0; t < 64; t++){   // collect 64 ADC samples
@@ -336,7 +336,7 @@ int realmain(void){ // realmain
   // attach background tasks
   OS_AddSW1Task(&SW1Push,2);
   OS_AddSW2Task(&SW2Push,2);  // added in Lab 3
-  OS_AddPeriodicThread(&DAS,PERIOD1,2); // 2 kHz real time sampling of PE3
+  OS_AddPeriodicThread(&DAS,PERIOD1,1); // 2 kHz real time sampling of PE3
 	OS_init_Jitter(0, PERIOD1, TIME_100NS, "0.1us");
   OS_AddPeriodicThread(&PID,PERIOD2,2); // Lab 3 PID, lowest priority
 
@@ -344,9 +344,9 @@ int realmain(void){ // realmain
   NumCreated = 0;
   NumCreated += OS_AddThread(&Consumer,128,2); 
   NumCreated += OS_AddThread(&Interpreter,128,2); 
-  NumCreated += OS_AddThread(&Idle,128,2);  // Lab 3, at lowest priority 
+  NumCreated += OS_AddThread(&Idle,128,5);  // Lab 3, at lowest priority 
  
-  OS_Launch(TIME_1MS); // doesn't return, interrupts enabled in here
+  OS_Launch(TIME_2MS); // doesn't return, interrupts enabled in here
   return 0;            // this never executes
 }
 

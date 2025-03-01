@@ -371,22 +371,15 @@ void OS_InitSemaphore(Sema4Type *semaPt, int32_t value){
 void OS_Wait(Sema4Type *semaPt){
 	DisableInterrupts();
 	
-//	semaPt->Value -= 1;
-//	if(semaPt->Value < 0) {
-//		// Add to semaphore's blocked list and unschedule
-//		// This thread will later be rescheduled when OS_Signal is called
-//		TCB_t *thread = RunPt;
-//		scheduler_unschedule(thread);
-//		PrioQ_insert((PrioQ_node_t **) &semaPt->blocked_threads_head, (PrioQ_node_t *)thread);
-//		ContextSwitch(); // Trigger PendSV
-//	}
-	while(semaPt->Value <= 0) {
-		EnableInterrupts();
-		ContextSwitch();
-		DisableInterrupts();
-	}
-	
 	semaPt->Value -= 1;
+	if(semaPt->Value < 0) {
+		// Add to semaphore's blocked list and unschedule
+		// This thread will later be rescheduled when OS_Signal is called
+		TCB_t *thread = RunPt;
+		scheduler_unschedule(thread);
+		PrioQ_insert((PrioQ_node_t **) &semaPt->blocked_threads_head, (PrioQ_node_t *)thread);
+		ContextSwitch(); // Trigger PendSV
+	}
 	
 	EnableInterrupts();
 }; 
@@ -414,12 +407,12 @@ int OS_Wait_noblock(Sema4Type *semaPt){
 // output: none
 void OS_Signal(Sema4Type *semaPt){
 	int i = StartCritical();
-	semaPt->Value++;
 	// If value <= 0, then awaken a blocked thread
-//	if(semaPt->Value <= 0) {
-//		TCB_t *thread = (TCB_t *) PrioQ_pop((PrioQ_node_t **)&semaPt->blocked_threads_head);
-//		scheduler_schedule(thread);
-//	}
+	semaPt->Value++;
+	if(semaPt->Value <= 0) {
+		TCB_t *thread = (TCB_t *) PrioQ_pop((PrioQ_node_t **)&semaPt->blocked_threads_head);
+		scheduler_schedule(thread);
+	}
 	EndCritical(i);
 }; 
 
@@ -431,21 +424,16 @@ void OS_Signal(Sema4Type *semaPt){
 void OS_bWait(Sema4Type *semaPt){
   // TODO Write in ASM with LDREX and STREX?
 	DisableInterrupts();
-	while(semaPt->Value == 0) {
-		EnableInterrupts();
-		ContextSwitch();
-		DisableInterrupts();
-	}
-	semaPt->Value = 0;
-//	if(semaPt->Value == 1) {
-//		semaPt->Value = 0;
-//		EnableInterrupts();
-//		return;
-//	}
 
-//	scheduler_unschedule(RunPt);
-//	PrioQ_insert((PrioQ_node_t **)&semaPt->blocked_threads_head, (PrioQ_node_t *) RunPt);
-//	ContextSwitch();
+	if(semaPt->Value == 1) {
+		semaPt->Value = 0;
+		EnableInterrupts();
+		return;
+	}
+
+	scheduler_unschedule(RunPt);
+	PrioQ_insert((PrioQ_node_t **)&semaPt->blocked_threads_head, (PrioQ_node_t *) RunPt);
+	ContextSwitch();
 	EnableInterrupts();
 }; 
 
@@ -453,18 +441,17 @@ void OS_bWait(Sema4Type *semaPt){
 // input:  pointer to a binary semaphore
 // output: none
 void OS_bSignal(Sema4Type *semaPt){
-//	int i = StartCritical();
-//	TCB_t *thread = (TCB_t *)PrioQ_pop((PrioQ_node_t **)&semaPt->blocked_threads_head);
-//	if(thread != 0) {
-//		scheduler_schedule(thread);
-//		semaPt->Value = 0;
-//	}
-//	else {
-//		semaPt->Value = 1;
-//	}
-//	
-//	EndCritical(i);
-	semaPt->Value = 1;
+	int i = StartCritical();
+	TCB_t *thread = (TCB_t *)PrioQ_pop((PrioQ_node_t **)&semaPt->blocked_threads_head);
+	if(thread != 0) {
+		scheduler_schedule(thread);
+		semaPt->Value = 0;
+	}
+	else {
+		semaPt->Value = 1;
+	}
+	
+	EndCritical(i);
 }; 
 
 
