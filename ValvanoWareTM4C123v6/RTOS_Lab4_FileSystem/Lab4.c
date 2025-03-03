@@ -521,7 +521,131 @@ int Testmain2(void){   // Testmain2
   return 0;               // this never executes
 }
 
+
+// ****************** Test Bandwith *********************************** //
+/* Evaluate the Read/Write/Read&Write bandwidth (in [k]bps)  
+ * 
+ * 
+ *
+ */
+
+#define N_BLOCKS 50
+#define SENDONLY 0x1
+#define RECVONLY 0x2
+#define SENDRECV 0x4
+#define BW_CMD 0x1
+#define MBPS 1000000
+#define KBPS 1000
+#define BPS 1
+#define UNITSTR "kbps"
+#define UNIT KBPS
+
+uint32_t DataSent = 0;
+uint32_t DataRecv = 0;
+void Testbandwidth(void) {
+	uint8_t buffer[512];
+	
+	printf("Starting Bandwidth Test...\r\n");
+	uint32_t start = OS_Time();
+	
+	
+	uint32_t sector_num = 7;
+	for(uint32_t n = 0; n < N_BLOCKS; n++) {
+		
+		switch(BW_CMD) {
+			case 0x01: 
+					eDisk_WriteBlock(buffer, sector_num);
+					DataSent+=512;
+					break;
+			case 0x02: 
+					eDisk_ReadBlock(buffer, sector_num);
+					DataRecv+=512;
+					break;
+			case 0x04: 
+					eDisk_ReadBlock(buffer, sector_num);
+					DataRecv+=512;
+			
+					sector_num = (sector_num * 1251 + 27) % 56; // Simulate random access
+					eDisk_WriteBlock(buffer, sector_num);
+					DataSent+=512;
+				break;
+		}
+		
+		sector_num = (sector_num * 1251 + 27) % 56; // Simulate random access
+	}
+	
+	uint32_t end = OS_Time();
+	float time_elapsed = (end - start) *  1.0 / TIME_1S;
+	
+	float upbw = DataSent / time_elapsed;
+	float downbw = DataRecv / time_elapsed;
+	float totalbw = upbw + downbw;
+	
+	// Dump info to UART
+	printf("Bandwidth Test Complete!\r\n");
+	printf("Successfully sent: %d\r\n"
+				 "Successfully recv: %d\r\n"
+				 "  Total Bandwidth: %.2f %s (%.2f up, %.2f down)\r\n",
+	DataSent, DataRecv, totalbw, UNITSTR, upbw, downbw);
+}
+
+void TestBandwidthMain(void) {
+	OS_Init();
+	PortD_Init();
+	OS_AddThread(&Testbandwidth, 128, 5);
+	OS_AddThread(&Interpreter, 128, 5);
+	OS_AddPeriodicThread(&disk_timerproc,TIME_1MS,0);
+	OS_Launch(10 * TIME_1MS);
+}
+
+
+//************************* Test Filesystem ***************************
+/* Test the reliability of the filesystem in the face of bad operation
+ * 
+ */
+
+
+void FS_tester(void) {
+	// Test 1 - Normal operation
+		// Open -> Read/Write -> Close
+		// Multiple files open simultaneously
+		// Multiple threads opening multiple files
+	
+	// Test 3 - Bad Open
+		// Open nonexistent file
+	
+	// Test 4 - Bad Close
+		// Close nonexistent file
+		// Close file that isn't open (but exists)
+	
+	// Test 5 - Bad Read
+		// Read from non-open file
+		// Read past file length
+		// Read while write being performed
+	
+	// Test 6 - Bad Write
+		// Write to non-open file
+		// Write at negative index
+		// Write past file length (before implementing file growth)
+		// Write while reading being performed
+	
+}
+
+void TestFSMain(void) {
+	OS_Init();
+	OS_AddPeriodicThread(&disk_timerproc, TIME_1MS, 0);
+	OS_AddThread(&Interpreter, 128, 5);
+	OS_AddThread(&FS_tester, 128, 5);
+	OS_Launch(10*TIME_1MS);
+}
+
 //*******************Trampoline for selecting main to execute**********
 int main(void) { 			// main
-  realmain();
+  // Testmain0();
+	// Testmain1();
+	// Testmain2();
+	// TestBandwidthMain();
+	TestFSMain();
+	
+	realmain();
 }

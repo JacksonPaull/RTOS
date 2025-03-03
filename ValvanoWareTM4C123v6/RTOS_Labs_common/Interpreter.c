@@ -48,7 +48,7 @@ typedef struct Interpreter_Command {
 const Command commands[] = {
 	{"adc_in", &ADC,
 	"adc_in buf num_samples\r\n\tSample [num_samples] times from ADC0\r\n\n"},
-	{"adc_channel", &ADC_Channel, ""},
+	{"adc_channel", &ADC_Channel, "todo"},
 	
 	{"time", &time, "todo"},
 	{"time_reset", &time_reset, "todo"},
@@ -56,9 +56,9 @@ const Command commands[] = {
 	{"max_jitter", &max_jitter, "todo"},
 	{"num_threads", &num_threads, "todo"},
 	{"int_time", &int_time, 
-	"int_time <enabled/disabled> <total/percentage>\r\n"},
+	"int_time <disabled=0/enabled=1> <total=0/percentage=1>\r\n"},
 	{"int_time_reset", &int_time_reset, 
-	"todo"},
+	"int_time_reset\r\n\tReset the counters tracking how long interrupts are disabled\r\n"},
 	
 	{"jitter_hist", &jitter_hist, "jitter_hist <id> <lcd_id>\r\n\t"
 		"id: ID of jitter tracker to print out\r\n\t"},

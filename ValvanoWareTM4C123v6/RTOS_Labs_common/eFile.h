@@ -10,6 +10,54 @@
  * @date      Jan 12, 2020
  ******************************************************************************/
 
+#ifndef EFILE_H
+#define EFILE_H
+
+#include "../RTOS_Labs_common/OS.h"
+
+
+// 64 bytes per entry --> 58 length file names + extension
+// This also means there are 8 entries per sector --> max files/dirs in a dir is 124*8 + 128*8 + 128*128*8 = 133,000 files
+#define MAX_FILE_NAME_LENGTH 58
+
+
+// Note - iNode's must be exactly BLOCKSIZE in length
+
+typedef struct iNode {
+	uint8_t isDir;
+	uint32_t size;
+	uint32_t DP[124];
+	uint32_t SIP;
+	uint32_t DIP;
+	uint8_t magic_byte;
+	uint16_t magic_halfword;
+} iNode_t;
+
+typedef struct FileWrapper {
+	iNode_t *header;
+	uint8_t DataBuf[512];
+	Sema4Type ReaderLock;
+	uint8_t numReaders;
+	Sema4Type WriterLock;
+} FileWrapper_t;
+
+typedef struct File {
+	FileWrapper_t *f;
+	uint32_t pos; // Cursor position
+} File_t;
+
+typedef struct Dir {
+	FileWrapper_t *f;
+	uint32_t pos;
+} Dir_t;
+
+typedef struct DirEntry {
+	uint8_t deleted;
+	char name[MAX_FILE_NAME_LENGTH+1]; // To ensure null termination
+	uint32_t header_inode;
+} DirEntry_t;
+
+
 
 /**
  * @details This function must be called first, before calling any of the other eFile functions
@@ -129,3 +177,5 @@ int eFile_DClose(void);
  * @brief  Unmount the disk
  */
 int eFile_Unmount(void); 
+
+#endif

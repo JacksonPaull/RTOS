@@ -9,6 +9,24 @@
 #include "../RTOS_Labs_common/eFile.h"
 #include <stdio.h>
 
+//---------- eFile_ParsePath-----------------
+// Parse a pathstring, open directory and return file name
+// Input: Path string (null terminated)
+//         e.g. "/absolute/file/path.txt" or "relative/file/path.txt"
+//				dirBuf: buffer for the opened directory
+//				filenameBuf: buffer for the name of the file
+// Output: 0 if successful and 1 on failure (already initialized)
+int eFile_ParsePath(char *path, File_t **dirBuf, char *filenameBuf) {
+	// relative or absolute?
+	
+	// open/close directories until we get to the base
+		// return 1 on any failed opens
+	
+	//set dirBuf and strcpy final file name
+	
+	return 1;
+}
+
 
 //---------- eFile_Init-----------------
 // Activate the file system, without formating
@@ -16,6 +34,8 @@
 // Output: 0 if successful and 1 on failure (already initialized)
 int eFile_Init(void){ // initialize file system
  
+	
+	
   return 1;   // replace
 }
 
@@ -24,6 +44,12 @@ int eFile_Init(void){ // initialize file system
 // Input: none
 // Output: 0 if successful and 1 on failure (e.g., trouble writing to flash)
 int eFile_Format(void){ // erase disk, add format
+	
+	// Erase all sectors
+	
+	// Format metadata sector(s)
+		// 0. Sector bitmap
+		// 1. Root dir
 
   return 1;   // replace
 }
@@ -34,6 +60,8 @@ int eFile_Format(void){ // erase disk, add format
 // Output: 0 if successful and 1 on failure
 int eFile_Mount(void){ // initialize file system
 
+	
+	
   return 1;   // replace
 }
 
@@ -43,7 +71,22 @@ int eFile_Mount(void){ // initialize file system
 // Input: file name is an ASCII string up to seven characters 
 // Output: 0 if successful and 1 on failure (e.g., trouble writing to flash)
 int eFile_Create( const char name[]){  // create new file, make it empty 
-
+	// Parse path
+		// Get filename, open directory it will be in
+	
+	// Allocate a header sector and a single data sector
+		// return 1 on fail
+	
+	// set file size = 0
+	// set isDir = 0
+	// set first data sector pointer
+	
+	// in dirEntry
+		// Set name
+		// set deleted = 0
+		// set header sector pointer
+	
+	// Close dir
   return 1;   // replace
 }
 
@@ -53,7 +96,11 @@ int eFile_Create( const char name[]){  // create new file, make it empty
 // Input: file name is an ASCII string up to seven characters
 // Output: 0 if successful and 1 on failure (e.g., trouble writing to flash)
 int eFile_WOpen( const char name[]){      // open a file for writing 
-
+	// Parse path
+	
+	// wait on writer lock
+	
+	
   return 1;   // replace  
 }
 
@@ -62,7 +109,14 @@ int eFile_WOpen( const char name[]){      // open a file for writing
 // Input: data to be saved
 // Output: 0 if successful and 1 on failure (e.g., trouble writing to flash)
 int eFile_Write( const char data){
-  
+	
+		// write to file starting at <pos>
+		
+		// When we get to the end of the current sector (i.e. size % 512 == 0)
+			// Write current sector to disk
+			// Allocate a new sector
+
+	
     return 1;   // replace
 }
 
@@ -72,6 +126,10 @@ int eFile_Write( const char data){
 // Output: 0 if successful and 1 on failure (e.g., trouble writing to flash)
 int eFile_WClose(void){ // close the file for writing
   
+	// write file's last sector out to disk
+	
+	// release writer lock
+	
   return 1;   // replace
 }
 
@@ -81,7 +139,12 @@ int eFile_WClose(void){ // close the file for writing
 // Input: file name is an ASCII string up to seven characters
 // Output: 0 if successful and 1 on failure (e.g., trouble read to flash)
 int eFile_ROpen( const char name[]){      // open a file for reading 
-
+	// Parse path
+	
+	
+	// acquire writer lock if numReaders = 0
+	// increment numReaders
+	
   return 1;   // replace   
 }
  
@@ -101,6 +164,10 @@ int eFile_ReadNext( char *pt){       // get next byte
 // Output: 0 if successful and 1 on failure (e.g., wasn't open)
 int eFile_RClose(void){ // close the file for writing
   
+	// decrement numReaders
+	
+	// release writer lock if numReaders == 0
+	
   return 1;   // replace
 }
 
@@ -110,9 +177,14 @@ int eFile_RClose(void){ // close the file for writing
 // Input: file name is a single ASCII letter
 // Output: 0 if successful and 1 on failure (e.g., trouble writing to flash)
 int eFile_Delete( const char name[]){  // remove this file 
-
+	// Parse path, open directory
+	
+	// set deleted flag in directory entry
+	
+	// close directory
   return 1;   // replace
 }                             
+
 
 
 //---------- eFile_DOpen-----------------
@@ -121,7 +193,11 @@ int eFile_Delete( const char name[]){  // remove this file
 //        (empty/NULL for root directory)
 // Output: 0 if successful and 1 on failure (e.g., trouble reading from flash)
 int eFile_DOpen( const char name[]){ // open directory
-   
+   // Parse path
+	
+	 // get dirEntry and read from disk
+	
+	// TODO Split open/close into read/write (anything which will create/delete a file will write)
   return 1;   // replace
 }
   
@@ -131,7 +207,12 @@ int eFile_DOpen( const char name[]){ // open directory
 // Output: return file name and size by reference
 //         0 if successful and 1 on failure (e.g., end of directory)
 int eFile_DirNext( char *name[], unsigned long *size){  // get next entry 
-   
+  // Start at <pos>
+	
+	// Find next directory (if we hit the end of the file return null pointer and success)
+	
+	// get file name from dir entry and size from header iNode
+	
   return 1;   // replace
 }
 
@@ -140,7 +221,9 @@ int eFile_DirNext( char *name[], unsigned long *size){  // get next entry
 // Input: none
 // Output: 0 if successful and 1 on failure (e.g., wasn't open)
 int eFile_DClose(void){ // close the directory
-   
+   // release writer lock
+	
+	
   return 1;   // replace
 }
 
@@ -150,6 +233,6 @@ int eFile_DClose(void){ // close the directory
 // Input: none
 // Output: 0 if successful and 1 on failure (not currently mounted)
 int eFile_Unmount(void){ 
-   
+   // set to power down
   return 1;   // replace
 }

@@ -17,11 +17,13 @@
 #include "../inc/WTimer0A.h"
 #include "../RTOS_Labs_common/OS.h"
 #include "../RTOS_Labs_common/ST7735.h"
+#include "../RTOS_Labs_common/eDisk.h"
 #include "../inc/ADCT0ATrigger.h"
 #include "../RTOS_Labs_common/UART0int.h"
 #include "../RTOS_Labs_common/eFile.h"
 #include "../RTOS_Lab2_RTOSkernel/LinkedList.h"
 #include "../RTOS_Lab2_RTOSkernel/scheduler.h"
+
 
 
 extern void ContextSwitch(void);
@@ -339,13 +341,15 @@ void OS_Init(void){
 	OS_MsTime_Init();
 	PortFEdge_Init();
 	Timer5A_Init(&DecrementSleepCounters, TIME_1MS, 1);
+	UART_Init();
 	
 	
 	DisableInterrupts();	// Disable after the OS clock is init so that we can track time ints disabled
 	OS_thread_init();
-	UART_Init();
-	ST7735_InitR(INITR_REDTAB);
 	
+	ST7735_InitR(INITR_REDTAB);
+	eDisk_Init(0);
+
 	// Set PendSV priority to 7;
 	SYSPRI3 = (SYSPRI3 &0xFF0FFFFF) | 0x00E00000;
 	
