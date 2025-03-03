@@ -562,11 +562,11 @@ void PeriodicThreadHandler() {
 			
 			// Note: An issue arises using this method when two threads attempt to be scheduled simultaneously, not sure what yet
 			// Schedule thread (need to init the stack each time)
-			//thread_init_stack(node->TCB, node->task, &BackgroundThreadExit);
-			//scheduler_schedule(node->TCB);
-			//ContextSwitch();	// Switch to scheduled task asap
+			thread_init_stack(node->TCB, node->task, &BackgroundThreadExit);
+			scheduler_schedule(node->TCB);
+			ContextSwitch();	// Switch to scheduled task asap
 			
-			node->task();
+			//node->task();
 		}
 		
 		if(node->cnt < min_cnt) {
