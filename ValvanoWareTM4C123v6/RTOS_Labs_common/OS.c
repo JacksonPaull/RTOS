@@ -642,33 +642,39 @@ uint8_t num_sw2_tasks = 0;
 // Inputs: none
 // Outputs: none
 void GPIOPortF_Handler(void){
-	DisableInterrupts();
+	
 	// If switch 1 pressed
 	if(GPIO_PORTF_RIS_R & 0x10) {
 		// Schedule all switch 1 tasks
+		DisableInterrupts();
 		for(int i = 0; i < num_sw1_tasks; i++) {
 			SW_Task_t *sw = &sw1_tasks[i];
-			//thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit);
-			//scheduler_schedule(sw->TCB);
-			//ContextSwitch();
-			sw->task();
+			thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit);
+			scheduler_schedule(sw->TCB);
+			ContextSwitch();
+			
+			//sw->task();
 		}		
 		GPIO_PORTF_ICR_R |= 0x10;
+		EnableInterrupts();
 	}
 	
 	// If switch 2 pressed
 	if(GPIO_PORTF_RIS_R & 0x01) {
 		// Schedule all switch 2 tasks
+		DisableInterrupts();
 		for(int i = 0; i < num_sw2_tasks; i++) {
 			SW_Task_t *sw = &sw2_tasks[i];
-			//thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit);
-			//scheduler_schedule(sw->TCB);
-			//ContextSwitch();
-			sw->task();
+			thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit);
+			scheduler_schedule(sw->TCB);
+			ContextSwitch();
+			
+			//sw->task();
 		}		
 		GPIO_PORTF_ICR_R |= 0x01;
+		EnableInterrupts();
 	}
-	EnableInterrupts();
+	
 }
 
 //******** PortFEdge_Init *************** 
