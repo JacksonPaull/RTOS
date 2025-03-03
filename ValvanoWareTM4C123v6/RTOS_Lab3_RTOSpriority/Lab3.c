@@ -300,7 +300,6 @@ void Idle(void){
   // measure idle time only for the first 20s for this lab	
   while(NumSamples < RUNLENGTH){
     IdleCount++;  // measure of CPU idle time
-		OS_Suspend();
   }
   
   // compute CPU utilization (in 0.01%)

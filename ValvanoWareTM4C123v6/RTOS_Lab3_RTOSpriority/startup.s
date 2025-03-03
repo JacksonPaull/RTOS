@@ -646,9 +646,9 @@ StartCritical
 ; outputs: none
 EndCritical
 		; Track when interrupts are enabled / disabled
-		PUSH{LR}
+		PUSH{R0, LR}
 		BL OS_track_ints
-		POP{LR}
+		POP{R0, LR}
 		
 		MSR    PRIMASK, R0
         BX     LR
