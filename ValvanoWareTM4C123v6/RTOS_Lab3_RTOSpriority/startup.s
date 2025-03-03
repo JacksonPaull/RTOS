@@ -605,10 +605,10 @@ DisableInterrupts
 		CPSID  I
 		
 		; Track when interrupts are enabled / disabled
-		;MOV R0, #0
-		;PUSH{LR}
-		;BL OS_track_ints
-		;POP{LR}
+		MOV R0, #0
+		PUSH{LR}
+		BL OS_track_ints
+		POP{LR}
         BX     LR
 
 ;*********** EnableInterrupts ***************
@@ -616,13 +616,13 @@ DisableInterrupts
 ; inputs:  none
 ; outputs: none
 EnableInterrupts
-		CPSIE  I
-
 		; Track when interrupts are enabled / disabled
-		;MOV R0, #1
-		;PUSH{LR}
-		;BL OS_track_ints
-		;POP{LR}
+		MOV R0, #1
+		PUSH{LR}
+		BL OS_track_ints
+		POP{LR}
+		
+		CPSIE  I
         BX     LR
 
 ;*********** StartCritical ************************
@@ -634,12 +634,10 @@ StartCritical
         CPSID  I            ; mask all (except faults)
 		
 		; Track when interrupts are enabled / disabled
-		;MOV R1, R0
-		;MOV R0, #0
-		;PUSH{LR}
-		;BL OS_track_ints
-		;POP{LR}
-		;MOV R0, R1
+		PUSH{R0, LR}
+		MOV R0, #0
+		BL OS_track_ints
+		POP{R0, LR}
         BX     LR
 
 ;*********** EndCritical ************************
@@ -647,13 +645,12 @@ StartCritical
 ; inputs:  previous I bit
 ; outputs: none
 EndCritical
-        MSR    PRIMASK, R0
-		
 		; Track when interrupts are enabled / disabled
-		;PUSH{LR}
-		;BL OS_track_ints
-		;POP{LR}
+		PUSH{LR}
+		BL OS_track_ints
+		POP{LR}
 		
+		MSR    PRIMASK, R0
         BX     LR
 
 ;*********** WaitForInterrupt ************************

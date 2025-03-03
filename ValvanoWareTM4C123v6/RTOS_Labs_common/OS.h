@@ -120,7 +120,7 @@ uint16_t OS_get_num_threads(void);
 uint32_t OS_Jitter(uint8_t id);
 Jitter_t* OS_get_jitter_struct(uint8_t id);
 void OS_init_Jitter(uint8_t id, uint32_t period, uint32_t resolution, char unit[]);
-void OS_track_ints(uint8_t I);
+void OS_track_ints(uint32_t I);
 
 double OS_get_percent_time_ints_disabled(void);
 double OS_get_percent_time_ints_enabled(void);

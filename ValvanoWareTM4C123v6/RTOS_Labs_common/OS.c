@@ -156,22 +156,22 @@ void OS_reset_int_time(void) {
 
 
 // Track the time 
-void OS_track_ints(uint8_t I) {
+void OS_track_ints(uint32_t I) {
 	static uint32_t last_time = 0;
-	static uint8_t last_I = 0;
+	static uint32_t last_I = 0;
 	
-//	uint32_t time = OS_Time();
-//	
-//	uint32_t time_diff = (time - last_time) / 80; // In units of microseconds
-//	if(last_I == 0) { // Interrupts were enabled, mark the time they were enabled for
-//		os_int_time_enabled += time_diff;
-//	}
-//	else {
-//		os_int_time_disabled += time_diff;
-//	}
+	uint32_t time = OS_Time();
 	
-//	last_I = I;
-//	last_time = time;
+	uint32_t time_diff = (time - last_time) / TIME_1US; // In units of microseconds
+	if(last_I == 0) { // Interrupts were enabled, mark the time they were enabled for
+		os_int_time_enabled += time_diff;
+	}
+	else {
+		os_int_time_disabled += time_diff;
+	}
+	
+	last_I = I;
+	last_time = time;
 };
 
 
@@ -334,10 +334,10 @@ void OS_Init(void){
 	// init launch pad / pll
 	PLL_Init(Bus80MHz);
 	LaunchPad_Init();
-	PortFEdge_Init();
 	
 	// Init anything else used by OS
 	OS_MsTime_Init();
+	PortFEdge_Init();
 	Timer5A_Init(&DecrementSleepCounters, TIME_1MS, 1);
 	
 	
