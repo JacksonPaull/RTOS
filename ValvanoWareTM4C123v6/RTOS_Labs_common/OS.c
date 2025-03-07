@@ -348,7 +348,6 @@ void OS_Init(void){
 	OS_thread_init();
 	
 	ST7735_InitR(INITR_REDTAB);
-	eDisk_Init(0);
 
 	// Set PendSV priority to 7;
 	SYSPRI3 = (SYSPRI3 &0xFF0FFFFF) | 0x00E00000;

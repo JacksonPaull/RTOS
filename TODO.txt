@@ -1,8 +1,28 @@
-Bug:
-There is a heisenbug when activating switch tasks. It happens very infrequently,
-almost undoutedly related to the scheduling process
+File System:
 
-Features need to add:
-ensure interpreter works with real main
-enable code to dump time interrupts are disabled/enabled
-add compile time switch for debugging tools
+Initialization:
+	- Get metadata
+	- init bitmap
+	- init root dir and first data node
+
+Path Parsing
+
+File Creation
+
+File Deletion
+
+File Writing
+
+Interpreter Commands
+	- mk
+	- mkdir
+	- rm
+	- rmdir
+	- cat
+	- cd
+	- pwd
+	- ls
+
+
+TESTS:
+	- Test bandwidth
