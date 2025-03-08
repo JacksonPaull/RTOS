@@ -539,19 +539,25 @@ int Testmain2(void){   // Testmain2
 #define SENDONLY 0x1
 #define RECVONLY 0x2
 #define SENDRECV 0x4
-#define BW_CMD 0x1
+
 #define MBPS 1000000
 #define KBPS 1000
 #define BPS 1
+
+
+
+#define BW_CMD SENDRECV
 #define UNITSTR "kbps"
 #define UNIT KBPS
 
 uint32_t DataSent = 0;
 uint32_t DataRecv = 0;
 void Testbandwidth(void) {
+
 	uint8_t buffer[512];
 	
 	printf("Starting Bandwidth Test...\r\n");
+	eDisk_Init(0);
 	uint32_t start = OS_Time();
 	
 	
@@ -583,8 +589,8 @@ void Testbandwidth(void) {
 	uint32_t end = OS_Time();
 	float time_elapsed = (end - start) *  1.0 / TIME_1S;
 	
-	float upbw = DataSent / time_elapsed;
-	float downbw = DataRecv / time_elapsed;
+	float upbw = DataSent / time_elapsed / UNIT;
+	float downbw = DataRecv / time_elapsed / UNIT;
 	float totalbw = upbw + downbw;
 	
 	// Dump info to UART
@@ -599,7 +605,6 @@ void TestBandwidthMain(void) {
 	OS_Init();
 	PortD_Init();
 	OS_AddThread(&Testbandwidth, 128, 5);
-	OS_AddThread(&Interpreter, 128, 5);
 	OS_AddPeriodicThread(&disk_timerproc,TIME_1MS,0);
 	OS_Launch(10 * TIME_1MS);
 }
@@ -639,6 +644,7 @@ void FS_tester(void) {
 
 void TestFSMain(void) {
 	OS_Init();
+	OS_AddThread(&ThreadInit, 128, 0);
 	OS_AddPeriodicThread(&disk_timerproc, TIME_1MS, 0);
 	OS_AddThread(&Interpreter, 128, 5);
 	OS_AddThread(&FS_tester, 128, 5);
@@ -650,7 +656,7 @@ int main(void) { 			// main
   // Testmain0();	// Passed
 	// Testmain1();	// Passed
 	// Testmain2();
-	// TestBandwidthMain();
+	TestBandwidthMain(); // Passed - 304.48 KBps down alone, 178KBps up / down
 	// TestFSMain();
 	
 	// realmain();

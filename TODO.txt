@@ -26,3 +26,6 @@ Interpreter Commands
 
 TESTS:
 	- Test bandwidth
+
+Bug:
+	- Using O1 optimizer optimizes something out of the UART FIFOs, and causes hard faults sometimes
