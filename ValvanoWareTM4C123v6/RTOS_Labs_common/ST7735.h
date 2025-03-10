@@ -112,6 +112,12 @@
 #ifndef _ST7735H_
 #define _ST7735H_
 #include <stdint.h>
+#include "../RTOS_Labs_common/ST7735.h"
+#include "../RTOS_Labs_common/OS.h"
+#include "../RTOS_Labs_common/eDisk.h"
+
+extern Sema4Type LCDFree;
+
 // some flags for ST7735_InitR()
 enum initRFlags{
   none,

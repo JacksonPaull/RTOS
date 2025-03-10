@@ -1,17 +1,22 @@
 File System:
-
-Initialization:
-	- Get metadata
-	- init bitmap
-	- init root dir and first data node
+- Move the read/write locks to the iNode itself.
+	- Require files to reopen themselves when they read or write
+- Move bitmap to its own file
+	- give mutex
+	- give mutex to priority queues as well (at least the one for the filesystem)
 
 Path Parsing
+	- directory (file) opening / closing
+	- directory lookup
 
 File Creation
+	- dir creation
 
 File Deletion
 
 File Writing
+	- file growth
+	- (file shrinkage)
 
 Interpreter Commands
 	- mk
@@ -23,9 +28,11 @@ Interpreter Commands
 	- pwd
 	- ls
 
-
-TESTS:
-	- Test bandwidth
-
 Bug:
 	- Using O1 optimizer optimizes something out of the UART FIFOs, and causes hard faults sometimes
+
+Done (needs debugging):
+	Testing BW
+	Initialization
+	Opening iNodes
+	Basic 1 block bitmap allocation

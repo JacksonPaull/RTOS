@@ -56,7 +56,8 @@ typedef struct TCB {
 	uint8_t stack_id;									// Remove when memory manager is implemented.
 	unsigned long *sp; 								// Stack pointer
 	uint32_t sleep_count;							// In ms
-	
+	void *currentDir;									// Pointer to currently open file struct (circular dependencies mean this must be a void ptr)
+																				// TCB -> Sema4 -> File -> TCB
 } TCB_t;
 
 
@@ -415,5 +416,8 @@ int OS_RedirectToUART(void);
  * @brief  redirect printf output to the ST7735
  */
  int OS_RedirectToST7735(void);
+
+void* OS_get_current_dir(void);
+void OS_set_current_dir(void* dir);
 
 #endif

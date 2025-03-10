@@ -112,13 +112,11 @@
 // GND    (pin 1)  connected to ground
 
 #include <stdio.h>
-#include <stdint.h>
 #include <string.h>
 #include <math.h>
+#include "ST7735.h"
 #include "../inc/tm4c123gh6pm.h"
-#include "../RTOS_Labs_common/ST7735.h"
-#include "../RTOS_Labs_common/OS.h"
-#include "../RTOS_Labs_common/eDisk.h"
+
 
 // these defines are in two places, here and in eDisk.c
 #define SDC_CS_PB0 1

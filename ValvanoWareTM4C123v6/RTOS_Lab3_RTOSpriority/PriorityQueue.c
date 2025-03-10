@@ -71,3 +71,18 @@ PrioQ_node_t* PrioQ_pop(PrioQ_node_t **head) {
 	}
 	return head_node;
 }
+
+
+void PrioQ_remove(PrioQ_node_t **head, PrioQ_node_t *node) {
+	LL_remove((LL_node_t **) head, (LL_node_t *) node);	
+}
+
+PrioQ_node_t* PrioQ_find(PrioQ_node_t **head, uint32_t priority) {
+	PrioQ_node_t *node = *head;
+	while(node) {
+		if(node->priority == priority)
+			break;
+		node = node->next_ptr;
+	}
+	return node;
+}

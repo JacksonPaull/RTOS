@@ -651,12 +651,15 @@ void TestFSMain(void) {
 	OS_Launch(10*TIME_1MS);
 }
 
+#include <stdlib.h>
+
 //*******************Trampoline for selecting main to execute**********
 int main(void) { 			// main
+	malloc(10);
   // Testmain0();	// Passed
 	// Testmain1();	// Passed
-	// Testmain2();
-	TestBandwidthMain(); // Passed - 304.48 KBps down alone, 178KBps up / down
+	Testmain2();
+	// TestBandwidthMain(); // Passed - 304.48 KBps down alone, 178KBps up / down
 	// TestFSMain();
 	
 	// realmain();

@@ -18,9 +18,11 @@
 #include "../RTOS_Labs_common/OS.h"
 #include "../RTOS_Labs_common/ST7735.h"
 #include "../RTOS_Labs_common/eDisk.h"
+#include "../RTOS_Labs_common/eFile.h"
+
 #include "../inc/ADCT0ATrigger.h"
 #include "../RTOS_Labs_common/UART0int.h"
-#include "../RTOS_Labs_common/eFile.h"
+
 #include "../RTOS_Lab2_RTOSkernel/LinkedList.h"
 #include "../RTOS_Lab2_RTOSkernel/scheduler.h"
 
@@ -177,6 +179,13 @@ void OS_track_ints(uint32_t I) {
 };
 
 
+void* OS_get_current_dir(void) {
+	return RunPt->currentDir;
+}
+
+void OS_set_current_dir(void* dir) {
+	RunPt->currentDir = dir;
+}
 
 
 
@@ -474,6 +483,7 @@ TCB_t* SpawnThread(uint8_t isBackgroundThread, uint8_t priority) {
 	thread->isBackgroundThread = isBackgroundThread;
 	thread->sleep_count = 0;
 	thread->priority = priority;
+	thread->currentDir = eFile_Open_RootiNode(); // TODO Change to inherit the Root iNode of the parent...?
 	
 	return thread;
 }
