@@ -417,7 +417,6 @@ int OS_RedirectToUART(void);
  */
  int OS_RedirectToST7735(void);
 
-void* OS_get_current_dir(void);
-void OS_set_current_dir(void* dir);
+TCB_t* OS_get_current_TCB(void);
 
 #endif

@@ -9,717 +9,834 @@
 #include "../RTOS_Labs_common/eFile.h"
 #include "../RTOS_Lab3_RTOSpriority/PriorityQueue.h"
 #include "../RTOS_Lab4_FileSystem/Bitmap.h"
-#include <stdio.h>
+#include "../RTOS_Lab4_FileSystem/iNode.h"
 
 uint32_t NumSectors = 4096;
 uint32_t SectorSize = 512;
 
-
-FileWrapper_t DISK_INODES[MAX_FILES_OPEN];
+iNode_t DISK_INODES[MAX_NODES_OPEN];
 PrioQ_node_t *Open_Nodes_Head;
-uint32_t RootDir_iNode = 1;	// TODO Make work with general bitmap
 
-uint32_t FileIdxToSector(File_t *f, uint32_t idx) {
-	uint8_t D[BLOCK_SIZE];
-	if(idx < 124) {
-		return f->iNodeDisk->iNode.DP[idx];
+// TODO Make work with general bitmap
+#define ROOTDIR_INODE 1
+
+// TODO allocate two global buffers, and provide mutex access to them for all iNode buffering
+
+// -------------------------------- Utility Functions -------------------------------------- //
+
+int32_t min(int32_t a, int32_t b) {
+	if(a < b) {
+		return a;
+	}
+	return b;
+}
+
+int32_t max(int32_t a, int32_t b) {
+	if(a > b) {
+		return a;
+	}
+	return b;
+}
+
+/* Bytes2Sectors - gives the number of sectors that <bytes> will take up */
+uint32_t Bytes2Sectors(uint32_t bytes) {
+	return (bytes+BLOCK_SIZE-1)/BLOCK_SIZE;
+}
+
+/* FilePos2Sector - returns the sector that a given file pos will be in*/
+uint32_t FilePos2Sector(iNode_t *node, uint32_t pos) {
+	if(pos > node->iNode.size) {
+		// The position exists outside the file
+		return 0;
 	}
 	
-	// Use SIP
-	if(idx < 128 + 124) {
-		uint32_t n = (idx-124);
-		eDisk_ReadBlock(D, f->iNodeDisk->iNode.SIP);
-		return D[n];
+	uint32_t n = pos / BLOCK_SIZE; // The (file) sector that the position resides in
+	if(n < NUM_DIRECT_SECTORS) {
+		// The pos is in a direct data sector
+		return node->iNode.DP[n];
 	}
 	
-	// Use DIP
-	uint32_t n1 = (idx-124-128)/128;
-	uint32_t n2 = (idx-124-128) % 128;
-	eDisk_ReadBlock(D, f->iNodeDisk->iNode.DIP);
-	eDisk_ReadBlock(D, D[n1]);
-	return D[n2];
+	uint8_t buf[BLOCK_SIZE];
+	n -= NUM_DIRECT_SECTORS;
+	if(n < NUM_DIRECT_SECTORS) {
+		// The pos is in an indirect data sector
+		eDisk_ReadBlock(buf, node->iNode.SIP);
+		return buf[n];
+	}
+	
+	n -= NUM_DIRECT_SECTORS;
+	if(n < NUM_DIRECT_SECTORS*NUM_DIRECT_SECTORS) {
+		// The pos is in one of the doubly indirect sectors
+		eDisk_ReadBlock(buf, node->iNode.DIP);		// Load doubly indirect data sector
+		eDisk_ReadBlock(buf, buf[n/BLOCK_SIZE]);	// Load the (singly) indirect data sector
+		return buf[n % BLOCK_SIZE];
+	}
+	
+	// The position is outside the max file length
+	return 0;
 }
 
 
+// ---------------------------------- iNode Functions -------------------------------------- //
+uint32_t num_direct_sectors_occupied(iNode_t *node) {
+	uint32_t num_sectors = Bytes2Sectors(node->iNode.size);
+	return min(NUM_DIRECT_SECTORS, num_sectors);
+}
 
-void eFile_LoadBlock(File_t *f, uint32_t idx) {
+uint32_t num_direct_sectors_free(iNode_t *node) {
+	return NUM_DIRECT_SECTORS - num_direct_sectors_occupied(node);
+}
+
+
+uint32_t num_indirect_sectors_occupied(iNode_t *node) {
+	int32_t num_sectors = max(Bytes2Sectors(node->iNode.size) - NUM_DIRECT_SECTORS, 0);
+	return min(num_sectors, NUM_INDIRECT_SECTORS);
+}
+
+uint32_t num_indirect_sectors_free(iNode_t *node) {
+	return NUM_INDIRECT_SECTORS - num_indirect_sectors_occupied(node);
+}
+
+uint32_t num_doubly_indirect_sectors_occupied(iNode_t *node) {
+	int32_t num_sectors = max(Bytes2Sectors(node->iNode.size) - NUM_DIRECT_SECTORS - NUM_INDIRECT_SECTORS, 0);
+	return min(num_sectors, NUM_INDIRECT_SECTORS*NUM_INDIRECT_SECTORS);
+}
+
+uint32_t num_doubly_indirect_sectors_free(iNode_t *node) {
+	return NUM_DIRECT_SECTORS*NUM_INDIRECT_SECTORS - num_doubly_indirect_sectors_occupied(node);
+}
+
+// Returns 1 TRUE on success, FALSE on fail
+int allocate_direct(iNode_t *iNode, uint32_t num_sectors) {
+	uint32_t base = num_direct_sectors_occupied(iNode);
+	if(num_sectors + base > NUM_DIRECT_SECTORS) {
+		// Unable to allocate all the necessary sectors
+		return 0;
+	}
+	uint32_t buff[num_sectors];
+	Bitmap_AllocN(buff, num_sectors); // Allocate the sectors (not necessarily continuous, but usually will be)
 	
-	// Use DP
-	if(idx < 124) {
-		eDisk_ReadBlock(f->DataBuf, f->iNodeDisk->iNode.DP[idx]);
-		f->currently_open = idx;
-		return;
+	uint8_t zeros[BLOCK_SIZE];
+	
+	for(int i = 0; i < num_sectors; i++) {
+		eDisk_WriteBlock(zeros, buff[i]);		// Erase block on disk
+		iNode->iNode.DP[base+i] = buff[i];
 	}
 	
-	// Use SIP
-	if(idx < 128 + 124) {
-		uint32_t n = (idx-124);
-		eDisk_ReadBlock(f->DataBuf, f->iNodeDisk->iNode.SIP);
-		uint32_t *D = (uint32_t *) f->DataBuf;
-		eDisk_ReadBlock(f->DataBuf, D[n]);
-		f->currently_open = idx;
+	return 1;
+}
+
+int allocate_indirect(iNode_t *iNode, uint32_t num_sectors) {
+	uint32_t base = num_indirect_sectors_occupied(iNode);
+	if(num_sectors + base > NUM_INDIRECT_SECTORS) {
+		return 0;
+	}
+	
+	uint32_t buff[num_sectors];
+	Bitmap_AllocN(buff, num_sectors); // Allocate the sectors (not necessarily continuous, but usually will be)
+	
+	uint8_t zeros[BLOCK_SIZE];
+	uint32_t SIP_data[NUM_INDIRECT_SECTORS];
+	eDisk_ReadBlock(SIP_data, iNode->iNode.SIP);
+	
+	
+	for(int i = 0; i < num_sectors; i++) {
+		eDisk_WriteBlock(zeros, buff[i]);		// Erase block on disk
+		SIP_data[base+i] = buff[i];
+	}
+	eDisk_WriteBlock(SIP_data, iNode->iNode.SIP);
+	return 1;
+}
+
+int allocate_doubly_indirect(iNode_t *iNode, uint32_t num_sectors) {
+	uint32_t base = num_doubly_indirect_sectors_occupied(iNode);
+	if(num_sectors + base > NUM_INDIRECT_SECTORS*NUM_DIRECT_SECTORS) {
+		return 0;
+	}
+	
+	uint32_t buff[num_sectors];
+	Bitmap_AllocN(buff, num_sectors); // Allocate the sectors (not necessarily continuous, but usually will be)
+	
+	uint8_t zeros[BLOCK_SIZE];
+	uint32_t DIP1_data[NUM_INDIRECT_SECTORS];
+	uint32_t DIP2_data[NUM_INDIRECT_SECTORS];
+	eDisk_ReadBlock(DIP1_data, iNode->iNode.DIP);
+	
+	
+	for(int i = 0; i < num_sectors; i++) {
+		eDisk_WriteBlock(zeros, buff[i]);		// Erase block on disk
 		
-		return;
+		// Read in second indirect block
+		uint32_t n1 = (base+i)/NUM_INDIRECT_SECTORS; 
+		eDisk_ReadBlock(DIP2_data, DIP1_data[n1]);
+		for(uint32_t n2 = (base+i)%NUM_INDIRECT_SECTORS; n2 < NUM_INDIRECT_SECTORS; n2++) {
+			DIP2_data[n2] = buff[i++]; // Mark the allocated sector and move the pointer
+		}
+		eDisk_WriteBlock(DIP2_data, DIP1_data[n1]);
 	}
+	eDisk_WriteBlock(DIP1_data, iNode->iNode.DIP);
 	
-	// Use DIP
-	uint32_t n1 = (idx-124-128)/128;
-	uint32_t n2 = (idx-124-128) % 128;
-	eDisk_ReadBlock(f->DataBuf, f->iNodeDisk->iNode.DIP);
-	uint32_t *D = (uint32_t *) f->DataBuf;
-	eDisk_ReadBlock(f->DataBuf, D[n1]);
-	eDisk_ReadBlock(f->DataBuf, D[n2]);
-	f->currently_open = idx;
-	
-	return;
+	return 1;
 }
 
-void eFile_AddSector(FileWrapper_t *node) {
-	uint32_t sector = Bitmap_AllocOne();
-	uint32_t idx = node->iNode.size/512+1;
+
+// Allocates enough space for num_bytes additional bytes (and increases file size)
+int allocate_space(iNode_t *iNode, uint32_t num_bytes) {
+	uint32_t num_current_sectors = Bytes2Sectors(iNode->iNode.size);
+	uint32_t num_sectors = Bytes2Sectors(iNode->iNode.size + num_bytes);
+	num_sectors -= num_current_sectors;
+	uint32_t num_allocated = 0;
 	
-	// Use DP
-	if(idx < 124) {
-		node->iNode.DP[idx] = sector;
-		eDisk_WriteBlock((const uint8_t *) &node->iNode, node->sector_num);
-		return;
+	if(num_current_sectors < NUM_DIRECT_SECTORS) {
+		// Can allocate direct sectors
+		num_allocated = min(num_direct_sectors_free(iNode), num_sectors);
+	
+		if(num_allocated == 0) {
+			// We can use the space in the sectors already allocated
+			iNode->iNode.size += num_bytes;
+			num_bytes = 0;
+		}
+		else {
+			if(!allocate_direct(iNode, num_allocated)) {
+				return 0; // failed to allocate
+			}
+			
+			uint32_t b = min(num_bytes, BLOCK_SIZE*num_allocated);
+			num_bytes -= b;
+			iNode->iNode.size += b;
+			num_current_sectors += num_allocated;
+			num_sectors -= num_allocated;
+		}
 	}
 	
-	uint8_t buf[512];
-	// Use SIP
-	if(idx < 128 + 124) {
-		uint32_t n = (idx-124);
-		if(n == 0) {
-			// Allocate the SIP
-			uint32_t sector_SIP = Bitmap_AllocOne();
-			node->iNode.SIP = sector_SIP;
-			eDisk_WriteBlock((const uint8_t *) &node->iNode, node->sector_num);
+	if(num_current_sectors < NUM_INDIRECT_SECTORS + NUM_DIRECT_SECTORS) {
+		// Can allocate indirect
+		num_allocated = min(num_indirect_sectors_free(iNode), num_sectors);
+		if(num_allocated == 0) {
+			iNode->iNode.size += num_bytes;
+			num_bytes = 0;
+		}
+		else {
+			if(!allocate_indirect(iNode, num_allocated)) {
+				return 0;
+			}
+			
+			uint32_t b = min(num_bytes, BLOCK_SIZE*num_allocated);
+			num_bytes -= b;
+			iNode->iNode.size += b;
+			num_current_sectors += num_allocated;
+			num_sectors -= num_allocated;
 		}
 		
-		eDisk_ReadBlock(buf, node->iNode.SIP);
-		buf[n] = sector;
-		eDisk_WriteBlock(buf, node->iNode.SIP);
 		
-		return;
 	}
 	
-	// Use DIP
-	uint32_t n1 = (idx-124-128)/128;
-	if(n1 == 0) {
-		// Allocate DIP1
-		uint32_t sector_DIP = Bitmap_AllocOne();
-		node->iNode.DIP = sector_DIP;
-		eDisk_WriteBlock((const uint8_t *) &node->iNode, node->sector_num);
+	if(num_current_sectors < NUM_DIRECT_SECTORS*NUM_INDIRECT_SECTORS + NUM_INDIRECT_SECTORS + NUM_DIRECT_SECTORS) {
+		// Can allocate doubly indirect
+		num_allocated = min(num_doubly_indirect_sectors_free(iNode), num_sectors);
+		if(num_allocated == 0) {
+			iNode->iNode.size += num_bytes;
+			num_bytes = 0;
+		}
+		else {
+			if(!allocate_doubly_indirect(iNode, num_allocated)) {
+				return 0;
+			}
+			
+			uint32_t b = min(num_bytes, BLOCK_SIZE*num_allocated);
+			num_bytes -= b;
+			iNode->iNode.size += b;
+			num_current_sectors += num_allocated;
+			num_sectors -= num_allocated;
+		}
 	}
 	
-	uint32_t n2 = (idx-124-128) % 128;
-	eDisk_ReadBlock(buf, node->iNode.DIP);
-	if(n2 == 0) {
-		// Allocate DIP2
-		uint32_t sector_DIP = Bitmap_AllocOne();
-		buf[n1] = sector_DIP;
-		eDisk_WriteBlock(buf, node->iNode.DIP);
+	eDisk_WriteBlock(&iNode->iNode, iNode->sector_num);
+	if(num_bytes != 0) {
+		return 0; // Failed somewhere
 	}
 	
-	eDisk_ReadBlock(buf, buf[n1]);
-	buf[n2] = sector;
-	eDisk_WriteBlock(buf, sector);
-}
-
-void eFile_ReOpen_iNode(FileWrapper_t *node) {
-	// Reopen a node already in memory
-	OS_Wait(&node->ReaderLock);
-	node->numOpen += 1;
-	OS_Signal(&node->ReaderLock);
-}
-
-void eFile_ReOpen_iNodeRead(FileWrapper_t *node) {
-	// Reopen a node already in memory
-	OS_Wait(&node->ReaderLock);
-	if(node->numReaders == 0) {
-		OS_Wait(&node->WriterLock);
-	}
-	node->numReaders++;
-	node->numOpen++;
-	OS_Signal(&node->ReaderLock);
-}
-
-void eFile_ReOpen_iNodeWrite(FileWrapper_t *node) {
-	// Reopen a node already in memory
-	OS_Wait(&node->ReaderLock);
-	OS_Wait(&node->WriterLock);
-	node->numOpen += 1;
-	OS_Signal(&node->ReaderLock);
+	return 1; // Success
 }
 
 
-FileWrapper_t* eFile_Open_RootiNode(void) {
-	return eFile_Open_iNode(RootDir_iNode);
+int iNode_create(uint32_t sector, uint32_t length, uint8_t isDir) {
+	iNodeDisk_t ind;
+	
+	// Assume everything else initialized to 0
+	ind.isDir = isDir;
+	ind.magicByte = 0x12;
+	ind.magicHW = 0x3456;
+	
+	return eDisk_WriteBlock(&ind, sector);
 }
 
-// Reopen files if necessary
-FileWrapper_t* eFile_Open_iNode(uint32_t sector_num) {
-	FileWrapper_t *node;
-	node = (FileWrapper_t *) PrioQ_find(&Open_Nodes_Head, sector_num);
+iNode_t* iNode_open(uint32_t sector) {
+	int I = StartCritical();
+	
+	// Check if already in memory
+	iNode_t *node = (iNode_t*) PrioQ_find(&Open_Nodes_Head, sector);
 	if(node) {
-		eFile_ReOpen_iNode(node);
-		return node;
+		EndCritical(I);
+		return iNode_reopen(node);
 	}
 	
-	for(int i = 0; i < MAX_FILES_OPEN; i++) {
-		if(DISK_INODES[i].prev_ptr == 0 && DISK_INODES[i].next_ptr == 0) {
-			
-			// Found free iNode alloc
-			node = &DISK_INODES[i];
-			eDisk_ReadBlock((uint8_t *) &(node->iNode), sector_num);
-			node->priority = sector_num;
-			node->numReaders = 0;
-			node->numOpen = 1;
-			node->sector_num = sector_num;
-			OS_InitSemaphore(&node->WriterLock, 1);
-			OS_InitSemaphore(&node->ReaderLock, 1);
-			
-			PrioQ_insert(&Open_Nodes_Head, (PrioQ_node_t *) node);
-			
+	// Read in from disk
+	uint8_t buff[BLOCK_SIZE];
+	eDisk_ReadBlock(buff, sector);
+	
+	// Add to list
+		// TODO Replace with dynamic memory allocation later
+	
+	// find first non-used entry
+	for(int i = 0; i < MAX_NODES_OPEN; i++) {
+		iNode_t n = DISK_INODES[i];
+		if(n.next_ptr == 0 && n.prev_ptr == 0) {
+			// this node is unused, use this one
+			node = &n;
 			break;
 		}
 	}
+	if(!node) {
+		// Couldn't allocate
+		EndCritical(I);
+		return 0;
+	}
 	
+	node->sector_num = sector;
+	node->numOpen=1;
+	node->numReaders=0;
+	node->removed=0;
+	memcpy(&node->iNode, buff, BLOCK_SIZE);
+	OS_InitSemaphore(&node->NodeLock, 1);
+	
+	PrioQ_insert(&Open_Nodes_Head, (PrioQ_node_t *) node);
+	EndCritical(I);
 	return node;
 }
 
 
-void eFile_Close_iNode(FileWrapper_t *iNode) {
-	OS_Wait(&iNode->ReaderLock); // Ensure mutex on the node
-	iNode->numOpen--;
-	if(iNode->numOpen == 0) {
-		// Write back to disk and remove from open list
-		eDisk_WriteBlock((uint8_t *) &iNode->iNode, iNode->sector_num);
-		PrioQ_remove(&Open_Nodes_Head, (PrioQ_node_t *) iNode);
-	} else {
-		OS_Signal(&iNode->ReaderLock);
-	}
+iNode_t* iNode_reopen(iNode_t *node) {
+	// incerase the num_open count
+	int i = StartCritical();
+	node->numOpen++;
+	EndCritical(i);
+	return node;
 }
 
-
-FileWrapper_t* DirLookup(File_t *dir, char *filename) {
-	// pointer to matching iNode (reopens it as well)
-	return 0;
+uint32_t iNode_get_sector(iNode_t *node) {
+	return node->sector_num;
 }
 
-
-//---------- eFile_ParsePath-----------------
-// Parse a pathstring, open directory and return file name
-// Input: Path string (null terminated)
-//         e.g. "/absolute/file/path.txt" or "relative/file/path.txt"
-//				dirBuf: buffer for the opened directory
-//				filenameBuf: buffer for the name of the file
-// Output: 0 if successful and 1 on failure (already initialized)
-int eFile_ParsePath(const char *path, File_t *dirBuf, char *filenameBuf) {
-	uint32_t i;
-	FileWrapper_t* node;
-	
-	if(path[i] == '/') {
-		// Absolute path - start from root dir
-		node = eFile_Open_iNode(RootDir_iNode);
-		eFile_DOpen_iNode(dirBuf, node);
-		i++;
-		dirBuf->iNodeDisk = node;
-	} else {
-		// Relative path - start from currently open directory
-		node = OS_get_current_dir();
-		dirBuf->iNodeDisk = node;
-		eFile_ReOpen_iNode(node);
-	}
-	
-	while(1) {
-		
-		// find next delimiter
-		char dirName[MAX_FILE_NAME_LENGTH+1];
-		uint32_t j;
-		for(j = i; 1; j++) {
-			if(path[j] == 0){
-				j = -1;
-				break;
+void iNode_close(iNode_t *node) {
+	int I = StartCritical();
+	// decrement the num_open count
+	if(--(node->numOpen) == 0) {
+		// Nothing has this open anymore
+		if(node->removed) {
+			// Free from disk entirely (reclaim bitmap space)
+			uint32_t s = Bytes2Sectors(node->iNode.size);
+			
+			// Direct sectors
+			uint32_t l = min(NUM_DIRECT_SECTORS, s);
+			for(uint32_t i = 0; i < l; i++) {
+				Bitmap_free(node->iNode.DP[i]);
+			}
+			s -= l;
+			
+			if(s > 0) {
+				uint32_t buff[NUM_INDIRECT_SECTORS];
+				
+				// Indirect sectors
+				l = min(NUM_INDIRECT_SECTORS, s);
+				eDisk_ReadBlock(buff, node->iNode.SIP);
+				for(uint32_t i = 0; i < l; i++) {
+					Bitmap_free(buff[i]);
+				}
+				s -= l;
+				
+				if(s > 0) {
+					uint32_t buff2[NUM_INDIRECT_SECTORS];
+					
+					// Doubly indirect sectors
+					uint32_t nds = (s+NUM_INDIRECT_SECTORS-1)/NUM_INDIRECT_SECTORS;
+					eDisk_ReadBlock(buff, node->iNode.DIP);
+					for(uint32_t i = 0; i < nds; i++) {
+						eDisk_ReadBlock(buff2, buff[i]);
+						
+						l = min(s, NUM_INDIRECT_SECTORS);
+						for(uint32_t j = 0; j < l; j++) {
+							Bitmap_free(buff2[j]);
+						}
+						s -= l;
+					}
+				}
 			}
 			
-			if(path[j] == '/') {
-				
-				// [i:j) is the name of the directory we need to open
-				memcpy(dirName, &path[i], j-i);
-				node = DirLookup(dirBuf, dirName);
-				eFile_DClose(dirBuf);
-				eFile_DOpen_iNode(dirBuf, node);
-				
-				while(path[j] == '/') {j++;} // Consume all grouped ////
-				break;
-			}
+			
 		}
 		
-		// Reached the end of the string
-		if(j == -1)
-			break;
+		// Remove from list in RAM
+		PrioQ_remove(&Open_Nodes_Head, (PrioQ_node_t *) node);
 		
-		// Keep going
-		i = j;
 	}
+	EndCritical(I);
+}
+
+
+void iNode_remove(iNode_t *node) {
+	// Mark iNode to be removed when it is closed by the last caller who has it open
+	node->removed = 1;
+}
+
+
+// Must be called when the node lock is held!
+int iNode_read_at(iNode_t *node, void* buff, uint32_t size, uint32_t offset) {
+	// Read from appropriate data sector and place in the buffer
+	int return_status = 1;
+	
+	while( size > 0) {
+		uint32_t iNode_left = node->iNode.size - offset;
+		uint32_t block_ofs = offset % BLOCK_SIZE;
+		uint32_t block_left = BLOCK_SIZE - block_ofs;
+		uint32_t s = FilePos2Sector(node, offset);
 		
-	// Set filename buffer and set current dir
-	strcpy(filenameBuf, &path[i]);
+		uint32_t toRead = min(iNode_left, block_left);
+		if(block_ofs == 0 && toRead == BLOCK_SIZE) {
+			// Read entire block
+			return_status &= eDisk_ReadBlock(buff, s);
+			
+		}
+		else {
+			// Read only a portion of the block
+			uint8_t buff2[BLOCK_SIZE];
+			return_status &= eDisk_ReadBlock(buff2, s);
+			memcpy(buff, buff2+block_ofs, toRead);
+			
+		}
+		
+		offset += toRead;
+		size -= toRead;
+	}
+	
+	// return read operation status
+	return return_status;
+}
+
+
+int iNode_write_at(iNode_t *node, const void* buff, uint32_t size, uint32_t offset) {
+	// Allocate additional sectors if necessary
+	if(node->iNode.size < offset) {
+		// Allocate up to offset we need to write at
+		if(!allocate_space(node, offset - node->iNode.size)) {
+				return 0;
+		}
+	}
+	if(node->iNode.size < offset + size) {
+		// Allocate all the space we will need to write
+		if(!allocate_space(node, size)) {
+				return 0;
+		}
+	}
+	
+	uint32_t bytes_written = 0;
+	while(size > 0) {
+		uint32_t s = FilePos2Sector(node, offset);
+		uint32_t sector_ofs = offset%BLOCK_SIZE;
+	
+		uint32_t space_left = min(BLOCK_SIZE - sector_ofs, iNode_size(node)-offset); // space left in sector (or iNode)
+		uint32_t count = min(size, space_left);	// number of bytes to write
+		
+		if(sector_ofs == 0 && space_left == BLOCK_SIZE) {
+			// Write whole block
+			eDisk_WriteBlock(buff, s);
+		}
+		else {
+			uint8_t inBuf[BLOCK_SIZE];
+			eDisk_ReadBlock(inBuf, s);
+			memcpy(inBuf, buff, count);
+			eDisk_WriteBlock(inBuf, s);
+		}
+		
+		offset += count;
+		bytes_written += count;
+		size -= count;
+	}
+	
+	return bytes_written;
+}
+
+
+uint32_t iNode_size(iNode_t *node) {
+	return node->iNode.size;
+}
+
+void iNode_lock_read(iNode_t *node) {
+	OS_Wait(&node->NodeLock);
+	node->numReaders++;
+	OS_Signal(&node->NodeLock);
+}
+
+
+void iNode_lock_write(iNode_t *node) {
+	do {
+		OS_Wait(&node->NodeLock);
+		if(node->numReaders == 0){
+			break;
+		}
+		OS_Signal(&node->NodeLock);
+	} while (1);
+}
+
+void iNode_unlock_read(iNode_t *node) {
+	OS_Wait(&node->NodeLock);
+	node->numReaders--;
+	OS_Signal(&node->NodeLock);
+}
+
+void iNode_unlock_write(iNode_t *node) {
+	OS_Signal(&node->NodeLock);
+}
+
+// ----------------------------------- File Functions -------------------------------------- //
+
+// TODO Replace with dynamic allocation instead of buffers and add return codes
+void eFile_F_open(iNode_t *node, File_t* buff) {
+	buff->iNode = node;
+	buff->pos = 0;
+}
+
+
+void eFile_F_reopen(File_t *file, File_t* buff) {
+	eFile_F_open(iNode_reopen(file->iNode), buff);
+}
+
+
+void eFile_F_close(File_t *file) {
+	iNode_close(file->iNode);
+}
+
+
+iNode_t* eFile_F_get_iNode(File_t *file) {
+	return file->iNode;
+}
+
+uint32_t eFile_F_read(File_t *file, void* buffer, uint32_t size) {
+	iNode_lock_read(file->iNode);
+	uint32_t r = iNode_read_at(file->iNode, buffer, size, file->pos);
+	iNode_unlock_read(file->iNode);
+	return r;
+}
+
+uint32_t eFile_F_read_at(File_t *file, void* buffer, uint32_t size, uint32_t pos) {
+	iNode_lock_read(file->iNode);
+	uint32_t r = iNode_read_at(file->iNode, buffer, size, pos);
+	iNode_unlock_read(file->iNode);
+	return r;
+}
+
+
+uint32_t eFile_F_write(File_t *file, const void* buffer, uint32_t size) {
+	iNode_lock_write(file->iNode);
+	uint32_t r = iNode_write_at(file->iNode, buffer, size, file->pos);
+	iNode_unlock_write(file->iNode);
+	return r;
+}
+
+uint32_t eFile_F_write_at(File_t *file, const void* buffer, uint32_t size, uint32_t pos) {
+	iNode_lock_write(file->iNode);
+	uint32_t r = iNode_write_at(file->iNode, buffer, size, pos);
+	iNode_unlock_write(file->iNode);
+	return r;
+}
+
+uint32_t eFile_F_length(File_t *file) {
+	return file->iNode->iNode.size;
+}
+void eFile_F_seek(File_t *file, uint32_t pos) {
+	file->pos = pos;
+}
+
+uint32_t eFile_F_tell(File_t *file) {
+	return file->pos;
+}
+
+// ------------------------------ Directory Functions -------------------------------------- //
+
+// TODO Add return code(s) and dynamic allocation instead of buffers
+void eFile_D_create(uint32_t parent_sector, uint32_t dir_sector, uint32_t entry_cnt) {
+	Dir_t buff;
+	
+	iNode_create(dir_sector, entry_cnt * sizeof(DirEntry_t), 1);
+	
+	eFile_D_open(iNode_open(dir_sector), &buff);
+	if(parent_sector == 0) {
+		parent_sector = ROOTDIR_INODE; // Root dir sector
+	}
+	eFile_D_add(&buff, ".", dir_sector, 1);
+	eFile_D_add(&buff, "..", parent_sector, 1);
+	
+	eFile_D_close(&buff);
+}
+
+void eFile_D_open(iNode_t *node, Dir_t *buff) {
+	RunPt->currentDir = node; // set the current dir in the TCB
+	buff->iNode = node;
+	buff->pos = 80;
+}
+
+void eFile_D_open_root(Dir_t *buff) {
+	eFile_D_open(iNode_open(ROOTDIR_INODE), buff);
+}
+
+void eFile_D_reopen(Dir_t *dir, Dir_t* buff) {
+	eFile_D_open(iNode_reopen(dir->iNode), buff);
+}
+
+void eFile_D_close(Dir_t *dir) {
+	iNode_close(dir->iNode);
+}
+
+iNode_t* eFile_D_get_iNode(Dir_t *dir) {
+	return dir->iNode;
+}
+
+int eFile_D_dir_from_path(const char path[], Dir_t *buff) {
+		// TODO
+	uint32_t i;
+	Dir_t dir;
+	if(path[i] == '/') {
+		// Absolute path, open root dir
+		eFile_D_open_root(&dir);
+		i++;
+	}
+	else {
+		// Relative path, open current dir
+		eFile_D_open(RunPt->currentDir, &dir);
+	}
+	
+	char fn[MAX_FILE_NAME_LENGTH+1];
+	for(uint32_t j = 0; path[i] != 0; i++) {
+		fn[j++] = path[i];
+		if(path[i] == '/') {
+			// Change dir
+			Dir_t newDir;
+			if(!eFile_D_lookup(&dir, fn, &newDir)) {
+				eFile_D_close(&dir);
+				return 0;
+			}
+			
+			eFile_D_close(&dir);
+			dir = newDir;
+			
+			// Reset filename bufer
+			memset(fn, 0, MAX_FILE_NAME_LENGTH+1);
+			j = 0;
+			
+//			// Consume all adjacent /
+//			while(path[++i] == '/') {}
+//				--i; // Account for the for loop increment
+		}
+	}
+	
+	memcpy(buff, &dir, sizeof(dir));
+	return 1;
+}
+
+int lookup(Dir_t *dir, const char name[], DirEntry_t *buff, uint32_t *offset) {
+	int ret = 0;
+	
+	iNode_lock_read(dir->iNode);
+	DirEntry_t de;
+	for(uint32_t ofs = 80; ofs < dir->iNode->iNode.size; ofs += sizeof de) {
+		iNode_read_at(dir->iNode, &de, sizeof de, ofs);
+		if(strcmp(de.name, name) == 0) {
+			ret = 1;
+			*offset = ofs;
+			memcpy(buff, &de, sizeof de);
+		}
+	}
+	
+	iNode_unlock_read(dir->iNode);
+	return ret;
+}
+
+int eFile_D_lookup(Dir_t *dir, const char name[], File_t *buff) {
+		
+	DirEntry_t de;
+	uint32_t ofs;
+	
+	if (lookup(dir, name, &de, &ofs)) {
+		eFile_F_open(iNode_open(de.Header_Sector), buff);
+		return 1;
+	} 
 	
 	return 0;
 }
 
-
-
-
-
-//---------- eFile_Init-----------------
-// Activate the file system, without formating
-// Input: none
-// Output: 0 if successful and 1 on failure (already initialized)
-int eFile_Init(void){ // initialize file system
-	int x, y;
-
-	disk_ioctl(0, GET_SECTOR_COUNT, &x);
-	printf("found %d blocks, using %d\r\n", x, NumSectors);
+int eFile_D_add(Dir_t *dir, const char name[], uint32_t iNode_header_sector, uint8_t isDir) {
 	
-	disk_ioctl(0, GET_SECTOR_SIZE, &x);
-	disk_ioctl(0, GET_BLOCK_SIZE, &y);
-	printf("BlockSize: %d\r\nSectorSize: %d\r\n\n", y, x);
+	if(strlen(name) > MAX_FILE_NAME_LENGTH+1) {
+		return 0;
+	}
 	
-	// TODO Update to general bitmap
-	Bitmap_Init(512);
-	printf("Using %d sectors for the bitmap\r\n", 1);
+	DirEntry_t de;
+	uint32_t ofs;
+	if(lookup(dir, name, &de, &ofs)) {
+		return 0;
+	}
 	
-  return 0;
+	
+	de.isDir = isDir;
+	strcpy(de.name, name);
+	de.Header_Sector = iNode_header_sector;
+	de.in_use = 1;
+	
+	iNode_lock_write(dir->iNode);
+	
+	for (ofs = 0; iNode_read_at(dir->iNode, &de, sizeof de, ofs); ofs += sizeof de) {
+        if (!de.in_use) {
+            break;
+        }
+    }
+	
+	iNode_write_at(dir->iNode, &de, sizeof de, ofs);
+	iNode_unlock_write(dir->iNode);
+	
+	return 1;
 }
 
-int CreateRootDir(uint32_t header_sector) {
-	uint8_t DataBuf[BLOCK_SIZE];
-	FileWrapper_t dir;
+int eFile_D_remove(Dir_t *dir, const char name[]) {
+
+	DirEntry_t de;
+	uint32_t ofs;
+	if(!lookup(dir, name, &de, &ofs)) {
+		return 0;
+	}
 	
-	dir.iNode.isDir = 1;
-	dir.iNode.magicHW = 0x3456;
-	dir.iNode.magicByte = 0x12;
-	uint32_t sec = Bitmap_AllocOne();
-	dir.iNode.DP[0] = sec;
-	dir.iNode.size = 2;
+	iNode_t* node = iNode_open(dir->iNode->sector_num);
 	
-	// Add first two entries
-	DirEntry_t entry = { 0, ".", header_sector };
-	memcpy(DataBuf, &entry, sizeof(entry));
+	de.in_use = 0;
+	iNode_write_at(dir->iNode, &de, sizeof de, ofs);
 	
-	strcpy(entry.name, "..");
-	memcpy(DataBuf + sizeof(entry), &entry, sizeof(entry));
-	
-	eDisk_WriteBlock((uint8_t*) &dir.iNode, header_sector);
-	eDisk_WriteBlock(DataBuf, sec);
-	
+	iNode_remove(node);
+	iNode_close(node);
+	return 1;
+}
+
+int eFile_D_read_next(Dir_t *dir, char buff[], uint32_t *sizeBuffer) {
+	DirEntry_t de;
+	while(iNode_read_at(dir->iNode, &de, sizeof de, dir->pos)) {
+		dir->pos += sizeof de;
+		if(de.in_use) {
+			strcpy(buff, de.name);
+			iNode_t *n = iNode_open(de.Header_Sector);
+			*sizeBuffer = n->iNode.size;
+			iNode_close(n);
+			return 1;
+		}
+	}
 	return 0;
 }
 
-//---------- eFile_Format-----------------
-// Erase all files, create blank directory, initialize free space manager
-// Input: none
-// Output: 0 if successful and 1 on failure (e.g., trouble writing to flash)
-int eFile_Format(void){ // erase disk, add format
-	// Erase all sectors
+
+// -------------------------------- Filesys Functions -------------------------------------- //
+
+int eFile_OpenCurrentDir(File_t *buff) {
+	eFile_D_open(RunPt->currentDir, buff);
+	return 1;
+}
+
+int eFile_Create(const char path[]) { 
+	uint32_t i;
+	for(i = strlen(path)-1; path[i] != '/'; --i) { }
+	
+	Dir_t d;
+	char dirPath[i+1];
+	const char *fn = path+i+1;
+	memcpy(dirPath, path, i);
+	eFile_D_dir_from_path(dirPath, &d);
+	
+	// Create a file of zero size
+	uint32_t s = Bitmap_AllocOne();
+	iNode_create(s, 0, 0);
+	eFile_D_add(&d, fn, s, 0);
+	eFile_D_close(&d);
+	
+	return 1;
+}
+
+int eFile_Open(const char path[], File_t *buff) {
+	//rfind('/')
+	uint32_t i;
+	for(i = strlen(path)-1; path[i] != '/'; --i) { }
+	
+	Dir_t d;
+	char dirPath[i+1];
+	const char *fn = path+i+1;
+	memcpy(dirPath, path, i);
+	eFile_D_dir_from_path(dirPath, &d);
+	eFile_D_lookup(&d, fn, buff);
+	eFile_D_close(&d);
+	return 1;
+}
+
+int eFile_Remove(const char path[]) {
+	//rfind('/')
+	uint32_t i;
+	for(i = strlen(path)-1; path[i] != '/'; --i) { }
+	
+	
+	Dir_t d;
+	char dirPath[i+1];
+	const char *fn = path+i+1;
+	memcpy(dirPath, path, i);
+	eFile_D_dir_from_path(dirPath, &d);
+	eFile_D_remove(&d, fn);
+	eFile_D_close(&d);
+	return 1;
+}
+
+
+/* Return success value */
+int eFile_Init(void) {
+	// Initialize the list of iNode(s)
+		// TODO Update with dynamic memory allocation after lab 5
+	
+	// Initialize Bitmap
+	Bitmap_Init(BLOCK_SIZE);
+	
+	return 1;
+}
+
+int eFile_Format(void) {
+	// Format drive
 	uint8_t buf[BLOCK_SIZE];
-	
-	printf("Erasing sectors...\r\n");
-	for(int i = 0; i < NumSectors; i++) {
+	for(uint32_t i = 0; i < NumSectors; i++) {
 		eDisk_WriteBlock(buf, i);
 	}
 	
-	printf("Allocating reserved sectors\r\n");
+	// Reset bitmap
+	Bitmap_Reset();
 	
-	// TODO Replace with a more general bitmap initialization
-	// Initialize first sectors
-		// (todo, metadata sector?)
-		// 0. Bitmap
-		// 1. Root Dir iNode
-		// 2. Root Dir First DataNode
-	Bitmap_Format();
-	Bitmap_AllocN((uint32_t *) buf, 2);// Allocate first 2 sectors (third in CreateRootDir)
-	CreateRootDir(1);
-
-  return 0;  
+	// Create root dir
+	eFile_D_create(ROOTDIR_INODE, ROOTDIR_INODE, 16);
+	
+	return 1;
 }
 
-//---------- eFile_Mount-----------------
-// Mount the file system, without formating
-// Input: none
-// Output: 0 if successful and 1 on failure
-int eFile_Mount(void){ // initialize file system
-	// Load bitmap
+
+int eFile_Mount(void) {
+	// Read in bitmap
 	Bitmap_Mount();
 	
-	//Note: Don't need to do anything else, the root dir will be loaded the first time an absolute path is used
-  return 0;  
+	return 1;
 }
 
-int eFile_DirCreateEntry(File_t *dir, const char name[], uint32_t header_iNode) {
-	DirEntry_t fde;
-	strcpy(fde.name, name);
-	fde.deleted = 0;
-	fde.header_inode = header_iNode;
-	
-	eFile_ReOpen_iNode(dir->iNodeDisk);
-	for(uint32_t i = 0; i < dir->iNodeDisk->iNode.size; i++) {
-		// Insert FDE entry
-		
-		// Find first entry with "deleted" = 1 or "iNode" = 0
-		
-	}
-	
-	return 0;
-}
-
-void eFile_DirDeleteEntry(File_t *dir, FileWrapper_t *node) {
-	// Find the right node
-	
-	// set deleted flag
-	
-	
-}
-
-//---------- eFile_Create-----------------
-// Create a new, empty file with one allocated block
-// Input: file name is an ASCII string up to seven characters 
-// Output: 0 if successful and 1 on failure (e.g., trouble writing to flash)
-int eFile_Create( const char name[], uint8_t isDir){  // create new file, make it empty 
-	// Parse path
-		// Get filename, open directory it will be in
-	File_t dir;
-	char fn_buff[MAX_FILE_NAME_LENGTH];
-	eFile_ParsePath(name, &dir, fn_buff);
-	
-	// Allocate sector for iNode and first data sector
-	uint32_t iNode_s = Bitmap_AllocOne();
-	uint32_t data_s = Bitmap_AllocOne();
-	
-	FileWrapper_t *node = eFile_Open_iNode(iNode_s);
-	if(isDir) {
-		// Directory creation
-		
-		// Set first two entries for '.' and '..'
-		
-		node->iNode.size = 2;
-		node->iNode.isDir = 1;
-		
-		eDisk_WriteBlock(dir.DataBuf, data_s);
-	} else {
-		// File Creation
-		node->iNode.size = 0;
-		node->iNode.isDir = 0;
-	}
-	
-	node->iNode.magicByte = 0x12;
-	node->iNode.magicHW = 0x3456;
-	node->iNode.DP[0] = data_s;
-	
-	// Create the directory entry
-	eFile_DirCreateEntry(&dir, fn_buff, iNode_s);
-	eDisk_WriteBlock(dir.DataBuf, dir.iNodeDisk->sector_num);
-	
-	// Close dir and iNode
-	eFile_Close_iNode(node);
-	eFile_DClose(&dir);
-  return 0;   // replace
-}
-
-
-// Same as above but doesn't close the file and has a buffer for opening it
-int eFile_CreateAndOpen(const char name[], uint8_t isDir,  File_t *buff) {
-	// Parse path
-		// Get filename, open directory it will be in
-	File_t dir;
-	char fn_buff[MAX_FILE_NAME_LENGTH];
-	eFile_ParsePath(name, &dir, fn_buff);
-	
-	// Allocate sector for iNode and first data sector
-	uint32_t iNode_s = Bitmap_AllocOne();
-	uint32_t data_s = Bitmap_AllocOne();
-	
-	FileWrapper_t *node = eFile_Open_iNode(iNode_s);
-	if(isDir) {
-		// Directory creation
-		
-		// Set first two entries for '.' and '..'
-		
-		node->iNode.size = 2;
-		node->iNode.isDir = 1;
-		
-		eDisk_WriteBlock(dir.DataBuf, data_s);
-	} else {
-		// File Creation
-		node->iNode.size = 0;
-		node->iNode.isDir = 0;
-	}
-	
-	node->iNode.magicByte = 0x12;
-	node->iNode.magicHW = 0x3456;
-	node->iNode.DP[0] = data_s;
-	
-	// Create the directory entry
-	eFile_DirCreateEntry(&dir, fn_buff, iNode_s);
-	eDisk_WriteBlock(dir.DataBuf, dir.iNodeDisk->sector_num);
-	
-	buff->currently_open = 0;
-	buff->iNodeDisk = node;
-	buff->pos = 0;
-	
-	eFile_DClose(&dir);
-	return 0;
-}
-
-
-//---------- eFile_WOpen-----------------
-// Open the file, read into RAM last block
-// Input: file name is an ASCII string up to seven characters
-// Output: 0 if successful and 1 on failure (e.g., trouble writing to flash)
-int eFile_WOpen(const char name[], File_t* buff){      // open a file for writing 
-	// Parse path
-	char fnbuff[MAX_FILE_NAME_LENGTH];
-	eFile_ParsePath(name, buff, fnbuff);
-	
-	// Dir lookup for the file
-	FileWrapper_t *f = DirLookup(buff, fnbuff);
-	
-	// wait on writer lock
-	OS_Wait(&f->ReaderLock);
-	f->numOpen++;
-	OS_Wait(&f->WriterLock);
-	
-	buff->iNodeDisk = f;
-	buff->pos = 0;
-	buff->currently_open = 0;
-	uint32_t sector = FileIdxToSector(buff, 0);
-	eDisk_ReadBlock(buff->DataBuf, sector);
-	
-  return 0; 
-}
-
-//---------- eFile_Write-----------------
-// save at end of the open file
-// Input: data to be saved
-// Output: 0 if successful and 1 on failure (e.g., trouble writing to flash)
-int eFile_Write(File_t *f, const char data){
-	
-		// write to file starting at <pos>
-
-		// When we get to the end of the current max sector (i.e. size % 512 == 0)
-			// Write current sector to disk
-			// Allocate a new sector
-		//Crossed boundary into next sector, swap buffer
-  if(f->pos % 512 == 0 && f->pos != 0) {
-		uint32_t idx = FileIdxToSector(f, f->currently_open);
-		eDisk_WriteBlock(f->DataBuf, idx);
-		
-		eFile_AddSector(f->iNodeDisk);
-		f->currently_open++;
-		idx = FileIdxToSector(f, f->currently_open);
-		eDisk_ReadBlock(f->DataBuf, idx);
-	}
-	
-	f->DataBuf[f->pos % 512] = data;
-	f->pos++;
-	f->iNodeDisk->iNode.size++;
-  return 0; 
-}
-
-//---------- eFile_WClose-----------------
-// close the file, left disk in a state power can be removed
-// Input: none
-// Output: 0 if successful and 1 on failure (e.g., trouble writing to flash)
-int eFile_WClose(File_t *f){ // close the file for writing
-	// write file's last sector out to disk
-	uint32_t sector = FileIdxToSector(f, f->currently_open);
-	eDisk_WriteBlock(f->DataBuf, sector);
-	
-	// release writer lock
-	OS_Signal(&f->iNodeDisk->WriterLock);
-	int I = StartCritical();
-	f->iNodeDisk->numOpen--;
-	if(f->iNodeDisk->numOpen == 0) {
-		PrioQ_remove((PrioQ_node_t **) &DISK_INODES, (PrioQ_node_t *) f->iNodeDisk);
-	}
-	EndCritical(I);
-	OS_Signal(&f->iNodeDisk->ReaderLock);
-
-  return 0; 
-}
-
-
-//---------- eFile_ROpen-----------------
-// Open the file, read first block into RAM 
-// Input: file name is an ASCII string up to seven characters
-// Output: 0 if successful and 1 on failure (e.g., trouble read to flash)
-int eFile_ROpen(const char name[], File_t *buff){      // open a file for reading 
-	// Parse path
-	char fnbuff[MAX_FILE_NAME_LENGTH];
-	eFile_ParsePath(name, buff, fnbuff);
-	
-	// Dir lookup for the file
-	FileWrapper_t *f = DirLookup(buff, fnbuff);
-	
-	int I = StartCritical();
-	f->numOpen++;
-	EndCritical(I);
-	
-	// wait on writer lock
-	OS_Wait(&f->ReaderLock);
-	f->numReaders++;
-	if(f->numReaders == 1) {
-		OS_Wait(&f->WriterLock);
-	}
-	OS_Signal(&f->ReaderLock);
-	
-	buff->iNodeDisk = f;
-	buff->pos = 0;
-	buff->currently_open = 0;
-	uint32_t sector = FileIdxToSector(buff, 0);
-	eDisk_ReadBlock(buff->DataBuf, sector);
-	
-  return 0; 
-}
- 
-//---------- eFile_ReadNext-----------------
-// retreive data from open file
-// Input: none
-// Output: return by reference data
-//         0 if successful and 1 on failure (e.g., end of file)
-int eFile_ReadNext(File_t *f, char *pt){       // get next byte 
-	if(f->pos > f->iNodeDisk->iNode.size) {
-		return 1;
-	}
-	
-	//Crossed boundary into next sector, swap buffer
-  if(f->pos % 512 == 0 && f->pos != 0) {
-		f->currently_open++;
-		uint32_t sec = FileIdxToSector(f, f->currently_open);
-		eDisk_ReadBlock(f->DataBuf, sec);
-	}
-	
-	*pt = f->DataBuf[f->pos % 512];
-	f->pos++;
-  return 0;   // replace
-}
-    
-//---------- eFile_RClose-----------------
-// close the reading file
-// Input: none
-// Output: 0 if successful and 1 on failure (e.g., wasn't open)
-int eFile_RClose(File_t *f){ // close the file for writing
-  
-	// decrement numReaders
-	int I = StartCritical();
-	f->iNodeDisk->numReaders--;
-	EndCritical(I);
-	
-	OS_Wait(&f->iNodeDisk->ReaderLock);
-	
-	f->iNodeDisk->numOpen--;
-	if(f->iNodeDisk->numReaders == 0) {
-		// release writer lock
-		OS_Signal(&f->iNodeDisk->WriterLock);
-	}
-	
-	I = StartCritical();
-	if(f->iNodeDisk->numOpen == 0) {
-		// Remove from disk
-		PrioQ_remove((PrioQ_node_t **) &DISK_INODES, (PrioQ_node_t *) f->iNodeDisk);
-	}
-	EndCritical(I);
-	
-	OS_Signal(&f->iNodeDisk->ReaderLock);
-	
-  return 0;  
-}
-
-
-//---------- eFile_Delete-----------------
-// delete this file
-// Input: file name is a single ASCII letter
-// Output: 0 if successful and 1 on failure (e.g., trouble writing to flash)
-int eFile_Delete(File_t *f){  // remove this file 
-	// Parse path, open directory
-	
-	// set deleted flag in directory entry
-	
-	// close directory
-  return 1;   // replace
-}                             
-
-
-
-//---------- eFile_DOpen-----------------
-// Open a (sub)directory, read into RAM
-// Input: directory name is an ASCII string up to seven characters
-//        (empty/NULL for root directory)
-// Output: 0 if successful and 1 on failure (e.g., trouble reading from flash)
-int eFile_DOpen(const char name[], File_t *buff){ // open directory
-   // Parse path
-	
-	 // get dirEntry and read from disk
-	
-	// TODO Split open/close into read/write (anything which will create/delete a file will write)
-  return 1;   // replace
-}
-
-
-int eFile_DOpen_iNode(File_t* buff, FileWrapper_t *iNode) {
-	buff->pos = 0;
-	buff->currently_open = 0;
-	
-	buff->iNodeDisk = iNode;
-	eFile_ReOpen_iNode(iNode);
-	
-	return 0;
-}
-
-void eFile_cd(File_t *newDir) {
-	OS_set_current_dir(newDir->iNodeDisk);
-}
-  
-//---------- eFile_DirNext-----------------
-// Retreive directory entry from open directory
-// Input: none
-// Output: return file name and size by reference
-//         0 if successful and 1 on failure (e.g., end of directory)
-int eFile_DirNext(File_t *dir, char *name[], unsigned long *size){  // get next entry 
-  // Start at <pos>
-	
-	// Find next directory (if we hit the end of the file return null pointer and success)
-	
-	// get file name from dir entry and size from header iNode
-	
-  return 1;   // replace
-}
-
-//---------- eFile_DClose-----------------
-// Close the directory
-// Input: none
-// Output: 0 if successful and 1 on failure (e.g., wasn't open)
-int eFile_DClose(File_t *f){ // close the directory
-   // release writer lock
-	
-	
-  return 1;   // replace
-}
-
-
-//---------- eFile_Unmount-----------------
-// Unmount and deactivate the file system
-// Input: none
-// Output: 0 if successful and 1 on failure (not currently mounted)
-int eFile_Unmount(void){ 
-   // set to power down
-	
-	// write out bitmap, any other iNodes still left in memory
+int eFile_Unmount(void) {
+	// Write out bitmap
 	Bitmap_Write_Out();
 	
-	// send command to unmount
-  return 1;   // replace
-}
+	// Could also close all iNodes if we wanted to but tbh that's on the callee
+	return 1;
+}	

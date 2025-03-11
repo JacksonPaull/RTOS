@@ -15,7 +15,7 @@ hence this implementation is not usable for anything except the filesys bitmap
 #include <stdint.h>
 
 
-void Bitmap_Format(void);
+void Bitmap_Reset(void);
 void Bitmap_Mount(void);
 void Bitmap_Init(uint32_t size);	// Initialize bitmap to 0
 uint32_t Bitmap_AllocOne(void);	// Find first available sector
@@ -23,7 +23,7 @@ void Bitmap_AllocN(uint32_t *buf, uint32_t N); // Allocate N sectors
 
 uint32_t Bitmap_isFree(uint32_t idx);
 uint32_t Bitmap_isAllocd(uint32_t idx);
-
+void Bitmap_free(uint32_t idx);
 
 void Bitmap_Write_Out(void);
 void Bitmap_Read_In(uint32_t sector);

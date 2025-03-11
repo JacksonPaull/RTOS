@@ -453,8 +453,8 @@ void TestDirectory(void){ char *name; unsigned long size;
   num = 0;
   total = 0;
   printf("\n\r");
-  if(eFile_DOpen(""))           diskError("eFile_DOpen",0);
-  while(!eFile_DirNext(&name, &size)){
+  if(eFile_open(""))           diskError("eFile_DOpen",0);
+  while(!eFile_D_read_next(&name, &size)){
     printf(string1, name);
     printf("  ");
     printf(string2, size);
@@ -466,7 +466,8 @@ void TestDirectory(void){ char *name; unsigned long size;
   printf("\n\r");
   printf(string4, total);
   printf("\n\r");
-  if(eFile_DClose())            diskError("eFile_DClose",0);
+	// TODO Fix this
+  if(eFile_D_close(DIR))            diskError("eFile_DClose",0);
 }
 void TestFile(void){   int i; char data; 
   printf("\n\rEE445M/EE380L, Lab 4 eFile test\n\r");
@@ -477,22 +478,22 @@ void TestFile(void){   int i; char data;
   if(eFile_Mount())             diskError("eFile_Mount",0);
   TestDirectory();
   if(eFile_Create("file1"))     diskError("eFile_Create",0);
-  if(eFile_WOpen("file1"))      diskError("eFile_WOpen",0);
+  if(eFile_Open("file1"))      diskError("eFile_WOpen",0);
   for(i=0;i<1000;i++){
-    if(eFile_Write('a'+i%26))   diskError("eFile_Write",i);
+    if(eFile_F_write('a'+i%26))   diskError("eFile_Write",i);
     if(i%52==51){
-      if(eFile_Write('\n'))     diskError("eFile_Write",i);  
-      if(eFile_Write('\r'))     diskError("eFile_Write",i);
+      if(eFile_F_write('\n'))     diskError("eFile_Write",i);  
+      if(eFile_F_write('\r'))     diskError("eFile_Write",i);
     }
   }
-  if(eFile_WClose())            diskError("eFile_WClose",0);
+  if(eFile_F_close())            diskError("eFile_WClose",0);
   TestDirectory();
-  if(eFile_ROpen("file1"))      diskError("eFile_ROpen",0);
+  if(eFile_F_pen("file1"))      diskError("eFile_ROpen",0);
   for(i=0;i<1000;i++){
-    if(eFile_ReadNext(&data))   diskError("eFile_ReadNext",i);
+    if(eFile_F_read(&data))   diskError("eFile_ReadNext",i);
     UART_OutChar(data);
   }
-  if(eFile_Delete("file1"))     diskError("eFile_Delete",0);
+  if(eFile_Remove("file1"))     diskError("eFile_Delete",0);
   TestDirectory();
   if(eFile_Unmount())           diskError("eFile_Unmount",0);
   printf("Successful test\n\r");

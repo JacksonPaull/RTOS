@@ -16,181 +16,70 @@
 #include <stdint.h>
 #include "../RTOS_Lab4_FileSystem/Bitmap.h"
 #include "../RTOS_Labs_common/OS.h"
+#include "../RTOS_Lab4_FileSystem/iNode.h"
 
-
-// 64 bytes per entry --> 58 length file names + extension
-// This also means there are 8 entries per sector --> max files/dirs in a dir is 124*8 + 128*8 + 128*128*8 = 133,000 files
-#define DIR_ENTRY_LEN 64
-#define MAX_FILE_NAME_LENGTH 58
-#define MAX_FILES_OPEN 25
 #define BLOCK_SIZE 512
-
-
-// Note - iNode's must be exactly BLOCKSIZE in length
-
-typedef struct iNode {
-	uint8_t isDir;
-	uint32_t size;
-	uint32_t DP[124];
-	uint32_t SIP;
-	uint32_t DIP;
-	uint16_t magicHW;
-	uint8_t magicByte;
-} iNode_t;
-
-typedef struct FileWrapper {
-	struct PrioQ_Node *next_ptr, *prev_ptr;
-	uint32_t priority;
-	iNode_t iNode;
-	uint32_t sector_num;
-	uint8_t numOpen;
-	uint8_t numReaders;
-	Sema4Type ReaderLock;
-	Sema4Type WriterLock;
-	
-} FileWrapper_t;
+#define MAX_FILE_NAME_LENGTH 33
+#define DIR_ENTRY_LENGTH MAX_FILE_NAME_LENGH+7
+#define MAX_NODES_OPEN 35
 
 typedef struct File {
-	FileWrapper_t *iNodeDisk;
+	iNode_t *iNode;
 	uint32_t pos; // Cursor position
-	uint8_t DataBuf[512];	// Data buffer
-	uint32_t currently_open; // Currently open sector
 } File_t;
 
-//typedef struct Dir {
-//	FileWrapper_t *f;
-//	uint32_t pos;
-//} Dir_t;
+// Dirs are also files, but this makes the code more readable
+#define Dir_t File_t
 
 typedef struct DirEntry {
-	uint8_t deleted;
+	uint32_t Header_Sector;
 	char name[MAX_FILE_NAME_LENGTH+1]; // To ensure null termination
-	uint32_t header_inode;
+	uint8_t in_use;
+	uint8_t isDir;
 } DirEntry_t;
 
+// ----------------------------------- File Functions -------------------------------------- //
 
-FileWrapper_t* eFile_Open_iNode(uint32_t sector_num);
-FileWrapper_t* eFile_Open_RootiNode(void);
-void eFile_cd(File_t *newDir);
-int eFile_DOpen_iNode(File_t *buf, FileWrapper_t *iNode);
+void eFile_F_open(iNode_t *node, File_t *buff);
+void eFile_F_reopen(File_t *file, File_t *buff);
+void eFile_F_close(File_t *file);
+iNode_t* eFile_F_get_iNode(File_t *file);
+uint32_t eFile_F_read(File_t *file, void* buffer, uint32_t size);
+uint32_t eFile_F_read_at(File_t *file, void* buffer, uint32_t size, uint32_t pos);
+uint32_t eFile_F_write(File_t *file, const void* buffer, uint32_t size);
+uint32_t eFile_F_write_at(File_t *file, const void* buffer, uint32_t size, uint32_t pos);
+uint32_t eFile_F_length(File_t *file);
+void eFile_F_seek(File_t *file, uint32_t pos);
+uint32_t eFile_F_tell(File_t *file);
 
-/**
- * @details This function must be called first, before calling any of the other eFile functions
- * @param  none
- * @return 0 if successful and 1 on failure (already initialized)
- * @brief  Activate the file system, without formating
- */
-int eFile_Init(void); // initialize file system
+// ------------------------------ Directory Functions -------------------------------------- //
 
-/**
- * @details Erase all files, create blank directory, initialize free space manager
- * @param  none
- * @return 0 if successful and 1 on failure (e.g., trouble writing to flash)
- * @brief  Format the disk
- */
-int eFile_Format(void); // erase disk, add format
+void eFile_D_create(uint32_t parent_sector, uint32_t dir_sector, uint32_t entry_cnt);
+void eFile_D_open(iNode_t *node, Dir_t *buff);
+void eFile_D_open_root(Dir_t *buff);
+void eFile_D_reopen(Dir_t *dir, Dir_t* buff);
+void eFile_D_close(Dir_t *dir);
+iNode_t* eFile_D_get_iNode(Dir_t *dir);
+int eFile_D_dir_from_path(const char path[], Dir_t *buff);
+int eFile_D_lookup(Dir_t *dir, const char name[], File_t *buff);
+int eFile_D_add(Dir_t *dir, const char name[], uint32_t iNode_header_sector, uint8_t isDir);
+int eFile_D_remove(Dir_t *dir, const char name[]);
+int eFile_D_read_next(Dir_t *dir, char buff[], uint32_t *sizeBuffer);
 
-/**
- * @details Mount disk and load file system metadata information
- * @param  none
- * @return 0 if successful and 1 on failure (e.g., already mounted)
- * @brief  Mount the disk
- */
-int eFile_Mount(void); // mount disk and file system
 
-/**
- * @details Create a new, empty file with one allocated block
- * @param  name file name is an ASCII string up to seven characters
- * @return 0 if successful and 1 on failure (e.g., already exists)
- * @brief  Create a new file
- */
-int eFile_Create(const char name[], uint8_t isDir);  // create new file, make it empty 
+// -------------------------------- Unified Functions -------------------------------------- //
+// i.e. functions which will work for both directories and functions
 
-/**
- * @details Open the file for writing, read into RAM last block
- * @param  name file name is an ASCII string up to seven characters
- * @return 0 if successful and 1 on failure (e.g., trouble reading from flash)
- * @brief  Open an existing file for writing
- */
-int eFile_WOpen(const char name[], File_t *buf);      // open a file for writing 
+// -------------------------------- Filesys Functions -------------------------------------- //
+int eFile_getCurrentDir(File_t *buff);
+int eFile_Create(const char path[]);
+int eFile_Open(const char path[], File_t *buff);
+int eFile_Remove(const char path[]);
 
-/**
- * @details Save one byte at end of the open file
- * @param  data byte to be saved on the disk
- * @return 0 if successful and 1 on failure (e.g., trouble writing to flash)
- * @brief  Format the disk
- */
-int eFile_Write(File_t *f, const char data);  
+int eFile_Init(void);
+int eFile_Format(void);
+int eFile_Mount(void);
+int eFile_Unmount(void);
 
-/**
- * @details Close the file, leave disk in a state power can be removed.
- * This function will flush all RAM buffers to the disk.
- * @param  none
- * @return 0 if successful and 1 on failure (e.g., trouble writing to flash)
- * @brief  Close the file that was being written
- */
-int eFile_WClose(File_t *f); // close the file for writing
-
-/**
- * @details Open the file for reading, read first block into RAM
- * @param  name file name is an ASCII string up to seven characters
- * @return 0 if successful and 1 on failure (e.g., trouble reading from flash)
- * @brief  Open an existing file for reading
- */
-int eFile_ROpen(const char name[], File_t *buf);      // open a file for reading 
-   
-/**
- * @details Read one byte from disk into RAM
- * @param  pt call by reference pointer to place to save data
- * @return 0 if successful and 1 on failure (e.g., trouble reading from flash)
- * @brief  Retreive data from open file
- */
-int eFile_ReadNext(File_t *f, char *pt);       // get next byte 
-                              
-/**
- * @details Close the file, leave disk in a state power can be removed.
- * @param  none
- * @return 0 if successful and 1 on failure (e.g., wasn't open)
- * @brief  Close the file that was being read
- */
-int eFile_RClose(File_t *f); // close the file for writing
-
-/**
- * @details Delete the file with this name, recover blocks so they can be used by another file
- * @param  name file name is an ASCII string up to seven characters
- * @return 0 if successful and 1 on failure (e.g., file doesn't exist)
- * @brief  delete this file
- */
-int eFile_Delete(File_t *f);  // remove this file 
-
-/**
- * @details Open a (sub)directory, read into RAM
- * @param directory name is an ASCII string up to seven characters
- * if subdirectories are supported (optional, empty sring for root directory)
- * @return 0 if successful and 1 on failure (e.g., trouble reading from flash)
- */
-int eFile_DOpen(const char name[], File_t *buf);
-	
-/**
- * @details Retreive directory entry from open directory
- * @param pointers to return file name and size by reference
- * @return 0 if successful and 1 on failure (e.g., end of directory)
- */
-int eFile_DirNext(File_t *dir, char *name[], unsigned long *size);
-
-/**
- * @details Close the directory
- * @param none
- * @return 0 if successful and 1 on failure (e.g., wasn't open)
- */
-int eFile_DClose(File_t *dir);
-
-/**
- * @details Unmount and deactivate the file system.
- * @param  none
- * @return 0 if successful and 1 on failure (e.g., trouble writing to flash)
- * @brief  Unmount the disk
- */
-int eFile_Unmount(void); 
 
 #endif

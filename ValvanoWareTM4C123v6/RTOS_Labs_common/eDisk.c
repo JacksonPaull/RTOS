@@ -53,6 +53,9 @@
 #include <stdint.h>
 #include "../inc/tm4c123gh6pm.h"
 #include "../RTOS_Labs_common/eDisk.h"
+#include "../RTOS_Labs_common/OS.h"
+
+extern Sema4Type LCDFree;
 
 // these defines are in two places, here and in ST7735.c
 #define SDC_CS_PB0 1
@@ -508,12 +511,13 @@ DSTATUS eDisk_Status(uint8_t drv){
 //         sector Start sector number (LBA) 
 //         count  Number of sectors to read (1..128) 
 // Outputs: status (see DRESULT)
-DRESULT eDisk_Read(uint8_t drv, uint8_t *buff, uint32_t sector, uint32_t count){
+DRESULT eDisk_Read(uint8_t drv, void *buff, uint32_t sector, uint32_t count){
   if (drv || !count) return RES_PARERR;    /* Check parameter */
   if (Stat & STA_NOINIT) return RES_NOTRDY;  /* Check if drive is ready */
 
   if (!(CardType & CT_BLOCK)) sector *= 512;  /* LBA ot BA conversion (byte addressing cards) */
 
+	OS_Wait(&LCDFree);
   if (count == 1) {  /* Single sector read */
     if ((send_cmd(CMD17, sector) == 0)  /* READ_SINGLE_BLOCK */
       && rcvr_datablock(buff, 512))
@@ -529,6 +533,7 @@ DRESULT eDisk_Read(uint8_t drv, uint8_t *buff, uint32_t sector, uint32_t count){
     }
   }
   deselect();
+	OS_Signal(&LCDFree);
 
   return count ? RES_ERROR : RES_OK;  /* Return result */
 }
@@ -544,7 +549,7 @@ DRESULT eDisk_Read(uint8_t drv, uint8_t *buff, uint32_t sector, uint32_t count){
 //  RES_NOTRDY    3: Not Ready 
 //  RES_PARERR    4: Invalid Parameter 
 DRESULT eDisk_ReadBlock(
-    uint8_t *buff,         /* Pointer to the data buffer to store read data */
+    void *buff,         /* Pointer to the data buffer to store read data */
     uint32_t sector){      /* Start sector number (LBA) */
   return eDisk_Read(0,buff,sector,1);
 }
@@ -560,13 +565,14 @@ DRESULT eDisk_ReadBlock(
 //         sector Start sector number (LBA) 
 //         count  Number of sectors to write (1..128) 
 // Outputs: status (see DRESULT)
-DRESULT eDisk_Write(uint8_t drv, const uint8_t *buff, uint32_t sector, uint32_t count){
+DRESULT eDisk_Write(uint8_t drv, const void *buff, uint32_t sector, uint32_t count){
   if (drv || !count) return RES_PARERR;    /* Check parameter */
   if (Stat & STA_NOINIT) return RES_NOTRDY;  /* Check drive status */
   if (Stat & STA_PROTECT) return RES_WRPRT;  /* Check write protect */
 
   if (!(CardType & CT_BLOCK)) sector *= 512;  /* LBA ==> BA conversion (byte addressing cards) */
 
+	OS_Wait(&LCDFree);
   if (count == 1) {  /* Single sector write */
     if ((send_cmd(CMD24, sector) == 0)  /* WRITE_BLOCK */
       && xmit_datablock(buff, 0xFE))
@@ -585,6 +591,7 @@ DRESULT eDisk_Write(uint8_t drv, const uint8_t *buff, uint32_t sector, uint32_t 
   }
   deselect();
 
+	OS_Signal(&LCDFree);
   return count ? RES_ERROR : RES_OK;  /* Return result */
 }
 //*************** eDisk_WriteBlock ***********
@@ -598,7 +605,7 @@ DRESULT eDisk_Write(uint8_t drv, const uint8_t *buff, uint32_t sector, uint32_t 
 //  RES_NOTRDY    3: Not Ready 
 //  RES_PARERR    4: Invalid Parameter 
 DRESULT eDisk_WriteBlock (
-    const uint8_t *buff,   /* Pointer to the data to be written */
+    const void *buff,   /* Pointer to the data to be written */
     uint32_t sector){      /* Start sector number (LBA) */
   return eDisk_Write(0,buff,sector,1);  // 1 block
 }
@@ -625,6 +632,7 @@ DRESULT disk_ioctl(uint8_t drv, uint8_t cmd, void *buff){
 
   res = RES_ERROR;
 
+	OS_Wait(&LCDFree);
   switch (cmd) {
   case CTRL_SYNC :    /* Wait for end of internal write process of the drive */
     if (select()) res = RES_OK;
@@ -684,6 +692,7 @@ DRESULT disk_ioctl(uint8_t drv, uint8_t cmd, void *buff){
 
   deselect();
 
+	OS_Signal(&LCDFree);
   return res;
 }
 #endif

@@ -16,12 +16,12 @@ uint32_t loaded_sector = 0;	// TODO Implement for large bitmaps
 uint32_t cursor = 0;	// TODO implement cursor for more effecient searching 
 uint8_t BitmapBuf[BLOCK_SIZE];
 
-void Bitmap_Format(void) {
-	uint8_t buf[BLOCK_SIZE];
-	for(int i = 0; i < BitmapEnd; i++) {
-		eDisk_WriteBlock(buf, i);
+void Bitmap_Reset(void) {
+	loaded_sector = 0;
+	cursor = 0;
+	for(uint32_t i; i < BLOCK_SIZE; i++) {
+		BitmapBuf[i] = 0x00;
 	}
-	
 }
 
 void Bitmap_Write_Out(void) {
@@ -92,6 +92,9 @@ uint32_t Bitmap_isAllocd(uint32_t idx) {
 	return (BitmapBuf[idx/8] >> (idx % 8)) & 0x1;
 }
 
+void Bitmap_free(uint32_t idx) {
+	BitmapBuf[idx/8] &= ~(0x1 << (idx % 8));
+}
 
 
 

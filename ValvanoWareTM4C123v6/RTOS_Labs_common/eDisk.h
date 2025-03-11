@@ -130,7 +130,7 @@ DSTATUS eDisk_Status (uint8_t drive);
  */
 DRESULT eDisk_Read (
   uint8_t drv,     // Physical drive number (0)
-  uint8_t *buff,   // Pointer to buffer to read data
+  void *buff,   // Pointer to buffer to read data
   uint32_t sector, // Start sector number (LBA)
   uint32_t count);  // Sector count (1..255)
 
@@ -151,7 +151,7 @@ DRESULT eDisk_Read (
  * @brief  Read 512-byte block from SD card.
  */
 DRESULT eDisk_ReadBlock (
-    uint8_t *buff,         /* Pointer to the data buffer to store read data */
+    void *buff,         /* Pointer to the data buffer to store read data */
     uint32_t sector);      /* Start sector number (LBA) */
 
 #if	_READONLY == 0
@@ -177,7 +177,7 @@ DRESULT eDisk_ReadBlock (
  */
 DRESULT eDisk_Write (
   uint8_t drv,         // Physical drive number (0)
-  const uint8_t *buff, // Pointer to the data to be written
+  const void *buff, // Pointer to the data to be written
   uint32_t sector,     // Start sector number (LBA)
   uint32_t count);      // Sector count (1..255)
 
@@ -199,7 +199,7 @@ DRESULT eDisk_Write (
  * @brief  Write 512-byte block from SD card.
  */
 DRESULT eDisk_WriteBlock (
-    const uint8_t *buff,   /* Pointer to the data to be written */
+    const void *buff,   /* Pointer to the data to be written */
     uint32_t sector);      /* Start sector number (LBA) */
 
 

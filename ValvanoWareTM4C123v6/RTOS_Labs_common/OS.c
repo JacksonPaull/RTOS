@@ -179,15 +179,9 @@ void OS_track_ints(uint32_t I) {
 };
 
 
-void* OS_get_current_dir(void) {
-	return RunPt->currentDir;
+TCB_t* OS_get_current_TCB(void) {
+	return RunPt;
 }
-
-void OS_set_current_dir(void* dir) {
-	RunPt->currentDir = dir;
-}
-
-
 
 /** DecrementSleepCounters
  * @details Decrease the timer on sleeping threads at every invocation of systick
