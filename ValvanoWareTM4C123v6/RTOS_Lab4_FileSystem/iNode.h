@@ -22,12 +22,12 @@ iNodes are the structures that are actually stored on disk
 //														or QuintIP (~15TB filesize)
 typedef struct iNodeDisk {
 	uint8_t isDir;
+	uint16_t magicHW;
+	uint8_t magicByte;
 	uint32_t size;
 	uint32_t DP[NUM_DIRECT_SECTORS];
 	uint32_t SIP;
 	uint32_t DIP;
-	uint16_t magicHW;
-	uint8_t magicByte;
 } iNodeDisk_t;
 
 typedef struct iNode {

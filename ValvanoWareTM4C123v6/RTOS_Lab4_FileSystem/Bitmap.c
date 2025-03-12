@@ -22,7 +22,9 @@ void Bitmap_Reset(void) {
 	for(uint32_t i; i < BLOCK_SIZE; i++) {
 		BitmapBuf[i] = 0x00;
 	}
-	BitmapBuf[0] = 0x01;
+	// 0. - bitmap
+	// 1. - root dir header
+	BitmapBuf[0] = 0b00000011;
 }
 
 void Bitmap_Write_Out(void) {
@@ -52,7 +54,7 @@ void Bitmap_Init(uint32_t size) {
 
 uint32_t Bitmap_AllocOne(void) {
 	// TODO Support general bitmap
-	uint32_t i = cursor, j;
+	uint32_t i = cursor, j = 0;
 	while(BitmapBuf[i] == 0xFF) {
 		i = (i+1) % BLOCK_SIZE;
 		

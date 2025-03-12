@@ -476,6 +476,8 @@ void TestFile(void){   int i; char data;
   printf("\n\rEE445M/EE380L, Lab 4 eFile test\n\r");
   ST7735_DrawString(0, 1, "eFile test      ", ST7735_WHITE);
   // simple test of eFile
+	int result = eDisk_Init(0);
+	if(result) diskError("eDisk_Init",result);
   if(!eFile_Init())              diskError("eFile_Init",0); 
 	printf("init success\r\n");
   eFile_Format();
@@ -645,7 +647,7 @@ void FS_tester(void) {
 	eFile_Create("test.txt");
 	eFile_Open("test.txt", &d);
 	const char s[] = "test to write";
-	const char s2[32];
+	char s2[32];
 	eFile_F_write(&d, s, strlen(s)+1);
 	eFile_F_seek(&d, 0);
 	passed += (eFile_F_read(&d, s2, strlen(s)+1) == strlen(s)+1) && strcmp(s2, s) == 0;
@@ -740,15 +742,9 @@ void TestFSMain(void) {
 
 //*******************Trampoline for selecting main to execute**********
 int main(void) { 			// main
-	uint32_t* x = malloc(10);
-	uint32_t* y = malloc(10);
-	*x = 10;
-	*y = 15;
-	free(x);
-	free(y);
   // Testmain0();	// Passed
 	// Testmain1();	// Passed
-	Testmain2();
+	 Testmain2();
 	// TestBandwidthMain(); // Passed - 304.48 KBps down alone, 178KBps up / down
 	// TestFSMain();
 	
