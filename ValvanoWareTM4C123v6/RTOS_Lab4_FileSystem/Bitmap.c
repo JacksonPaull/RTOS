@@ -22,6 +22,7 @@ void Bitmap_Reset(void) {
 	for(uint32_t i; i < BLOCK_SIZE; i++) {
 		BitmapBuf[i] = 0x00;
 	}
+	BitmapBuf[0] = 0x01;
 }
 
 void Bitmap_Write_Out(void) {
@@ -45,9 +46,7 @@ void Bitmap_Init(uint32_t size) {
 	
 	BitmapEnd = (size+BLOCK_SIZE-1) / BLOCK_SIZE; // Effectively math.ceil(size/block_size)
 	
-	for(int i = 0; i < BLOCK_SIZE; i++) {
-		BitmapBuf[i] = 0x00;
-	}
+	Bitmap_Reset();
 }
 
 

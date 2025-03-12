@@ -444,17 +444,18 @@ int Testmain1(void){   // Testmain1
 // Filesystem test. 
 // Warning: this reformats the disk, all existing data will be lost
 char const string1[]="Filename = %s";
-char const string2[]="File size = %lu bytes";
+char const string2[]="File size = %d bytes";
 char const string3[]="Number of Files = %u";
 char const string4[]="Number of Bytes = %lu";
-void TestDirectory(void){ char *name; unsigned long size; 
+void TestDirectory(void){ char *name; uint32_t size; 
   unsigned int num;
   unsigned long total;
   num = 0;
   total = 0;
   printf("\n\r");
-  if(eFile_open(""))           diskError("eFile_DOpen",0);
-  while(!eFile_D_read_next(&name, &size)){
+	Dir_t d;
+  if(!eFile_Open("/", &d))           diskError("eFile_DOpen",0);
+  while(!eFile_D_read_next(&d, name, &size)){
     printf(string1, name);
     printf("  ");
     printf(string2, size);
@@ -467,35 +468,44 @@ void TestDirectory(void){ char *name; unsigned long size;
   printf(string4, total);
   printf("\n\r");
 	// TODO Fix this
-  if(eFile_D_close(DIR))            diskError("eFile_DClose",0);
+  if(!eFile_D_close(&d))            diskError("eFile_DClose",0);
 }
 void TestFile(void){   int i; char data; 
+	File_t f1;
+	
   printf("\n\rEE445M/EE380L, Lab 4 eFile test\n\r");
   ST7735_DrawString(0, 1, "eFile test      ", ST7735_WHITE);
   // simple test of eFile
-  if(eFile_Init())              diskError("eFile_Init",0); 
-  if(eFile_Format())            diskError("eFile_Format",0); 
-  if(eFile_Mount())             diskError("eFile_Mount",0);
+  if(!eFile_Init())              diskError("eFile_Init",0); 
+	printf("init success\r\n");
+  eFile_Format();
+	printf("format success\r\n");
+  if(!eFile_Mount())             diskError("eFile_Mount",0);
+	printf("mount success\r\n");
   TestDirectory();
-  if(eFile_Create("file1"))     diskError("eFile_Create",0);
-  if(eFile_Open("file1"))      diskError("eFile_WOpen",0);
+	printf("dir test success\r\n");
+  if(!eFile_Create("file1"))     diskError("eFile_Create",0);
+	printf("create success\r\n");
+  if(!eFile_Open("file1", &f1))      diskError("eFile_WOpen",0);
+	printf("open success\r\n");
   for(i=0;i<1000;i++){
-    if(eFile_F_write('a'+i%26))   diskError("eFile_Write",i);
+		char x = 'a'+i%26;
+    if(!eFile_F_write(&f1, &x, 1))   diskError("eFile_Write",i);
     if(i%52==51){
-      if(eFile_F_write('\n'))     diskError("eFile_Write",i);  
-      if(eFile_F_write('\r'))     diskError("eFile_Write",i);
+			char y[2] = "\r\n";
+      if(!eFile_F_write(&f1, &y, 2))     diskError("eFile_Write",i); 
     }
   }
-  if(eFile_F_close())            diskError("eFile_WClose",0);
+  if(!eFile_F_close(&f1))            diskError("eFile_WClose",0);
   TestDirectory();
-  if(eFile_F_pen("file1"))      diskError("eFile_ROpen",0);
+  if(!eFile_Open("file1", &f1))      diskError("eFile_ROpen",0);
   for(i=0;i<1000;i++){
-    if(eFile_F_read(&data))   diskError("eFile_ReadNext",i);
+    if(!eFile_F_read(&f1, &data, 1))   diskError("eFile_ReadNext",i);
     UART_OutChar(data);
   }
-  if(eFile_Remove("file1"))     diskError("eFile_Delete",0);
+  if(!eFile_Remove("file1"))     diskError("eFile_Delete",0);
   TestDirectory();
-  if(eFile_Unmount())           diskError("eFile_Unmount",0);
+  if(!eFile_Unmount())           diskError("eFile_Unmount",0);
   printf("Successful test\n\r");
   ST7735_DrawString(0, 1, "eFile successful", ST7735_YELLOW);
   Running=0; // launch again
@@ -616,31 +626,103 @@ void TestBandwidthMain(void) {
  * 
  */
 
+Sema4Type advance;
+void adv(void) {
+	OS_Signal(&advance);
+}
 
 void FS_tester(void) {
+	File_t d;
+	
+	eFile_Mount();
+	printf("Starting FS Tests, press SW2 to advance\r\n");
+	
+	OS_Wait(&advance);
+	printf("Starting Normal Operation tests...\r\n");
+	uint8_t passed = 0;
 	// Test 1 - Normal operation
+	
+	eFile_Create("test.txt");
+	eFile_Open("test.txt", &d);
+	const char s[] = "test to write";
+	const char s2[32];
+	eFile_F_write(&d, s, strlen(s)+1);
+	eFile_F_seek(&d, 0);
+	passed += (eFile_F_read(&d, s2, strlen(s)+1) == strlen(s)+1) && strcmp(s2, s) == 0;
+	eFile_F_close(&d);
+	
 		// Open -> Read/Write -> Close
 		// Multiple files open simultaneously
 		// Multiple threads opening multiple files
 	
+	if(passed==1) {
+		printf("All tests passed!\r\n");
+	}
+	else {
+		printf("%d/1 tests passed...\r\n", passed);
+	}
+	
+	OS_Wait(&advance);
+	passed = 0;
 	// Test 3 - Bad Open
 		// Open nonexistent file
 	
-	// Test 4 - Bad Close
-		// Close nonexistent file
-		// Close file that isn't open (but exists)
+	passed += eFile_Open("garbagePath.xyz", &d) == 0;
 	
+	if(passed==1) {
+		printf("All tests passed!\r\n");
+	}
+	else {
+		printf("%d/1 tests passed...\r\n", passed);
+	}
+	
+	OS_Wait(&advance);
+	passed = 0;
+	
+	// Test 4 - Bad Close
+		// Close file too many times
+	passed += eFile_F_close(&d) == 0;
+	passed += eFile_D_close(&d) == 0;
+
+	
+	if(passed==2) {
+		printf("All tests passed!\r\n");
+	}
+	else {
+		printf("%d/2 tests passed...\r\n", passed);
+	}
+	OS_Wait(&advance);
 	// Test 5 - Bad Read
 		// Read from non-open file
 		// Read past file length
 		// Read while write being performed
 	
+	passed = 0;
+	passed += eFile_F_read(&d, s2, 30) == 0;
+	
+	if(passed) {
+		printf("All tests passed!\r\n");
+	}
+	else {
+		printf("%d/4 tests passed...\r\n", passed);
+	}
+	OS_Wait(&advance);
+	passed = 0;
 	// Test 6 - Bad Write
 		// Write to non-open file
 		// Write at negative index
 		// Write past file length (before implementing file growth)
 		// Write while reading being performed
 	
+	if(passed) {
+		printf("All tests passed!\r\n");
+	}
+	else {
+		printf("%d/1 tests passed...\r\n", passed);
+	}
+	OS_Wait(&advance);
+	
+	eFile_Unmount();
 }
 
 void TestFSMain(void) {
@@ -649,6 +731,8 @@ void TestFSMain(void) {
 	OS_AddPeriodicThread(&disk_timerproc, TIME_1MS, 0);
 	OS_AddThread(&Interpreter, 128, 5);
 	OS_AddThread(&FS_tester, 128, 5);
+	OS_AddSW1Task(&eFile_Format, 0);
+	OS_AddSW2Task(&adv, 1);
 	OS_Launch(10*TIME_1MS);
 }
 
@@ -656,7 +740,12 @@ void TestFSMain(void) {
 
 //*******************Trampoline for selecting main to execute**********
 int main(void) { 			// main
-	malloc(10);
+	uint32_t* x = malloc(10);
+	uint32_t* y = malloc(10);
+	*x = 10;
+	*y = 15;
+	free(x);
+	free(y);
   // Testmain0();	// Passed
 	// Testmain1();	// Passed
 	Testmain2();

@@ -19,6 +19,7 @@
 #include "../RTOS_Labs_common/ST7735.h"
 #include "../RTOS_Labs_common/eDisk.h"
 #include "../RTOS_Labs_common/eFile.h"
+#include "../RTOS_Lab4_FileSystem/iNode.h"
 
 #include "../inc/ADCT0ATrigger.h"
 #include "../RTOS_Labs_common/UART0int.h"
@@ -345,6 +346,7 @@ void OS_Init(void){
 	PortFEdge_Init();
 	Timer5A_Init(&DecrementSleepCounters, TIME_1MS, 1);
 	UART_Init();
+	eFile_Init();
 	
 	
 	DisableInterrupts();	// Disable after the OS clock is init so that we can track time ints disabled
@@ -477,7 +479,8 @@ TCB_t* SpawnThread(uint8_t isBackgroundThread, uint8_t priority) {
 	thread->isBackgroundThread = isBackgroundThread;
 	thread->sleep_count = 0;
 	thread->priority = priority;
-	thread->currentDir = eFile_Open_RootiNode(); // TODO Change to inherit the Root iNode of the parent...?
+	
+	thread->currentDir = iNode_open(eFile_get_root_sector()); // TODO Change to inherit the Root iNode of the parent...?
 	
 	return thread;
 }
@@ -792,6 +795,7 @@ void OS_Kill(void){
 	// Reset TCB properties
 	node->sleep_count = 0;
 	node->isBackgroundThread = 0;
+	iNode_close(RunPt->currentDir);
 	
 	// Note: We don't need to mess with the SP 
 	//				as it will be automatically reset when a new thread is added
@@ -803,6 +807,8 @@ void OS_Kill(void){
 	LL_append_linear((LL_node_t **) &inactive_thread_list_head, (LL_node_t *)node);
 	ContextSwitch();
 	EnableInterrupts();
+	
+
 	
   for(;;){};        // can not return, just wait for interrupt
     
@@ -1006,10 +1012,11 @@ void OS_Launch(uint32_t theTimeSlice){
 // redirect terminal I/O to UART or file (Lab 4)
 
 int StreamToDevice=0;                // 0=UART, 1=stream to file (Lab 4)
+File_t file;
 
 int fputc (int ch, FILE *f) { 
   if(StreamToDevice==1){  // Lab 4
-    if(eFile_Write(ch)){          // close file on error
+    if(eFile_F_write(&file, &ch, 1)){          // close file on error
        OS_EndRedirectToFile(); // cannot write to file
        return 1;                  // failure
     }
@@ -1029,7 +1036,7 @@ int fgetc (FILE *f){
 
 int putc (int ch, FILE *f) { 
   if(StreamToDevice==1){  // Lab 4
-    if(eFile_Write(ch)){          // close file on error
+    if(eFile_F_write(&file, &ch, 1)){          // close file on error
        OS_EndRedirectToFile(); // cannot write to file
        return 1;                  // failure
     }
@@ -1049,14 +1056,14 @@ int getc (FILE *f){
 
 int OS_RedirectToFile(const char *name){  // Lab 4
   eFile_Create(name);              // ignore error if file already exists
-  if(eFile_WOpen(name)) return 1;  // cannot open file
+  if(eFile_Open(name, &file)) return 1;  // cannot open file
   StreamToDevice = 1;
   return 0;
 }
 
 int OS_EndRedirectToFile(void){  // Lab 4
   StreamToDevice = 0;
-  if(eFile_WClose()) return 1;    // cannot close file
+  if(eFile_F_close(&file)) return 1;    // cannot close file
   return 0;
 }
 

@@ -14,6 +14,7 @@
 #define EFILE_H
 
 #include <stdint.h>
+#include <stdlib.h>
 #include "../RTOS_Lab4_FileSystem/Bitmap.h"
 #include "../RTOS_Labs_common/OS.h"
 #include "../RTOS_Lab4_FileSystem/iNode.h"
@@ -40,9 +41,9 @@ typedef struct DirEntry {
 
 // ----------------------------------- File Functions -------------------------------------- //
 
-void eFile_F_open(iNode_t *node, File_t *buff);
-void eFile_F_reopen(File_t *file, File_t *buff);
-void eFile_F_close(File_t *file);
+int eFile_F_open(iNode_t *node, File_t *buff);
+int eFile_F_reopen(File_t *file, File_t *buff);
+int eFile_F_close(File_t *file);
 iNode_t* eFile_F_get_iNode(File_t *file);
 uint32_t eFile_F_read(File_t *file, void* buffer, uint32_t size);
 uint32_t eFile_F_read_at(File_t *file, void* buffer, uint32_t size, uint32_t pos);
@@ -54,14 +55,15 @@ uint32_t eFile_F_tell(File_t *file);
 
 // ------------------------------ Directory Functions -------------------------------------- //
 
-void eFile_D_create(uint32_t parent_sector, uint32_t dir_sector, uint32_t entry_cnt);
-void eFile_D_open(iNode_t *node, Dir_t *buff);
-void eFile_D_open_root(Dir_t *buff);
-void eFile_D_reopen(Dir_t *dir, Dir_t* buff);
-void eFile_D_close(Dir_t *dir);
+int eFile_D_create(uint32_t parent_sector, uint32_t dir_sector, uint32_t entry_cnt);
+int eFile_D_open(iNode_t *node, Dir_t *buff);
+int eFile_D_open_root(Dir_t *buff);
+int eFile_D_reopen(Dir_t *dir, Dir_t* buff);
+int eFile_D_close(Dir_t *dir);
 iNode_t* eFile_D_get_iNode(Dir_t *dir);
 int eFile_D_dir_from_path(const char path[], Dir_t *buff);
 int eFile_D_lookup(Dir_t *dir, const char name[], File_t *buff);
+int eFile_D_lookup_by_sector(Dir_t *dir, uint32_t sector, DirEntry_t *buff);
 int eFile_D_add(Dir_t *dir, const char name[], uint32_t iNode_header_sector, uint8_t isDir);
 int eFile_D_remove(Dir_t *dir, const char name[]);
 int eFile_D_read_next(Dir_t *dir, char buff[], uint32_t *sizeBuffer);
@@ -73,13 +75,17 @@ int eFile_D_read_next(Dir_t *dir, char buff[], uint32_t *sizeBuffer);
 // -------------------------------- Filesys Functions -------------------------------------- //
 int eFile_getCurrentDir(File_t *buff);
 int eFile_Create(const char path[]);
+int eFile_CreateDir(const char path[]);
 int eFile_Open(const char path[], File_t *buff);
 int eFile_Remove(const char path[]);
+int eFile_OpenCurrentDir(File_t *buff);
 
 int eFile_Init(void);
-int eFile_Format(void);
+void eFile_Format(void);
 int eFile_Mount(void);
 int eFile_Unmount(void);
 
+uint32_t eFile_get_root_sector(void);
+int eFile_CD(const char path[]);
 
 #endif

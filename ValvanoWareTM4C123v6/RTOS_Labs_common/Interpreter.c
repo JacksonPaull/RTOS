@@ -20,7 +20,6 @@
 
 
 #define CMD_NAME_LEN_MAX 64
-#define HELP_MSG_MAX_LEN 256 // Note: probably want to find a better solution for this storage later rather than preallocating everything
 #define ARG_LEN_MAX 16
 
 
@@ -36,46 +35,64 @@ int max_jitter(int num_args, ...);
 int num_threads(int num_args, ...);
 int int_time_reset(int num_args, ...);
 int int_time(int num_args, ...);
+int ls(int num_args, ...);
+int cd(int num_args, ...);
+int cat(int num_args, ...);
+int rm(int num_args, ...);
+int touch(int num_args, ...);
+int mkdir(int num_args, ...);
 
+
+// TODO Move help messages into a file
 
 typedef struct Interpreter_Command {
 	char name[CMD_NAME_LEN_MAX];
 	int(*func)(int num_args, ...);
-	char help_message[HELP_MSG_MAX_LEN];
 } Command;
 
 
 const Command commands[] = {
-	{"adc_in", &ADC,
-	"adc_in buf num_samples\r\n\tSample [num_samples] times from ADC0\r\n\n"},
-	{"adc_channel", &ADC_Channel, "todo"},
+	{"adc_in", &ADC}, 										// "adc_in buf num_samples\r\n\tSample [num_samples] times from ADC0\r\n\n"},
+	{"adc_channel", &ADC_Channel}, 				// "todo"},
+	{"time", &time}, 											// "todo"},
+	{"time_reset", &time_reset}, 					// "todo"},
+	{"lcd", &lcd}, 												// "todo"},
+	{"max_jitter", &max_jitter}, 					// "todo"},
+	{"num_threads", &num_threads}, 				// "todo"},
+	{"int_time", &int_time}, 							// "int_time <disabled=0/enabled=1> <total=0/percentage=1>\r\n"},
+	{"int_time_reset", &int_time_reset}, 	//"int_time_reset\r\n\tReset the counters tracking how long interrupts are disabled\r\n"},
+	{"jitter_hist", &jitter_hist}, 				// "jitter_hist <id> <lcd_id>\r\n\t" "id: ID of jitter tracker to print out\r\n\t"},
+	{"help", &print_help}, 								//"help\r\n\tPrints all help strings\r\n\n"},
+	{"clear", &clear_screen},							// "clear\r\n\tNo arguments, clears the screen\r\n\n"},	
 	
-	{"time", &time, "todo"},
-	{"time_reset", &time_reset, "todo"},
-	{"lcd", &lcd, "todo"},
-	{"max_jitter", &max_jitter, "todo"},
-	{"num_threads", &num_threads, "todo"},
-	{"int_time", &int_time, 
-	"int_time <disabled=0/enabled=1> <total=0/percentage=1>\r\n"},
-	{"int_time_reset", &int_time_reset, 
-	"int_time_reset\r\n\tReset the counters tracking how long interrupts are disabled\r\n"},
-	
-	{"jitter_hist", &jitter_hist, "jitter_hist <id> <lcd_id>\r\n\t"
-		"id: ID of jitter tracker to print out\r\n\t"},
-	
-	{"help", &print_help,
-		"help\r\n\tPrints all help strings\r\n\n"},
-	
-	{"clear", &clear_screen,
-	"clear\r\n\tNo arguments, clears the screen\r\n\n"},	
+	{"ls", &ls},
+	{"cd", &cd},
+	{"cat", &cat},
+	{"rm", &rm},
+	{"touch", &touch}, 
+	{"mkdir", &mkdir},
 	
 	// Sentinel function, do not replace or move from last spot
-	{"exit", 0,
-	"exit\r\n\tExits\r\n\n"} 
+	{"exit", 0} 													//, "exit\r\n\tExits\r\n\n"} 
 };
 
 extern void DisableInterrupts();
 extern void EnableInterrupts();
+
+
+void pwd(void) {
+	Dir_t d;
+	Dir_t parent;
+	DirEntry_t de;
+	eFile_OpenCurrentDir(&d);
+	eFile_Open("..", &parent);
+	
+	eFile_D_lookup_by_sector(&parent, d.iNode->sector_num, &de);
+	printf("%s", de.name);
+	
+	eFile_D_close(&d);
+	eFile_D_close(&parent);
+}
 
 // *********** Command line interpreter (shell) ************
 void Interpreter(void){ 
@@ -83,7 +100,9 @@ void Interpreter(void){
 	while(1) {
 		// Read Command
 		char line[512];
-		printf("[command line]: ");
+		printf("[");
+		pwd();
+		printf("]: ");
 		UART_InString(line, 512);
 		printf("\r\n"); //Flush
 		
@@ -158,6 +177,77 @@ void Interpreter(void){
 	}
 }
 
+int ls(int num_args, ...) {
+	Dir_t d;
+	eFile_Open(".", &d);
+	char fn[MAX_FILE_NAME_LENGTH+1];
+	uint32_t sz;
+	while(eFile_D_read_next(&d, fn, &sz)) {
+		char dots[] = "..................................................................";
+		dots[MAX_FILE_NAME_LENGTH - strlen(fn)] = 0;
+		printf("%s%s%d\r\n", fn, dots, sz);
+	}
+	
+	eFile_D_close(&d);
+	return 0;
+}
+
+int cd(int num_args, ...) {
+	va_list args;
+	va_start(args, num_args);
+	char *path = va_arg(args, char*);
+	va_end(args);
+
+	eFile_CD(path);
+	return 0;
+}
+
+
+int cat(int num_args, ...) {
+	va_list args;
+	va_start(args, num_args);
+	char *path = va_arg(args, char*);
+	va_end(args);
+	
+	File_t f;
+	eFile_Open(path, &f);
+	char buff[128];
+	while(eFile_F_read(&f, buff, 128)) {
+		for(int i = 0; i < 128; i++) {
+			printf("%c", buff[i]);
+		}
+	}
+	
+	return 0;
+}
+
+
+int rm(int num_args, ...) {
+	va_list args;
+	va_start(args, num_args);
+	char *path = va_arg(args, char*);
+	va_end(args);
+	
+	return eFile_Remove(path);
+}
+
+int touch(int num_args, ...) {
+	va_list args;
+	va_start(args, num_args);
+	char *path = va_arg(args, char*);
+	va_end(args);
+	
+	return eFile_Create(path);
+}
+
+int mkdir(int num_args, ...) {
+	va_list args;
+	va_start(args, num_args);
+	char *path = va_arg(args, char*);
+	va_end(args);
+	
+	return eFile_CreateDir(path);
+}
 
 int int_time_reset(int num_args, ...) {
 	// No args

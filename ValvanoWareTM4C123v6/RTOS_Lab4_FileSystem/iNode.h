@@ -33,12 +33,12 @@ typedef struct iNodeDisk {
 typedef struct iNode {
 	struct PrioQ_Node *next_ptr, *prev_ptr;
 	uint32_t sector_num;	// Used as the priority level in the iNode list
-	iNodeDisk_t iNode;
 	uint8_t numOpen;
 	uint8_t numReaders;
 	uint8_t removed;
 	Sema4Type NodeLock;
-	
+	iNodeDisk_t iNode;
+	// Parent sector?
 } iNode_t;
 
 
@@ -63,7 +63,7 @@ int iNode_create(uint32_t sector, uint32_t length, uint8_t isDir);
 iNode_t* iNode_open(uint32_t sector);
 iNode_t* iNode_reopen(iNode_t *node);
 uint32_t iNode_get_sector(iNode_t *node);
-void iNode_close(iNode_t *node);
+int iNode_close(iNode_t *node);
 void iNode_remove(iNode_t *node);
 int iNode_read_at(iNode_t *node, void *buff, uint32_t size, uint32_t offset);
 int iNode_write_at(iNode_t *node, const void *buff, uint32_t size, uint32_t offset);
