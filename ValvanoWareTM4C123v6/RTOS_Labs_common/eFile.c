@@ -4,7 +4,7 @@
 // Jonathan W. Valvano 1/12/20
 #include <stdint.h>
 #include <string.h>
-#include "../RTOS_Labs_common/OS.h"
+#include <stdio.h>
 #include "../RTOS_Labs_common/eDisk.h"
 #include "../RTOS_Labs_common/eFile.h"
 #include "../RTOS_Lab3_RTOSpriority/PriorityQueue.h"
@@ -14,6 +14,7 @@
 uint32_t NumSectors = 4096;
 uint32_t SectorSize = 512;
 
+uint8_t zeros[BLOCK_SIZE];
 iNode_t DISK_INODES[MAX_NODES_OPEN];
 PrioQ_node_t *Open_Nodes_Head;
 
@@ -28,7 +29,45 @@ Sema4Type buff2_lock;
 
 // TODO allocate two global buffers, and provide mutex access to them for all iNode buffering
 
-// -------------------------------- Utility Functions -------------------------------------- //
+// -------------------- ------------ Utility Functions -------------------------------------- //
+
+void* __memcpy(void* dst, const void* src, size_t i) {
+	for(size_t j = 0; j < i; j++) {
+		((char *) dst)[j] = ((char *) src)[j];
+	}
+	return dst;
+}
+
+//size_t strlen(const char *str) {
+//	size_t i;
+//	while(str[i] != 0) {i++;}
+//	return i;
+//}
+
+char* strcpy(char *dst, const char *src) {
+	for(size_t i = 0; src[i] != 0; i++) {
+		((char *) dst)[i] = ((char *) src)[i];
+	}
+	return dst;
+}
+
+void* memset(void *ptr, int value, size_t num) {
+	for(size_t i = 0; i < num; i++) {
+		((int *) ptr)[i] = value;
+	}
+	
+	return ptr;
+}
+
+void* malloc(size_t size) {
+	printf("BAD MALLOC CALL UH OH\r\n");
+	return 0;
+}
+
+void free(void *ptr) {
+	
+}
+
 
 int32_t min(int32_t a, int32_t b) {
 	if(a < b) {
@@ -118,6 +157,7 @@ uint32_t num_doubly_indirect_sectors_free(iNode_t *node) {
 
 // Returns 1 TRUE on success, FALSE on fail
 int allocate_direct(iNode_t *iNode, uint32_t num_sectors) {
+	
 	uint32_t base = num_direct_sectors_occupied(iNode);
 	if(num_sectors + base > NUM_DIRECT_SECTORS) {
 		// Unable to allocate all the necessary sectors
@@ -126,9 +166,7 @@ int allocate_direct(iNode_t *iNode, uint32_t num_sectors) {
 	
 	OS_Wait(&buff1_lock);
 	uint32_t* buff = (uint32_t *) buff1;
-	uint8_t zeros[BLOCK_SIZE];
-	
-	Bitmap_AllocN(buff, num_sectors); // Allocate the sectors (not necessarily continuous, but usually will be)
+	Bitmap_AllocN(buff, num_sectors);
 	
 	for(int i = 0; i < num_sectors; i++) {
 		eDisk_WriteBlock(zeros, buff[i]);		// Erase block on disk
@@ -147,7 +185,6 @@ int allocate_indirect(iNode_t *iNode, uint32_t num_sectors) {
 	OS_Wait(&buff1_lock);
 	OS_Wait(&buff2_lock);
 	
-	uint8_t zeros[BLOCK_SIZE];
 	uint32_t* buff = (uint32_t *) buff1;
 	uint32_t* SIP_data = (uint32_t *) buff2;
 	
@@ -167,21 +204,20 @@ int allocate_indirect(iNode_t *iNode, uint32_t num_sectors) {
 }
 
 int allocate_doubly_indirect(iNode_t *iNode, uint32_t num_sectors) {
+	
 	uint32_t base = num_doubly_indirect_sectors_occupied(iNode);
 	if(num_sectors + base > NUM_INDIRECT_SECTORS*NUM_DIRECT_SECTORS) {
 		return 0;
 	}
 	
-	uint32_t buff[num_sectors];
+	// TODO fix
+	uint32_t buff[10];
 	Bitmap_AllocN(buff, num_sectors); // Allocate the sectors (not necessarily continuous, but usually will be)
-	
-	uint8_t zeros[BLOCK_SIZE];
 	OS_Wait(&buff1_lock);
 	OS_Wait(&buff2_lock);
 	uint32_t* DIP1_data = (uint32_t *) buff1;
 	uint32_t* DIP2_data = (uint32_t *) buff1;
 	eDisk_ReadBlock(DIP1_data, iNode->iNode.DIP);
-	
 	
 	for(int i = 0; i < num_sectors; i++) {
 		eDisk_WriteBlock(zeros, buff[i]);		// Erase block on disk
@@ -196,6 +232,8 @@ int allocate_doubly_indirect(iNode_t *iNode, uint32_t num_sectors) {
 	}
 	eDisk_WriteBlock(DIP1_data, iNode->iNode.DIP);
 	
+	OS_Signal(&buff1_lock);
+	OS_Signal(&buff2_lock);
 	return 1;
 }
 
@@ -281,14 +319,33 @@ int allocate_space(iNode_t *iNode, uint32_t num_bytes) {
 
 
 int iNode_create(uint32_t sector, uint32_t length, uint8_t isDir) {
-	iNode_t node;
+	
+	int I = StartCritical();
+	
+	// Check if already in memory
+	iNode_t *node = (iNode_t*) PrioQ_find(&Open_Nodes_Head, sector);
+	EndCritical(I);
+	
+	for(int i = 0; i < MAX_NODES_OPEN; i++) {
+		iNode_t n = DISK_INODES[i];
+		if(n.sector_num == 0) {
+			// this node is unused, use this one
+			node = &n;
+			break;
+		}
+	}
+	
+	memset(node, 0, sizeof(iNode_t));
 	
 	// Assume everything else initialized to 0
-	node.iNode.isDir = isDir;
-	node.iNode.magicByte = 0x12;
-	node.iNode.magicHW = 0x3456;
+	node->sector_num = sector;
+	node->iNode.isDir = isDir;
+	node->iNode.magicByte = 0x12;
+	node->iNode.magicHW = 0x3456;
 
-	return allocate_space(&node, length);
+	int r = allocate_space(node, length);
+	
+	return r;
 }
 
 iNode_t* iNode_open(uint32_t sector) {
@@ -327,7 +384,7 @@ iNode_t* iNode_open(uint32_t sector) {
 	node->numOpen=1;
 	node->numReaders=0;
 	node->removed=0;
-	memcpy(&node->iNode, buff1, BLOCK_SIZE);
+	__memcpy(&node->iNode, buff1, BLOCK_SIZE);
 	OS_Signal(&buff1_lock);
 	OS_InitSemaphore(&node->NodeLock, 1);
 	
@@ -398,8 +455,6 @@ int iNode_close(iNode_t *node) {
 				}
 				OS_Signal(&buff2_lock);
 			}
-			
-			
 		}
 		
 		// Remove from list in RAM
@@ -422,6 +477,8 @@ void iNode_remove(iNode_t *node) {
 
 // Must be called when the node lock is held!
 int iNode_read_at(iNode_t *node, void* buff, uint32_t size, uint32_t offset) {
+	uint8_t buff1[BLOCK_SIZE];
+	
 	// Read from appropriate data sector and place in the buffer
 	int return_status = 1;
 	uint32_t iNode_left = node->iNode.size - offset;
@@ -443,10 +500,10 @@ int iNode_read_at(iNode_t *node, void* buff, uint32_t size, uint32_t offset) {
 		}
 		else {
 			// Read only a portion of the block
-			OS_Wait(&buff1_lock);
+			// OS_Wait(&buff1_lock);
 			return_status &= eDisk_ReadBlock(buff1, s);
-			memcpy(buff, buff1+block_ofs, toRead);
-			OS_Signal(&buff1_lock);
+			__memcpy(buff, buff1+block_ofs, toRead);
+			// OS_Signal(&buff1_lock);
 			
 		}
 		
@@ -460,6 +517,8 @@ int iNode_read_at(iNode_t *node, void* buff, uint32_t size, uint32_t offset) {
 
 
 int iNode_write_at(iNode_t *node, const void* buff, uint32_t size, uint32_t offset) {
+	uint8_t buff1[BLOCK_SIZE];
+	
 	// Allocate additional sectors if necessary
 	if(node->iNode.size < offset) {
 		// Allocate up to offset we need to write at
@@ -487,11 +546,11 @@ int iNode_write_at(iNode_t *node, const void* buff, uint32_t size, uint32_t offs
 			eDisk_WriteBlock(buff, s);
 		}
 		else {
-			OS_Wait(&buff1_lock);
+			// OS_Wait(&buff1_lock);
 			eDisk_ReadBlock(buff1, s);
-			memcpy(buff1, buff, count);
+			__memcpy(buff1, buff, count);
 			eDisk_WriteBlock(buff1, s);
-			OS_Signal(&buff1_lock);
+			// OS_Signal(&buff1_lock);
 		}
 		
 		offset += count;
@@ -521,6 +580,7 @@ void iNode_lock_write(iNode_t *node) {
 			break;
 		}
 		OS_Signal(&node->NodeLock);
+		OS_Suspend();
 	} while (1);
 }
 
@@ -648,7 +708,7 @@ iNode_t* eFile_D_get_iNode(Dir_t *dir) {
 
 int eFile_D_dir_from_path(const char path[], Dir_t *buff) {
 		// TODO
-	uint32_t i;
+	uint32_t i = 0;
 	Dir_t dir;
 	if(path[i] == '/' || path[i] == 0) {
 		// Absolute path, open root dir
@@ -684,26 +744,35 @@ int eFile_D_dir_from_path(const char path[], Dir_t *buff) {
 		}
 	}
 	
-	memcpy(buff, &dir, sizeof(dir));
+	__memcpy(buff, &dir, sizeof(dir));
 	return 1;
 }
 
 int lookup(Dir_t *dir, const char name[], DirEntry_t *buff, uint32_t *offset) {
-	int ret = 0;
+	DirEntry_t de;
+	
+	if(name[0] == 0) {
+		// Empty strings will return the dir entry for .
+		iNode_lock_read(dir->iNode);
+		iNode_read_at(dir->iNode, &de, sizeof de, 0);
+		iNode_unlock_read(dir->iNode);
+		__memcpy(buff, &de, sizeof de);
+		return 1;
+	}
 	
 	iNode_lock_read(dir->iNode);
-	DirEntry_t de;
-	for(uint32_t ofs = 80; ofs < dir->iNode->iNode.size; ofs += sizeof de) {
+	for(uint32_t ofs = 0; ofs < dir->iNode->iNode.size; ofs += sizeof de) {
 		iNode_read_at(dir->iNode, &de, sizeof de, ofs);
 		if(strcmp(de.name, name) == 0) {
-			ret = 1;
 			*offset = ofs;
-			memcpy(buff, &de, sizeof de);
+			__memcpy(buff, &de, sizeof de);
+			iNode_unlock_read(dir->iNode);
+			return 1;
 		}
 	}
 	
 	iNode_unlock_read(dir->iNode);
-	return ret;
+	return 0;
 }
 
 int eFile_D_lookup_by_sector(Dir_t *dir, uint32_t sector, DirEntry_t *buff) {
@@ -711,11 +780,11 @@ int eFile_D_lookup_by_sector(Dir_t *dir, uint32_t sector, DirEntry_t *buff) {
 	
 	iNode_lock_read(dir->iNode);
 	DirEntry_t de;
-	for(uint32_t ofs = 80; ofs < dir->iNode->iNode.size; ofs += sizeof de) {
+	for(uint32_t ofs = 0; ofs < dir->iNode->iNode.size; ofs += sizeof de) {
 		iNode_read_at(dir->iNode, &de, sizeof de, ofs);
 		if(de.Header_Sector == sector == 0) {
 			ret = 1;
-			memcpy(buff, &de, sizeof de);
+			__memcpy(buff, &de, sizeof de);
 		}
 	}
 	
@@ -814,9 +883,11 @@ int eFile_Create(const char path[]) {
 	for(i = strlen(path)-1; path[i] != '/'; --i) { }
 	
 	Dir_t d;
-	char dirPath[i+1];
+	// TODO Replace these dirPath calls with malloc
+	char dirPath[64];
 	const char *fn = path+i+1;
-	memcpy(dirPath, path, i);
+	__memcpy(dirPath, path, i);
+	dirPath[i] = 0;
 	eFile_D_dir_from_path(dirPath, &d);
 	
 	// Create a file of zero size
@@ -833,9 +904,10 @@ int eFile_CreateDir(const char path[]) {
 	for(i = strlen(path)-1; path[i] != '/'; --i) { }
 	
 	Dir_t d;
-	char dirPath[i+1];
+	char dirPath[64];
 	const char *fn = path+i+1;
-	memcpy(dirPath, path, i);
+	__memcpy(dirPath, path, i);
+	dirPath[i] = 0;
 	eFile_D_dir_from_path(dirPath, &d);
 	
 	// Create a file of zero size
@@ -860,9 +932,10 @@ int eFile_Open(const char path[], File_t *buff) {
 	for(i = strlen(path)-1; path[i] != '/'; --i) { }
 	
 	Dir_t d;
-	char dirPath[i+1];
+	char dirPath[64];
 	const char *fn = path+i+1;
-	memcpy(dirPath, path, i);
+	__memcpy(dirPath, path, i);
+	dirPath[i] = 0;
 	eFile_D_dir_from_path(dirPath, &d);
 	eFile_D_lookup(&d, fn, buff);
 	eFile_D_close(&d);
@@ -876,9 +949,10 @@ int eFile_Remove(const char path[]) {
 	
 	
 	Dir_t d;
-	char dirPath[i+1];
+	char dirPath[64];
 	const char *fn = path+i+1;
-	memcpy(dirPath, path, i);
+	__memcpy(dirPath, path, i);
+	dirPath[i] = 0;
 	eFile_D_dir_from_path(dirPath, &d);
 	eFile_D_remove(&d, fn);
 	eFile_D_close(&d);

@@ -67,8 +67,8 @@ TCB_t threads[MAX_NUM_THREADS];
 unsigned long stacks[MAX_NUM_THREADS][STACK_SIZE];
 
 TCB_t *RunPt = 0; // Currently running thread
-TCB_t *inactive_thread_list_head = 0;
-TCB_t *sleeping_thread_list_head = 0;
+volatile TCB_t *inactive_thread_list_head = 0;
+volatile TCB_t *sleeping_thread_list_head = 0;
 
 
 
@@ -466,8 +466,8 @@ void OS_bSignal(Sema4Type *semaPt){
 TCB_t* SpawnThread(uint8_t isBackgroundThread, uint8_t priority) {
 	int i = StartCritical();
 	TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **)&inactive_thread_list_head);
+	EndCritical(i);
 	if(thread == 0) {
-		EndCritical(i);
 		return 0; // Cannot pull anything from list
 	}
 	
