@@ -22,7 +22,7 @@
 #define CMD_NAME_LEN_MAX 64
 #define ARG_LEN_MAX 16
 
-char line[512];
+char line[128];
 char cmd_name[CMD_NAME_LEN_MAX];
 
 char args[16 * 8];
@@ -187,6 +187,7 @@ void Interpreter(void){
 int ls(int num_args, ...) {
 	Dir_t d;
 	eFile_Open(".", &d);
+	
 	char fn[MAX_FILE_NAME_LENGTH+1];
 	uint32_t sz;
 	while(eFile_D_read_next(&d, fn, &sz)) {
@@ -250,7 +251,7 @@ int rm(int num_args, ...) {
 	char *path = va_arg(args, char*);
 	va_end(args);
 	
-	return eFile_Remove(path) == 1;
+	return eFile_Remove(path) != 1;
 }
 
 int touch(int num_args, ...) {
@@ -259,7 +260,7 @@ int touch(int num_args, ...) {
 	char *path = va_arg(args, char*);
 	va_end(args);
 	
-	return eFile_Create(path) == 1;
+	return eFile_Create(path) != 1;
 }
 
 int mkdir(int num_args, ...) {
@@ -268,7 +269,7 @@ int mkdir(int num_args, ...) {
 	char *path = va_arg(args, char*);
 	va_end(args);
 	
-	return eFile_CreateDir(path) == 1;
+	return eFile_CreateDir(path) != 1;
 }
 
 int int_time_reset(int num_args, ...) {

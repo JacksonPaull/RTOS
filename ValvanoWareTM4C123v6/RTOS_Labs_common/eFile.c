@@ -47,10 +47,13 @@ void* __memcpy(void* dst, const void* src, size_t i) {
 //}
 
 char* strcpy(char *dst, const char *src) {
-	for(size_t i = 0; src[i] != 0; i++) {
+	for(size_t i = 0; 1; i++) {
 		((char *) dst)[i] = ((char *) src)[i];
+		if(src[i] == 0) {
+			return dst;
+		}
 	}
-	return dst;
+	return 0; // should never execute
 }
 
 void* memset(void *ptr, int value, size_t num) {
@@ -92,6 +95,7 @@ uint32_t Bytes2Sectors(uint32_t bytes) {
 
 /* FilePos2Sector - returns the sector that a given file pos will be in*/
 uint32_t FilePos2Sector(iNode_t *node, uint32_t pos) {
+	uint32_t r;
 	if(pos > node->iNode.size) {
 		// The position exists outside the file
 		return 0;
@@ -109,8 +113,9 @@ uint32_t FilePos2Sector(iNode_t *node, uint32_t pos) {
 	if(n < NUM_DIRECT_SECTORS) {
 		// The pos is in an indirect data sector
 		eDisk_ReadBlock(buf, node->iNode.SIP);
+		r = buf[n];
 		OS_Signal(&buff1_lock);
-		return buf[n];
+		return r;
 	}
 	
 	n -= NUM_DIRECT_SECTORS;
@@ -118,8 +123,9 @@ uint32_t FilePos2Sector(iNode_t *node, uint32_t pos) {
 		// The pos is in one of the doubly indirect sectors
 		eDisk_ReadBlock(buf, node->iNode.DIP);		// Load doubly indirect data sector
 		eDisk_ReadBlock(buf, buf[n/BLOCK_SIZE]);	// Load the (singly) indirect data sector
+		r = buf[n % BLOCK_SIZE];
 		OS_Signal(&buff1_lock);
-		return buf[n % BLOCK_SIZE];
+		return r;
 	}
 	
 	// The position is outside the max file length
@@ -352,6 +358,7 @@ iNode_t* iNode_spawn(uint32_t sector) {
 }
 
 int iNode_create(uint32_t sector, uint32_t length, uint8_t isDir) {
+	volatile int status = 0;
 	iNode_t *node = iNode_find(sector);
 	if(!node) {
 		node = iNode_spawn(sector);
@@ -365,12 +372,15 @@ int iNode_create(uint32_t sector, uint32_t length, uint8_t isDir) {
 	node->iNode.magicByte = 0x12;
 	node->iNode.magicHW = 0x3456;
 
-	int r = allocate_space(node, length);
+	if(allocate_space(node, length)) {
+		eDisk_WriteBlock(&node->iNode, node->sector_num);
+		status = 1;
+	}
 	
 	// Remove from memory list (i.e. free the buffer)
 	PrioQ_remove(&Open_Nodes_Head, (PrioQ_node_t *) node);
 	node->sector_num = 0;
-	return r;
+	return status;
 }
 
 iNode_t* iNode_open(uint32_t sector) {
@@ -479,8 +489,8 @@ void iNode_remove(iNode_t *node) {
 int iNode_read_at(iNode_t *node, void* buff, uint32_t size, uint32_t offset) {
 	
 	// Read from appropriate data sector and place in the buffer
-	int return_status = 1;
 	uint32_t iNode_left = node->iNode.size - offset;
+	uint32_t bytes_read = 0;
 	if(size > iNode_left) {
 		return 0;
 	}
@@ -495,24 +505,25 @@ int iNode_read_at(iNode_t *node, void* buff, uint32_t size, uint32_t offset) {
 		toRead = min(toRead, size);
 		if(block_ofs == 0 && toRead == BLOCK_SIZE) {
 			// Read entire block
-			return_status &= !eDisk_ReadBlock(buff, s);
+			eDisk_ReadBlock(buff+bytes_read, s);
 			
 		}
 		else {
 			// Read only a portion of the block
 			OS_Wait(&buff1_lock);
-			return_status &= !eDisk_ReadBlock(buff1, s);
-			__memcpy(buff, buff1+block_ofs, toRead);
+			eDisk_ReadBlock(buff1, s);
+			__memcpy(buff+bytes_read, buff1+block_ofs, toRead);
 			OS_Signal(&buff1_lock);
 			
 		}
 		
 		offset += toRead;
 		size -= toRead;
+		bytes_read += size;
 	}
 	
 	// return read operation status
-	return return_status;
+	return bytes_read;
 }
 
 
@@ -556,7 +567,7 @@ int iNode_write_at(iNode_t *node, const void* buff, uint32_t size, uint32_t offs
 		size -= count;
 	}
 	
-	return size == 0;
+	return bytes_written;
 }
 
 
@@ -620,21 +631,23 @@ iNode_t* eFile_F_get_iNode(File_t *file) {
 uint32_t eFile_F_read(File_t *file, void* buffer, uint32_t size) {
 	iNode_lock_read(file->iNode);
 	uint32_t r = iNode_read_at(file->iNode, buffer, size, file->pos);
+	file->pos += size;
 	iNode_unlock_read(file->iNode);
-	return r;
+	return 1;
 }
 
 uint32_t eFile_F_read_at(File_t *file, void* buffer, uint32_t size, uint32_t pos) {
 	iNode_lock_read(file->iNode);
 	uint32_t r = iNode_read_at(file->iNode, buffer, size, pos);
 	iNode_unlock_read(file->iNode);
-	return r;
+	return 1;
 }
 
 
 uint32_t eFile_F_write(File_t *file, const void* buffer, uint32_t size) {
 	iNode_lock_write(file->iNode);
 	uint32_t r = iNode_write_at(file->iNode, buffer, size, file->pos);
+	file->pos += size;
 	iNode_unlock_write(file->iNode);
 	return r;
 }
@@ -684,7 +697,7 @@ int eFile_D_open(iNode_t *node, Dir_t *buff) {
 	}
 	RunPt->currentDir = node; // set the current dir in the TCB
 	buff->iNode = node;
-	buff->pos = 80;
+	buff->pos = 2 * sizeof(Dir_t);
 	return 1;
 }
 
@@ -821,7 +834,6 @@ int eFile_D_add(Dir_t *dir, const char name[], uint32_t iNode_header_sector, uin
 		return 0;
 	}
 	
-	
 	de.isDir = isDir;
 	strcpy(de.name, name);
 	de.Header_Sector = iNode_header_sector;
@@ -829,16 +841,17 @@ int eFile_D_add(Dir_t *dir, const char name[], uint32_t iNode_header_sector, uin
 	
 	iNode_lock_write(dir->iNode);
 	
-	for (ofs = 0; iNode_read_at(dir->iNode, &buff, sizeof buff, ofs); ofs += sizeof buff) {
-        if (!buff.in_use) {
-            break;
-        }
-    }
-	
-	int i = iNode_write_at(dir->iNode, &de, sizeof de, ofs);
+	for (ofs = 0; ofs < dir->iNode->iNode.size; ofs += sizeof(DirEntry_t)) {
+		iNode_read_at(dir->iNode, &buff, sizeof(DirEntry_t), ofs);
+		if (!buff.in_use) {
+			break;
+		}
+	}
+
+	int i = iNode_write_at(dir->iNode, &de, sizeof(DirEntry_t), ofs);
 	iNode_unlock_write(dir->iNode);
 	
-	return i;
+	return i == sizeof(de);
 }
 
 int eFile_D_remove(Dir_t *dir, const char name[]) {
@@ -861,10 +874,13 @@ int eFile_D_remove(Dir_t *dir, const char name[]) {
 
 int eFile_D_read_next(Dir_t *dir, char buff[], uint32_t *sizeBuffer) {
 	DirEntry_t de;
-	while(iNode_read_at(dir->iNode, &de, sizeof de, dir->pos)) {
+	
+	while(dir->pos < dir->iNode->iNode.size) {
+		iNode_read_at(dir->iNode, &de, sizeof(DirEntry_t), dir->pos);
 		dir->pos += sizeof de;
 		if(de.in_use) {
 			strcpy(buff, de.name);
+			
 			iNode_t *n = iNode_open(de.Header_Sector);
 			*sizeBuffer = n->iNode.size;
 			iNode_close(n);
@@ -916,10 +932,10 @@ int eFile_Create(const char path[]) {
 	// Create a file of zero size
 	uint32_t s = Bitmap_AllocOne();
 	i = iNode_create(s, 128, 0);
-	i &=eFile_D_add(&d, fn, s, 0);
+	i &= eFile_D_add(&d, fn, s, 0);
 	OS_Signal(&pathbuff_lock);
 	
-	i &=eFile_D_close(&d);
+	i &= eFile_D_close(&d);
 	
 	return i;
 }

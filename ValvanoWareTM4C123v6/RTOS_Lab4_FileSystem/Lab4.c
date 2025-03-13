@@ -754,9 +754,9 @@ void TestFSMain(void) {
 int main(void) { 			// main
   // Testmain0();	// Passed
 	// Testmain1();	// Passed
-	// Testmain2();
+	Testmain2();
 	// TestBandwidthMain(); // Passed - 304.48 KBps down alone, 178KBps up / down
-	TestFSMain();
+	// TestFSMain();
 	
 	// realmain();
 }

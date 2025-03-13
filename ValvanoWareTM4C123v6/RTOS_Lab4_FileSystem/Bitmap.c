@@ -28,6 +28,7 @@ void Bitmap_Reset(void) {
 }
 
 void Bitmap_Write_Out(void) {
+	printf("Writing out bitmap!\r\n");
 	eDisk_WriteBlock(BitmapBuf, loaded_sector);
 }
 

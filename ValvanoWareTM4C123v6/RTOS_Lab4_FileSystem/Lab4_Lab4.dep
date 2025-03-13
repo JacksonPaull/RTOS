@@ -1,17 +1,17 @@
 Dependencies for Project 'Lab4', Target 'Lab4': (DO NOT MODIFY !)
 CompilerVersion: 6220000::V6.22::ARMCLANG
 F (.\startup.s)(0x67971BEC)(--cpu Cortex-M4 --fpu=SoftVFP --pd "__EVAL SETA 1" -g --pd "__MICROLIB SETA 1" --diag_suppress=A1950W-I.\RTE\_Lab4-I"C:\Users\Jackson Paull\AppData\Local\Arm\Packs\ARM\CMSIS\6.1.0\CMSIS\Core\Include"-I"C:\Users\Jackson Paull\AppData\Local\Arm\Packs\Keil\TM4C_DFP\1.1.0\Device\Include\TM4C123"--pd "__UVISION_VERSION SETA 541"--pd "TM4C123GH6PM SETA 1"--pd "_RTE_ SETA 1"--list .\startup.lst--xref -o .\startup.o--depend .\startup.d)
-F (.\Lab4.c)(0x67D2FD4E)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-I./RTE/_Lab4-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include"-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123"-D__UVISION_VERSION="541" -DTM4C123GH6PM -D_RTE_ -Drvmdk -DPART_LM4F120H5QR-o ./lab4.o -MMD)
+F (.\Lab4.c)(0x67D333AB)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-I./RTE/_Lab4-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include"-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123"-D__UVISION_VERSION="541" -DTM4C123GH6PM -D_RTE_ -Drvmdk -DPART_LM4F120H5QR-o ./lab4.o -MMD)
 I (..\inc\tm4c123gh6pm.h)(0x67971BEF)
 I (..\inc\CortexM.h)(0x67971BEE)
 I (..\inc\LaunchPad.h)(0x67971BEE)
 I (..\inc\LPF.h)(0x67971BEE)
 I (..\inc\IRDistance.h)(0x67971BEE)
-I (..\RTOS_Labs_common\OS.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\OS.h)(0x67D33797)
 I (..\RTOS_Labs_common\..\inc\tm4c123gh6pm.h)(0x67971BEF)
 I (..\RTOS_Labs_common\..\inc\CortexM.h)(0x67971BEE)
 I (..\RTOS_Labs_common\Interpreter.h)(0x67B68067)
-I (..\RTOS_Labs_common\..\RTOS_Labs_common\os.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\..\RTOS_Labs_common\os.h)(0x67D33797)
 I (..\RTOS_Labs_common\ST7735.h)(0x67CEF9F1)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\ST7735.h)(0x67CEF9F1)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\eDisk.h)(0x67CF2F7B)
@@ -21,7 +21,7 @@ I (..\RTOS_Labs_common\eDisk.h)(0x67CF2F7B)
 I (..\RTOS_Labs_common\eFile.h)(0x67D2F66A)
 I (..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\Bitmap.h)(0x67D096C1)
 I (..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\iNode.h)(0x67D1D4A1)
-I (..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\..\RTOS_Labs_common\OS.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\..\RTOS_Labs_common\OS.h)(0x67D33797)
 I (..\RTOS_Labs_common\ADC.h)(0x67991066)
 F (..\inc\LaunchPad.c)(0x67971BEE)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-I./RTE/_Lab4-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include"-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123"-D__UVISION_VERSION="541" -DTM4C123GH6PM -D_RTE_ -Drvmdk -DPART_LM4F120H5QR-o ./launchpad.o -MMD)
 I (..\inc\..\inc\LaunchPad.h)(0x67971BEE)
@@ -37,40 +37,40 @@ I (..\RTOS_Labs_common\..\inc\Timer3A.h)(0x67971BEE)
 I (..\RTOS_Labs_common\..\inc\Timer4A.h)(0x67BC9CC5)
 I (..\RTOS_Labs_common\..\inc\Timer5A.h)(0x67971BEE)
 I (..\RTOS_Labs_common\..\inc\WTimer0A.h)(0x67971BEE)
-I (..\RTOS_Labs_common\..\RTOS_Labs_common\OS.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\..\RTOS_Labs_common\OS.h)(0x67D33797)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\inc\tm4c123gh6pm.h)(0x67971BEF)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\inc\CortexM.h)(0x67971BEE)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\ST7735.h)(0x67CEF9F1)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Labs_common\ST7735.h)(0x67CEF9F1)
-I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Labs_common\OS.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Labs_common\OS.h)(0x67D33797)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Labs_common\eDisk.h)(0x67CF2F7B)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\eDisk.h)(0x67CF2F7B)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\eFile.h)(0x67D2F66A)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\Bitmap.h)(0x67D096C1)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\iNode.h)(0x67D1D4A1)
-I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\..\RTOS_Labs_common\OS.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\..\RTOS_Labs_common\OS.h)(0x67D33797)
 I (..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\iNode.h)(0x67D1D4A1)
 I (..\RTOS_Labs_common\..\inc\ADCT0ATrigger.h)(0x67971BEE)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\UART0int.h)(0x67971BEC)
 I (..\RTOS_Labs_common\..\RTOS_Lab2_RTOSkernel\LinkedList.h)(0x67B94CB6)
-I (..\RTOS_Labs_common\..\RTOS_Lab2_RTOSkernel\..\RTOS_Labs_common\OS.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\..\RTOS_Lab2_RTOSkernel\..\RTOS_Labs_common\OS.h)(0x67D33797)
 I (..\RTOS_Labs_common\..\RTOS_Lab2_RTOSkernel\scheduler.h)(0x67C23012)
 I (..\RTOS_Labs_common\..\RTOS_Lab2_RTOSkernel\..\RTOS_Lab2_RTOSkernel\LinkedList.h)(0x67B94CB6)
 I (..\RTOS_Labs_common\..\RTOS_Lab2_RTOSkernel\..\RTOS_Lab3_RTOSpriority\PriorityQueue.h)(0x67CEF9D9)
-I (..\RTOS_Labs_common\..\RTOS_Lab2_RTOSkernel\..\RTOS_Lab3_RTOSpriority\..\RTOS_Labs_common\os.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\..\RTOS_Lab2_RTOSkernel\..\RTOS_Lab3_RTOSpriority\..\RTOS_Labs_common\os.h)(0x67D33797)
 I (..\RTOS_Labs_common\..\RTOS_Lab2_RTOSkernel\..\RTOS_Lab3_RTOSpriority\..\RTOS_Lab2_RTOSkernel\LinkedList.h)(0x67B94CB6)
 F (..\RTOS_Labs_common\ST7735.c)(0x67CEF9D9)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-I./RTE/_Lab4-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include"-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123"-D__UVISION_VERSION="541" -DTM4C123GH6PM -D_RTE_ -Drvmdk -DPART_LM4F120H5QR-o ./st7735.o -MMD)
 I (..\RTOS_Labs_common\ST7735.h)(0x67CEF9F1)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\ST7735.h)(0x67CEF9F1)
-I (..\RTOS_Labs_common\..\RTOS_Labs_common\OS.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\..\RTOS_Labs_common\OS.h)(0x67D33797)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\inc\tm4c123gh6pm.h)(0x67971BEF)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\inc\CortexM.h)(0x67971BEE)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\eDisk.h)(0x67CF2F7B)
 I (..\RTOS_Labs_common\..\inc\tm4c123gh6pm.h)(0x67971BEF)
-F (..\RTOS_Labs_common\Interpreter.c)(0x67D2FCD7)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-I./RTE/_Lab4-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include"-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123"-D__UVISION_VERSION="541" -DTM4C123GH6PM -D_RTE_ -Drvmdk -DPART_LM4F120H5QR-o ./interpreter.o -MMD)
+F (..\RTOS_Labs_common\Interpreter.c)(0x67D331F7)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-I./RTE/_Lab4-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include"-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123"-D__UVISION_VERSION="541" -DTM4C123GH6PM -D_RTE_ -Drvmdk -DPART_LM4F120H5QR-o ./interpreter.o -MMD)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\ST7735.h)(0x67CEF9F1)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Labs_common\ST7735.h)(0x67CEF9F1)
-I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Labs_common\OS.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Labs_common\OS.h)(0x67D33797)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Labs_common\..\inc\tm4c123gh6pm.h)(0x67971BEF)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Labs_common\..\inc\CortexM.h)(0x67971BEE)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Labs_common\eDisk.h)(0x67CF2F7B)
@@ -82,36 +82,36 @@ I (..\RTOS_Labs_common\..\RTOS_Labs_common\eDisk.h)(0x67CF2F7B)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\eFile.h)(0x67D2F66A)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\Bitmap.h)(0x67D096C1)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\iNode.h)(0x67D1D4A1)
-I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\..\RTOS_Labs_common\OS.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\..\RTOS_Labs_common\OS.h)(0x67D33797)
 I (..\RTOS_Labs_common\Interpreter.h)(0x67B68067)
-I (..\RTOS_Labs_common\..\RTOS_Labs_common\os.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\..\RTOS_Labs_common\os.h)(0x67D33797)
 F (..\RTOS_Labs_common\UART0int.c)(0x67AE44EC)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-I./RTE/_Lab4-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include"-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123"-D__UVISION_VERSION="541" -DTM4C123GH6PM -D_RTE_ -Drvmdk -DPART_LM4F120H5QR-o ./uart0int.o -MMD)
 I (..\RTOS_Labs_common\..\inc\tm4c123gh6pm.h)(0x67971BEF)
 I (..\RTOS_Labs_common\..\inc\CortexM.h)(0x67971BEE)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\FIFOsimple.h)(0x67ACB9AA)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\UART0int.h)(0x67971BEC)
-I (..\RTOS_Labs_common\..\RTOS_Labs_common\os.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\..\RTOS_Labs_common\os.h)(0x67D33797)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\inc\tm4c123gh6pm.h)(0x67971BEF)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\inc\CortexM.h)(0x67971BEE)
 F (..\RTOS_Labs_common\eDisk.c)(0x67CF2F63)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-I./RTE/_Lab4-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include"-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123"-D__UVISION_VERSION="541" -DTM4C123GH6PM -D_RTE_ -Drvmdk -DPART_LM4F120H5QR-o ./edisk.o -MMD)
 I (..\RTOS_Labs_common\..\inc\tm4c123gh6pm.h)(0x67971BEF)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\eDisk.h)(0x67CF2F7B)
-I (..\RTOS_Labs_common\..\RTOS_Labs_common\OS.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\..\RTOS_Labs_common\OS.h)(0x67D33797)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\inc\tm4c123gh6pm.h)(0x67971BEF)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\inc\CortexM.h)(0x67971BEE)
-F (..\RTOS_Labs_common\eFile.c)(0x67D2FC6E)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-I./RTE/_Lab4-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include"-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123"-D__UVISION_VERSION="541" -DTM4C123GH6PM -D_RTE_ -Drvmdk -DPART_LM4F120H5QR-o ./efile.o -MMD)
+F (..\RTOS_Labs_common\eFile.c)(0x67D35E59)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-I./RTE/_Lab4-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include"-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123"-D__UVISION_VERSION="541" -DTM4C123GH6PM -D_RTE_ -Drvmdk -DPART_LM4F120H5QR-o ./efile.o -MMD)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\eDisk.h)(0x67CF2F7B)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\eFile.h)(0x67D2F66A)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\Bitmap.h)(0x67D096C1)
-I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Labs_common\OS.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Labs_common\OS.h)(0x67D33797)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Labs_common\..\inc\tm4c123gh6pm.h)(0x67971BEF)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Labs_common\..\inc\CortexM.h)(0x67971BEE)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\iNode.h)(0x67D1D4A1)
-I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\..\RTOS_Labs_common\OS.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\..\RTOS_Labs_common\OS.h)(0x67D33797)
 I (..\RTOS_Labs_common\..\RTOS_Lab3_RTOSpriority\PriorityQueue.h)(0x67CEF9D9)
-I (..\RTOS_Labs_common\..\RTOS_Lab3_RTOSpriority\..\RTOS_Labs_common\os.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\..\RTOS_Lab3_RTOSpriority\..\RTOS_Labs_common\os.h)(0x67D33797)
 I (..\RTOS_Labs_common\..\RTOS_Lab3_RTOSpriority\..\RTOS_Lab2_RTOSkernel\LinkedList.h)(0x67B94CB6)
-I (..\RTOS_Labs_common\..\RTOS_Lab3_RTOSpriority\..\RTOS_Lab2_RTOSkernel\..\RTOS_Labs_common\OS.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\..\RTOS_Lab3_RTOSpriority\..\RTOS_Lab2_RTOSkernel\..\RTOS_Labs_common\OS.h)(0x67D33797)
 I (..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\Bitmap.h)(0x67D096C1)
 I (..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\iNode.h)(0x67D1D4A1)
 F (..\RTOS_Labs_common\osasm.s)(0x67BC9CC5)(--cpu Cortex-M4 --fpu=SoftVFP --pd "__EVAL SETA 1" -g --pd "__MICROLIB SETA 1" --diag_suppress=A1950W-I.\RTE\_Lab4-I"C:\Users\Jackson Paull\AppData\Local\Arm\Packs\ARM\CMSIS\6.1.0\CMSIS\Core\Include"-I"C:\Users\Jackson Paull\AppData\Local\Arm\Packs\Keil\TM4C_DFP\1.1.0\Device\Include\TM4C123"--pd "__UVISION_VERSION SETA 541"--pd "TM4C123GH6PM SETA 1"--pd "_RTE_ SETA 1"--list .\osasm.lst--xref -o .\osasm.o--depend .\osasm.d)
@@ -130,23 +130,23 @@ F (..\inc\WTimer0A.c)(0x67971BEE)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=
 I (..\inc\..\inc\tm4c123gh6pm.h)(0x67971BEF)
 F (..\RTOS_Labs_common\FIFOsimple.c)(0x67ACBBC5)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-I./RTE/_Lab4-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include"-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123"-D__UVISION_VERSION="541" -DTM4C123GH6PM -D_RTE_ -Drvmdk -DPART_LM4F120H5QR-o ./fifosimple.o -MMD)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\FIFOsimple.h)(0x67ACB9AA)
-I (..\RTOS_Labs_common\..\RTOS_Labs_common\os.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\..\RTOS_Labs_common\os.h)(0x67D33797)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\inc\tm4c123gh6pm.h)(0x67971BEF)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\inc\CortexM.h)(0x67971BEE)
 F (..\RTOS_Lab2_RTOSkernel\LinkedList.c)(0x67B94DAA)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-I./RTE/_Lab4-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include"-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123"-D__UVISION_VERSION="541" -DTM4C123GH6PM -D_RTE_ -Drvmdk -DPART_LM4F120H5QR-o ./linkedlist.o -MMD)
-I (..\RTOS_Lab2_RTOSkernel\..\RTOS_Labs_common\OS.h)(0x67D2FCE5)
+I (..\RTOS_Lab2_RTOSkernel\..\RTOS_Labs_common\OS.h)(0x67D33797)
 I (..\RTOS_Lab2_RTOSkernel\..\RTOS_Labs_common\..\inc\tm4c123gh6pm.h)(0x67971BEF)
 I (..\RTOS_Lab2_RTOSkernel\..\RTOS_Labs_common\..\inc\CortexM.h)(0x67971BEE)
 I (..\RTOS_Lab2_RTOSkernel\LinkedList.h)(0x67B94CB6)
 F (..\RTOS_Lab2_RTOSkernel\scheduler.c)(0x67C23012)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-I./RTE/_Lab4-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include"-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123"-D__UVISION_VERSION="541" -DTM4C123GH6PM -D_RTE_ -Drvmdk -DPART_LM4F120H5QR-o ./scheduler.o -MMD)
 I (..\RTOS_Lab2_RTOSkernel\.\scheduler.h)(0x67C23012)
-I (..\RTOS_Lab2_RTOSkernel\.\..\RTOS_Labs_common\OS.h)(0x67D2FCE5)
+I (..\RTOS_Lab2_RTOSkernel\.\..\RTOS_Labs_common\OS.h)(0x67D33797)
 I (..\RTOS_Lab2_RTOSkernel\.\..\RTOS_Labs_common\..\inc\tm4c123gh6pm.h)(0x67971BEF)
 I (..\RTOS_Lab2_RTOSkernel\.\..\RTOS_Labs_common\..\inc\CortexM.h)(0x67971BEE)
 I (..\RTOS_Lab2_RTOSkernel\.\..\RTOS_Lab2_RTOSkernel\LinkedList.h)(0x67B94CB6)
-I (..\RTOS_Lab2_RTOSkernel\.\..\RTOS_Lab2_RTOSkernel\..\RTOS_Labs_common\OS.h)(0x67D2FCE5)
+I (..\RTOS_Lab2_RTOSkernel\.\..\RTOS_Lab2_RTOSkernel\..\RTOS_Labs_common\OS.h)(0x67D33797)
 I (..\RTOS_Lab2_RTOSkernel\.\..\RTOS_Lab3_RTOSpriority\PriorityQueue.h)(0x67CEF9D9)
-I (..\RTOS_Lab2_RTOSkernel\.\..\RTOS_Lab3_RTOSpriority\..\RTOS_Labs_common\os.h)(0x67D2FCE5)
+I (..\RTOS_Lab2_RTOSkernel\.\..\RTOS_Lab3_RTOSpriority\..\RTOS_Labs_common\os.h)(0x67D33797)
 I (..\RTOS_Lab2_RTOSkernel\.\..\RTOS_Lab3_RTOSpriority\..\RTOS_Lab2_RTOSkernel\LinkedList.h)(0x67B94CB6)
 F (..\inc\Timer4A.c)(0x67BC9CC5)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-I./RTE/_Lab4-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include"-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123"-D__UVISION_VERSION="541" -DTM4C123GH6PM -D_RTE_ -Drvmdk -DPART_LM4F120H5QR-o ./timer4a.o -MMD)
 I (..\inc\..\inc\tm4c123gh6pm.h)(0x67971BEF)
@@ -156,19 +156,19 @@ F (..\inc\Timer3A.c)(0x67971BEE)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=c
 I (..\inc\..\inc\tm4c123gh6pm.h)(0x67971BEF)
 F (..\RTOS_Lab3_RTOSpriority\PriorityQueue.c)(0x67CEF9D9)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-I./RTE/_Lab4-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include"-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123"-D__UVISION_VERSION="541" -DTM4C123GH6PM -D_RTE_ -Drvmdk -DPART_LM4F120H5QR-o ./priorityqueue.o -MMD)
 I (..\RTOS_Lab3_RTOSpriority\PriorityQueue.h)(0x67CEF9D9)
-I (..\RTOS_Lab3_RTOSpriority\..\RTOS_Labs_common\os.h)(0x67D2FCE5)
+I (..\RTOS_Lab3_RTOSpriority\..\RTOS_Labs_common\os.h)(0x67D33797)
 I (..\RTOS_Lab3_RTOSpriority\..\RTOS_Labs_common\..\inc\tm4c123gh6pm.h)(0x67971BEF)
 I (..\RTOS_Lab3_RTOSpriority\..\RTOS_Labs_common\..\inc\CortexM.h)(0x67971BEE)
 I (..\RTOS_Lab3_RTOSpriority\..\RTOS_Lab2_RTOSkernel\LinkedList.h)(0x67B94CB6)
-I (..\RTOS_Lab3_RTOSpriority\..\RTOS_Lab2_RTOSkernel\..\RTOS_Labs_common\OS.h)(0x67D2FCE5)
-F (.\Bitmap.c)(0x67D1DF89)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-I./RTE/_Lab4-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include"-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123"-D__UVISION_VERSION="541" -DTM4C123GH6PM -D_RTE_ -Drvmdk -DPART_LM4F120H5QR-o ./bitmap.o -MMD)
+I (..\RTOS_Lab3_RTOSpriority\..\RTOS_Lab2_RTOSkernel\..\RTOS_Labs_common\OS.h)(0x67D33797)
+F (.\Bitmap.c)(0x67D32C39)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-I./RTE/_Lab4-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include"-I"C:/Users/Jackson Paull/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123"-D__UVISION_VERSION="541" -DTM4C123GH6PM -D_RTE_ -Drvmdk -DPART_LM4F120H5QR-o ./bitmap.o -MMD)
 I (Bitmap.h)(0x67D096C1)
 I (..\RTOS_Labs_common\eFile.h)(0x67D2F66A)
 I (..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\Bitmap.h)(0x67D096C1)
-I (..\RTOS_Labs_common\..\RTOS_Labs_common\OS.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\..\RTOS_Labs_common\OS.h)(0x67D33797)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\inc\tm4c123gh6pm.h)(0x67971BEF)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\..\inc\CortexM.h)(0x67971BEE)
 I (..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\iNode.h)(0x67D1D4A1)
-I (..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\..\RTOS_Labs_common\OS.h)(0x67D2FCE5)
+I (..\RTOS_Labs_common\..\RTOS_Lab4_FileSystem\..\RTOS_Labs_common\OS.h)(0x67D33797)
 I (..\RTOS_Labs_common\eDisk.h)(0x67CF2F7B)
 F (.\Bitmap.h)(0x67D096C1)()
