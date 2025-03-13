@@ -156,18 +156,18 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>896</LineNumber>
+          <LineNumber>495</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>0</Address>
+          <Address>9450</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>0</BreakIfRCount>
-          <Filename>..\RTOS_Labs_common\eFile.c</Filename>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>.\Lab4.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression></Expression>
+          <Expression>\\Lab4\Lab4.c\495</Expression>
         </Bp>
         <Bp>
           <Number>1</Number>
@@ -188,22 +188,6 @@
         <Bp>
           <Number>2</Number>
           <Type>0</Type>
-          <LineNumber>495</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>9450</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>.\Lab4.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\Lab4\Lab4.c\495</Expression>
-        </Bp>
-        <Bp>
-          <Number>3</Number>
-          <Type>0</Type>
           <LineNumber>491</LineNumber>
           <EnabledFlag>1</EnabledFlag>
           <Address>9348</Address>
@@ -216,6 +200,22 @@
           <Filename>.\Lab4.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression>\\Lab4\Lab4.c\491</Expression>
+        </Bp>
+        <Bp>
+          <Number>3</Number>
+          <Type>0</Type>
+          <LineNumber>837</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>14814</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>..\RTOS_Labs_common\eFile.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\Lab4\../RTOS_Labs_common/eFile.c\837</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>
@@ -292,15 +292,10 @@
         <Ww>
           <count>14</count>
           <WinNumber>1</WinNumber>
-          <ItemText>NumPeriodicThreads</ItemText>
-        </Ww>
-        <Ww>
-          <count>15</count>
-          <WinNumber>1</WinNumber>
           <ItemText>DISK_INODES</ItemText>
         </Ww>
         <Ww>
-          <count>16</count>
+          <count>15</count>
           <WinNumber>1</WinNumber>
           <ItemText>buff1</ItemText>
         </Ww>

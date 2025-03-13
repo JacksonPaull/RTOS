@@ -556,7 +556,7 @@ int iNode_write_at(iNode_t *node, const void* buff, uint32_t size, uint32_t offs
 		size -= count;
 	}
 	
-	return bytes_written;
+	return size == 0;
 }
 
 
@@ -810,7 +810,6 @@ int eFile_D_lookup(Dir_t *dir, const char name[], File_t *buff) {
 }
 
 int eFile_D_add(Dir_t *dir, const char name[], uint32_t iNode_header_sector, uint8_t isDir) {
-	
 	if(strlen(name) > MAX_FILE_NAME_LENGTH+1) {
 		return 0;
 	}
@@ -835,10 +834,10 @@ int eFile_D_add(Dir_t *dir, const char name[], uint32_t iNode_header_sector, uin
         }
     }
 	
-	iNode_write_at(dir->iNode, &de, sizeof de, ofs);
+	int i = iNode_write_at(dir->iNode, &de, sizeof de, ofs);
 	iNode_unlock_write(dir->iNode);
 	
-	return 1;
+	return i;
 }
 
 int eFile_D_remove(Dir_t *dir, const char name[]) {
@@ -905,17 +904,17 @@ int eFile_parse_path(const char path[], Dir_t* dirBuff, char **fn_buff) {
 }
 
 int eFile_Create(const char path[]) { 
-	int i;
+	volatile int i;
 	Dir_t d;
 	char *fn;
 	// TODO Replace these dirPath calls with malloc
 	// TODO place this parsing into a function - i wrote it 4x
 	
-	i = eFile_parse_path(path, &d, &fn);
+	eFile_parse_path(path, &d, &fn);
 	
 	// Create a file of zero size
 	uint32_t s = Bitmap_AllocOne();
-	i &= iNode_create(s, 0, 0);
+	i = iNode_create(s, 128, 0);
 	i &=eFile_D_add(&d, fn, s, 0);
 	i &=eFile_D_close(&d);
 	
@@ -927,7 +926,7 @@ int eFile_CreateDir(const char path[]) {
 	Dir_t d;
 	char *fn;
 	
-	i = eFile_parse_path(path, &d, &fn);
+	eFile_parse_path(path, &d, &fn);
 	
 	// Create a file of zero size
 	uint32_t s = Bitmap_AllocOne();
@@ -951,7 +950,7 @@ int eFile_Open(const char path[], File_t *buff) {
 	Dir_t d;
 	char *fn;
 	
-	i = eFile_parse_path(path, &d, &fn);
+	eFile_parse_path(path, &d, &fn);
 	
 	i &= eFile_D_lookup(&d, fn, buff);
 	i &= eFile_D_close(&d);
@@ -963,7 +962,7 @@ int eFile_Remove(const char path[]) {
 	Dir_t d;
 	char *fn;
 	
-	i = eFile_parse_path(path, &d, &fn);
+	eFile_parse_path(path, &d, &fn);
 	
 	i &= eFile_D_remove(&d, fn);
 	i &= eFile_D_close(&d);
@@ -997,6 +996,8 @@ void eFile_Format(void) {
 	
 	// Create root dir
 	r &= eFile_D_create(ROOTDIR_INODE, ROOTDIR_INODE, 16);
+	
+	Bitmap_Write_Out();
 	//return r;
 }
 
