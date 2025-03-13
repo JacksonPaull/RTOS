@@ -22,7 +22,7 @@
 #define BLOCK_SIZE 512
 #define MAX_FILE_NAME_LENGTH 33
 #define DIR_ENTRY_LENGTH MAX_FILE_NAME_LENGH+7
-#define MAX_NODES_OPEN 35
+#define MAX_NODES_OPEN 10
 
 typedef struct File {
 	iNode_t *iNode;
@@ -86,6 +86,7 @@ int eFile_Mount(void);
 int eFile_Unmount(void);
 
 uint32_t eFile_get_root_sector(void);
+iNode_t* eFile_getCurrentDirNode(void);
 int eFile_CD(const char path[]);
 
 #endif

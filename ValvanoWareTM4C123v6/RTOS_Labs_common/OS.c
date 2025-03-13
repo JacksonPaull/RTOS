@@ -67,8 +67,8 @@ TCB_t threads[MAX_NUM_THREADS];
 unsigned long stacks[MAX_NUM_THREADS][STACK_SIZE];
 
 TCB_t *RunPt = 0; // Currently running thread
-volatile TCB_t *inactive_thread_list_head = 0;
-volatile TCB_t *sleeping_thread_list_head = 0;
+TCB_t *inactive_thread_list_head = 0;
+TCB_t *sleeping_thread_list_head = 0;
 
 
 
@@ -228,7 +228,7 @@ void SysTick_Handler(void) {
 void BackgroundThreadExit(void) {
 	scheduler_unlock(); // Force unlock
 	thread_cnt_alive--;
-	
+	//iNode_close(eFile_getCurrentDirNode());
 	ContextSwitch();
 	EnableInterrupts(); // Force interrupt enable
 	for(;;){}; // Wait for interrupt
@@ -480,7 +480,7 @@ TCB_t* SpawnThread(uint8_t isBackgroundThread, uint8_t priority) {
 	thread->sleep_count = 0;
 	thread->priority = priority;
 	
-	thread->currentDir = iNode_open(eFile_get_root_sector()); // TODO Change to inherit the Root iNode of the parent...?
+	thread->currentDir = 0;
 	
 	return thread;
 }
@@ -542,6 +542,12 @@ uint32_t OS_Id(void){
 };
 
 
+// TODO remove
+#define PD0  (*((volatile uint32_t *)0x40007004))
+#define PD1  (*((volatile uint32_t *)0x40007008))
+#define PD2  (*((volatile uint32_t *)0x40007010))
+#define PD3  (*((volatile uint32_t *)0x40007020))
+
 
 typedef struct Periodic_TCB {
 	struct Periodic_TCB *next, *prev;
@@ -559,6 +565,7 @@ Periodic_TCB_t Periodic_Threads[MAX_PERIODIC_THREADS];
 void PeriodicThreadHandler() {
 	DisableInterrupts();
 	uint32_t min_cnt = 0xFFFFFFFF;
+	PD0 ^= 0x1;
 	
 	// Check all periodic tasks and launch them as needed
 	for( int i = 0; i < NumPeriodicThreads; i++) {
@@ -586,6 +593,7 @@ void PeriodicThreadHandler() {
 	
 	// Reset timer based on min cnt value
 	Timer4A_RestartOneShot(min_cnt);
+	PD0 ^= 0x1;
 	EnableInterrupts();
 }
 

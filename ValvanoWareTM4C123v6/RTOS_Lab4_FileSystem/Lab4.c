@@ -447,7 +447,7 @@ char const string1[]="Filename = %s";
 char const string2[]="File size = %d bytes";
 char const string3[]="Number of Files = %u";
 char const string4[]="Number of Bytes = %lu";
-void TestDirectory(void){ char *name; uint32_t size; 
+void TestDirectory(void){ char name[40]; uint32_t size; 
   unsigned int num;
   unsigned long total;
   num = 0;
@@ -455,7 +455,7 @@ void TestDirectory(void){ char *name; uint32_t size;
   printf("\n\r");
 	Dir_t d;
   if(!eFile_Open("/", &d))           diskError("eFile_DOpen",0);
-  while(!eFile_D_read_next(&d, name, &size)){
+  while(eFile_D_read_next(&d, name, &size)){
     printf(string1, name);
     printf("  ");
     printf(string2, size);

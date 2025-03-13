@@ -232,8 +232,8 @@ int allocate_doubly_indirect(iNode_t *iNode, uint32_t num_sectors) {
 	}
 	eDisk_WriteBlock(DIP1_data, iNode->iNode.DIP);
 	
-	OS_Signal(&buff1_lock);
 	OS_Signal(&buff2_lock);
+	OS_Signal(&buff1_lock);
 	return 1;
 }
 
@@ -317,27 +317,47 @@ int allocate_space(iNode_t *iNode, uint32_t num_bytes) {
 	return 1; // Success
 }
 
-
-int iNode_create(uint32_t sector, uint32_t length, uint8_t isDir) {
-	
-	int I = StartCritical();
-	
+iNode_t* iNode_find(uint32_t sector) {
 	// Check if already in memory
+	int I = StartCritical();
 	iNode_t *node = (iNode_t*) PrioQ_find(&Open_Nodes_Head, sector);
 	EndCritical(I);
-	
+	return node;
+}
+
+iNode_t* iNode_spawn(uint32_t sector) {
+	iNode_t *node = 0;
+	int I = StartCritical();
 	for(int i = 0; i < MAX_NODES_OPEN; i++) {
-		iNode_t n = DISK_INODES[i];
-		if(n.sector_num == 0) {
+		iNode_t *n = &DISK_INODES[i];
+		if(n->sector_num == 0) {
 			// this node is unused, use this one
-			node = &n;
+			node = n;
 			break;
 		}
 	}
 	
+	EndCritical(I);
+	if(!node) {
+		return 0;
+	}
 	memset(node, 0, sizeof(iNode_t));
 	
-	// Assume everything else initialized to 0
+	I = StartCritical();
+	PrioQ_insert(&Open_Nodes_Head, (PrioQ_node_t *) node);
+	EndCritical(I);
+	return node;
+}
+
+int iNode_create(uint32_t sector, uint32_t length, uint8_t isDir) {
+	iNode_t *node = iNode_find(sector);
+	if(!node) {
+		node = iNode_spawn(sector);
+	}
+	
+	
+	// Note - creating a node is not equivalent to opening it,
+	// Here we only write out the data to disk to create the iNode
 	node->sector_num = sector;
 	node->iNode.isDir = isDir;
 	node->iNode.magicByte = 0x12;
@@ -345,52 +365,26 @@ int iNode_create(uint32_t sector, uint32_t length, uint8_t isDir) {
 
 	int r = allocate_space(node, length);
 	
+	// Remove from memory list (i.e. free the buffer)
+	PrioQ_remove(&Open_Nodes_Head, (PrioQ_node_t *) node);
+	node->sector_num = 0;
 	return r;
 }
 
 iNode_t* iNode_open(uint32_t sector) {
-	int I = StartCritical();
-	
 	// Check if already in memory
-	iNode_t *node = (iNode_t*) PrioQ_find(&Open_Nodes_Head, sector);
-	EndCritical(I);
+	iNode_t *node = iNode_find(sector);
 	if(node) {
 		return iNode_reopen(node);
 	}
+	node = iNode_spawn(sector);
 	
 	// Read in from disk
-	OS_Wait(&buff1_lock);
-	eDisk_ReadBlock(buff1, sector);
-	
-	// Add to list
-		// TODO Replace with dynamic memory allocation later
-	
-	// find first non-used entry
-	for(int i = 0; i < MAX_NODES_OPEN; i++) {
-		iNode_t n = DISK_INODES[i];
-		if(n.sector_num == 0) {
-			// this node is unused, use this one
-			node = &n;
-			break;
-		}
-	}
-	if(!node) {
-		// Couldn't allocate
-		OS_Signal(&buff1_lock);
-		return 0;
-	}
-	
+	eDisk_ReadBlock(&node->iNode, sector);
 	node->sector_num = sector;
 	node->numOpen=1;
-	node->numReaders=0;
-	node->removed=0;
-	__memcpy(&node->iNode, buff1, BLOCK_SIZE);
-	OS_Signal(&buff1_lock);
 	OS_InitSemaphore(&node->NodeLock, 1);
-	
-	I = StartCritical();
-	PrioQ_insert(&Open_Nodes_Head, (PrioQ_node_t *) node);
-	EndCritical(I);
+
 	return node;
 }
 
@@ -409,6 +403,10 @@ uint32_t iNode_get_sector(iNode_t *node) {
 
 int iNode_close(iNode_t *node) {
 	int r = 1;
+	
+	if(node == 0) {
+		return 1; // closing nothing is ok
+	}
 	
 	// decrement the num_open count
 	if(--(node->numOpen) == 0) {
@@ -453,7 +451,7 @@ int iNode_close(iNode_t *node) {
 					}
 					OS_Signal(&buff2_lock);
 				}
-				OS_Signal(&buff2_lock);
+				OS_Signal(&buff1_lock);
 			}
 		}
 		
@@ -477,7 +475,6 @@ void iNode_remove(iNode_t *node) {
 
 // Must be called when the node lock is held!
 int iNode_read_at(iNode_t *node, void* buff, uint32_t size, uint32_t offset) {
-	uint8_t buff1[BLOCK_SIZE];
 	
 	// Read from appropriate data sector and place in the buffer
 	int return_status = 1;
@@ -493,17 +490,18 @@ int iNode_read_at(iNode_t *node, void* buff, uint32_t size, uint32_t offset) {
 		uint32_t s = FilePos2Sector(node, offset);
 		
 		uint32_t toRead = min(iNode_left, block_left);
+		toRead = min(toRead, size);
 		if(block_ofs == 0 && toRead == BLOCK_SIZE) {
 			// Read entire block
-			return_status &= eDisk_ReadBlock(buff, s);
+			return_status &= !eDisk_ReadBlock(buff, s);
 			
 		}
 		else {
 			// Read only a portion of the block
-			// OS_Wait(&buff1_lock);
-			return_status &= eDisk_ReadBlock(buff1, s);
+			OS_Wait(&buff1_lock);
+			return_status &= !eDisk_ReadBlock(buff1, s);
 			__memcpy(buff, buff1+block_ofs, toRead);
-			// OS_Signal(&buff1_lock);
+			OS_Signal(&buff1_lock);
 			
 		}
 		
@@ -517,8 +515,6 @@ int iNode_read_at(iNode_t *node, void* buff, uint32_t size, uint32_t offset) {
 
 
 int iNode_write_at(iNode_t *node, const void* buff, uint32_t size, uint32_t offset) {
-	uint8_t buff1[BLOCK_SIZE];
-	
 	// Allocate additional sectors if necessary
 	if(node->iNode.size < offset) {
 		// Allocate up to offset we need to write at
@@ -541,16 +537,16 @@ int iNode_write_at(iNode_t *node, const void* buff, uint32_t size, uint32_t offs
 		uint32_t space_left = min(BLOCK_SIZE - sector_ofs, iNode_size(node)-offset); // space left in sector (or iNode)
 		uint32_t count = min(size, space_left);	// number of bytes to write
 		
-		if(sector_ofs == 0 && space_left == BLOCK_SIZE) {
+		if(sector_ofs == 0 && count == BLOCK_SIZE) {
 			// Write whole block
-			eDisk_WriteBlock(buff, s);
+			eDisk_WriteBlock(buff+bytes_written, s);
 		}
 		else {
-			// OS_Wait(&buff1_lock);
+			OS_Wait(&buff1_lock);
 			eDisk_ReadBlock(buff1, s);
-			__memcpy(buff1, buff, count);
+			__memcpy(buff1+sector_ofs, buff+bytes_written, count);
 			eDisk_WriteBlock(buff1, s);
-			// OS_Signal(&buff1_lock);
+			OS_Signal(&buff1_lock);
 		}
 		
 		offset += count;
@@ -717,7 +713,7 @@ int eFile_D_dir_from_path(const char path[], Dir_t *buff) {
 	}
 	else {
 		// Relative path, open current dir
-		eFile_D_open(RunPt->currentDir, &dir);
+		eFile_D_open(eFile_getCurrentDirNode(), &dir);
 	}
 	
 	char fn[MAX_FILE_NAME_LENGTH+1];
@@ -782,7 +778,7 @@ int eFile_D_lookup_by_sector(Dir_t *dir, uint32_t sector, DirEntry_t *buff) {
 	DirEntry_t de;
 	for(uint32_t ofs = 0; ofs < dir->iNode->iNode.size; ofs += sizeof de) {
 		iNode_read_at(dir->iNode, &de, sizeof de, ofs);
-		if(de.Header_Sector == sector == 0) {
+		if(de.Header_Sector == sector) {
 			ret = 1;
 			__memcpy(buff, &de, sizeof de);
 		}
@@ -795,13 +791,19 @@ int eFile_D_lookup_by_sector(Dir_t *dir, uint32_t sector, DirEntry_t *buff) {
 int eFile_D_lookup(Dir_t *dir, const char name[], File_t *buff) {
 		
 	DirEntry_t de;
-	uint32_t ofs;
+	uint32_t ofs = 0;
 	
 	if (lookup(dir, name, &de, &ofs)) {
-		eFile_F_open(iNode_open(de.Header_Sector), buff);
+		if(de.isDir) {
+			eFile_D_open(iNode_open(de.Header_Sector), buff);
+			
+		}
+		else {
+			eFile_F_open(iNode_open(de.Header_Sector), buff);
+		}
+		
 		return 1;
 	} 
-	
 	return 0;
 }
 
@@ -812,7 +814,7 @@ int eFile_D_add(Dir_t *dir, const char name[], uint32_t iNode_header_sector, uin
 	}
 	
 	DirEntry_t de;
-	uint32_t ofs;
+	uint32_t ofs = 0;
 	if(lookup(dir, name, &de, &ofs)) {
 		return 0;
 	}
@@ -872,9 +874,18 @@ int eFile_D_read_next(Dir_t *dir, char buff[], uint32_t *sizeBuffer) {
 
 
 // -------------------------------- Filesys Functions -------------------------------------- //
+iNode_t* eFile_getCurrentDirNode(void) {
+	
+	if(RunPt->currentDir) {
+		return RunPt->currentDir;
+	}
+	
+	return iNode_open(eFile_get_root_sector());
+}
+
 
 int eFile_OpenCurrentDir(File_t *buff) {
-	eFile_D_open(RunPt->currentDir, buff);
+	eFile_D_open(eFile_getCurrentDirNode(), buff);
 	return 1;
 }
 
@@ -921,7 +932,7 @@ int eFile_CreateDir(const char path[]) {
 int eFile_CD(const char path[]) {
 	Dir_t d;
 	eFile_D_dir_from_path(path, &d);
-	iNode_close(RunPt->currentDir);
+	iNode_close(eFile_getCurrentDirNode());
 	RunPt->currentDir = iNode_reopen(eFile_D_get_iNode(&d));
 	return 1;
 }
@@ -975,10 +986,9 @@ int eFile_Init(void) {
 
 void eFile_Format(void) {
 	// Format drive
-	uint8_t buf[BLOCK_SIZE];
 	int r = 1;
 	for(uint32_t i = 0; i < NumSectors; i++) {
-		r &= eDisk_WriteBlock(buf, i);
+		// r &= eDisk_WriteBlock(zeros, i);
 	}
 	
 	// Reset bitmap
