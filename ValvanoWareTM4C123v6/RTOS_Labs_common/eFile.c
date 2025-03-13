@@ -815,6 +815,7 @@ int eFile_D_add(Dir_t *dir, const char name[], uint32_t iNode_header_sector, uin
 	}
 	
 	DirEntry_t de;
+	DirEntry_t buff;
 	uint32_t ofs = 0;
 	if(lookup(dir, name, &de, &ofs)) {
 		return 0;
@@ -828,8 +829,8 @@ int eFile_D_add(Dir_t *dir, const char name[], uint32_t iNode_header_sector, uin
 	
 	iNode_lock_write(dir->iNode);
 	
-	for (ofs = 0; iNode_read_at(dir->iNode, &de, sizeof de, ofs); ofs += sizeof de) {
-        if (!de.in_use) {
+	for (ofs = 0; iNode_read_at(dir->iNode, &buff, sizeof buff, ofs); ofs += sizeof buff) {
+        if (!buff.in_use) {
             break;
         }
     }
@@ -899,12 +900,12 @@ int eFile_parse_path(const char path[], Dir_t* dirBuff, char **fn_buff) {
 	__memcpy(pathbuff, path, i+1);
 	pathbuff[i+1] = 0;
 	i = eFile_D_dir_from_path(pathbuff, dirBuff);
-	OS_Signal(&pathbuff_lock);
+	
 	return i;
 }
 
 int eFile_Create(const char path[]) { 
-	volatile int i;
+	int i;
 	Dir_t d;
 	char *fn;
 	// TODO Replace these dirPath calls with malloc
@@ -916,6 +917,8 @@ int eFile_Create(const char path[]) {
 	uint32_t s = Bitmap_AllocOne();
 	i = iNode_create(s, 128, 0);
 	i &=eFile_D_add(&d, fn, s, 0);
+	OS_Signal(&pathbuff_lock);
+	
 	i &=eFile_D_close(&d);
 	
 	return i;
@@ -930,10 +933,12 @@ int eFile_CreateDir(const char path[]) {
 	
 	// Create a file of zero size
 	uint32_t s = Bitmap_AllocOne();
-	i &= eFile_D_create(d.iNode->sector_num,s,16);
+	i = eFile_D_create(d.iNode->sector_num,s,16);
+	i &= eFile_D_add(&d, fn, s, 1);
+	OS_Signal(&pathbuff_lock);
 	i &= eFile_D_close(&d);
 	
-	return 1;
+	return i;
 }
 
 int eFile_CD(const char path[]) {
@@ -952,7 +957,8 @@ int eFile_Open(const char path[], File_t *buff) {
 	
 	eFile_parse_path(path, &d, &fn);
 	
-	i &= eFile_D_lookup(&d, fn, buff);
+	i = eFile_D_lookup(&d, fn, buff);
+	OS_Signal(&pathbuff_lock);
 	i &= eFile_D_close(&d);
 	return i;
 }
@@ -964,7 +970,8 @@ int eFile_Remove(const char path[]) {
 	
 	eFile_parse_path(path, &d, &fn);
 	
-	i &= eFile_D_remove(&d, fn);
+	i = eFile_D_remove(&d, fn);
+	OS_Signal(&pathbuff_lock);
 	i &= eFile_D_close(&d);
 	return i;
 }

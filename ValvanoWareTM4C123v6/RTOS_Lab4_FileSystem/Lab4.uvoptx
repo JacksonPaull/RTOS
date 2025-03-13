@@ -172,22 +172,6 @@
         <Bp>
           <Number>1</Number>
           <Type>0</Type>
-          <LineNumber>489</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>9304</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>.\Lab4.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\Lab4\Lab4.c\489</Expression>
-        </Bp>
-        <Bp>
-          <Number>2</Number>
-          <Type>0</Type>
           <LineNumber>491</LineNumber>
           <EnabledFlag>1</EnabledFlag>
           <Address>9348</Address>
@@ -202,11 +186,11 @@
           <Expression>\\Lab4\Lab4.c\491</Expression>
         </Bp>
         <Bp>
-          <Number>3</Number>
+          <Number>2</Number>
           <Type>0</Type>
           <LineNumber>837</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>14814</Address>
+          <Address>14826</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -216,6 +200,22 @@
           <Filename>..\RTOS_Labs_common\eFile.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression>\\Lab4\../RTOS_Labs_common/eFile.c\837</Expression>
+        </Bp>
+        <Bp>
+          <Number>3</Number>
+          <Type>0</Type>
+          <LineNumber>838</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>0</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>0</BreakIfRCount>
+          <Filename>..\RTOS_Labs_common\eFile.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression></Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>
@@ -298,6 +298,11 @@
           <count>15</count>
           <WinNumber>1</WinNumber>
           <ItemText>buff1</ItemText>
+        </Ww>
+        <Ww>
+          <count>16</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>pathbuff</ItemText>
         </Ww>
       </WatchWindow1>
       <WatchWindow2>
