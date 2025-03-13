@@ -103,7 +103,7 @@
         <bEvRecOn>1</bEvRecOn>
         <bSchkAxf>0</bSchkAxf>
         <bTchkAxf>0</bTchkAxf>
-        <nTsel>-1</nTsel>
+        <nTsel>19</nTsel>
         <sDll></sDll>
         <sDllPa></sDllPa>
         <sDlgDll></sDlgDll>
@@ -156,41 +156,9 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>495</LineNumber>
+          <LineNumber>671</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>9450</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>.\Lab4.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\Lab4\Lab4.c\495</Expression>
-        </Bp>
-        <Bp>
-          <Number>1</Number>
-          <Type>0</Type>
-          <LineNumber>491</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>9348</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>.\Lab4.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\Lab4\Lab4.c\491</Expression>
-        </Bp>
-        <Bp>
-          <Number>2</Number>
-          <Type>0</Type>
-          <LineNumber>837</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>14826</Address>
+          <Address>16796</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -199,12 +167,28 @@
           <BreakIfRCount>1</BreakIfRCount>
           <Filename>..\RTOS_Labs_common\eFile.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\Lab4\../RTOS_Labs_common/eFile.c\837</Expression>
+          <Expression>\\Lab4\../RTOS_Labs_common/eFile.c\671</Expression>
         </Bp>
         <Bp>
-          <Number>3</Number>
+          <Number>1</Number>
           <Type>0</Type>
-          <LineNumber>838</LineNumber>
+          <LineNumber>312</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>13930</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>..\RTOS_Labs_common\eFile.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\Lab4\../RTOS_Labs_common/eFile.c\312</Expression>
+        </Bp>
+        <Bp>
+          <Number>2</Number>
+          <Type>0</Type>
+          <LineNumber>109</LineNumber>
           <EnabledFlag>1</EnabledFlag>
           <Address>0</Address>
           <ByteObject>0</ByteObject>
@@ -213,7 +197,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>0</BreakIfRCount>
-          <Filename>..\RTOS_Labs_common\eFile.c</Filename>
+          <Filename>..\RTOS_Labs_common\Interpreter.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression></Expression>
         </Bp>

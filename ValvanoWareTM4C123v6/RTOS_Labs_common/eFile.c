@@ -995,7 +995,7 @@ void eFile_Format(void) {
 	// Format drive
 	int r = 1;
 	for(uint32_t i = 0; i < NumSectors; i++) {
-		// r &= eDisk_WriteBlock(zeros, i);
+		r &= eDisk_WriteBlock(zeros, i);
 	}
 	
 	// Reset bitmap

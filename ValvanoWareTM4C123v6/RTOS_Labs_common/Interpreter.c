@@ -22,6 +22,18 @@
 #define CMD_NAME_LEN_MAX 64
 #define ARG_LEN_MAX 16
 
+char line[512];
+char cmd_name[CMD_NAME_LEN_MAX];
+
+char args[16 * 8];
+char *arg0 = args;
+char *arg1 = args + ARG_LEN_MAX;
+char *arg2 = args + ARG_LEN_MAX*2;
+char *arg3 = args + ARG_LEN_MAX*3;
+char *arg4 = args + ARG_LEN_MAX*4;
+char *arg5 = args + ARG_LEN_MAX*5;
+char *arg6 = args + ARG_LEN_MAX*6;
+char *arg7 = args + ARG_LEN_MAX*7;
 
 int ADC(int num_args, ...);
 int lcd(int num_args, ...);
@@ -86,9 +98,14 @@ void pwd(void) {
 	DirEntry_t de;
 	eFile_OpenCurrentDir(&d);
 	eFile_Open("..", &parent);
-	
-	eFile_D_lookup_by_sector(&parent, d.iNode->sector_num, &de);
-	printf("%s", de.name);
+	if(parent.iNode->sector_num == d.iNode->sector_num) {
+		// Only the root is its own parent
+		printf("root");
+	}
+	else {
+		eFile_D_lookup_by_sector(&parent, d.iNode->sector_num, &de);
+		printf("%s", de.name);
+	}
 	
 	eFile_D_close(&d);
 	eFile_D_close(&parent);
@@ -99,7 +116,6 @@ void Interpreter(void){
 
 	while(1) {
 		// Read Command
-		char line[512];
 		printf("[");
 		pwd();
 		printf("]: ");
@@ -107,18 +123,9 @@ void Interpreter(void){
 		printf("\r\n"); //Flush
 		
 		// Allocate space for all parseable instructions
-		char cmd_name[CMD_NAME_LEN_MAX];
-		int num_args = 0;
-		char args[16 * 8];
 		
-		char *arg0 = args;
-		char *arg1 = args + ARG_LEN_MAX;
-		char *arg2 = args + ARG_LEN_MAX*2;
-		char *arg3 = args + ARG_LEN_MAX*3;
-		char *arg4 = args + ARG_LEN_MAX*4;
-		char *arg5 = args + ARG_LEN_MAX*5;
-		char *arg6 = args + ARG_LEN_MAX*6;
-		char *arg7 = args + ARG_LEN_MAX*7;
+		int num_args = 0;
+		
 		
 		// Parse line
 		int i = 0, j = 0, k = 0;
@@ -222,13 +229,28 @@ int cat(int num_args, ...) {
 }
 
 
+int append(int num_args, ...) {
+	va_list args;
+	va_start(args, num_args);
+	char * fp = va_arg(args, char*);
+	char *text = va_arg(args, char*);
+	va_end(args);
+	
+	File_t f;
+	eFile_Open(fp, &f);
+	eFile_F_write(&f, text, strlen(text));
+	eFile_F_close(&f);
+	
+	return 0;
+}
+
 int rm(int num_args, ...) {
 	va_list args;
 	va_start(args, num_args);
 	char *path = va_arg(args, char*);
 	va_end(args);
 	
-	return eFile_Remove(path);
+	return eFile_Remove(path) == 1;
 }
 
 int touch(int num_args, ...) {
@@ -237,7 +259,7 @@ int touch(int num_args, ...) {
 	char *path = va_arg(args, char*);
 	va_end(args);
 	
-	return eFile_Create(path);
+	return eFile_Create(path) == 1;
 }
 
 int mkdir(int num_args, ...) {
@@ -246,7 +268,7 @@ int mkdir(int num_args, ...) {
 	char *path = va_arg(args, char*);
 	va_end(args);
 	
-	return eFile_CreateDir(path);
+	return eFile_CreateDir(path) == 1;
 }
 
 int int_time_reset(int num_args, ...) {

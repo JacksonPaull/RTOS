@@ -352,6 +352,8 @@ void Thread3(void){
 
 void ThreadInit(void) {
 	eDisk_Init(0);
+	eFile_Init();
+	eFile_Mount();
 }
 
 int Testmain0(void){  // Testmain0
@@ -638,6 +640,8 @@ void adv(void) {
 void FS_tester(void) {
 	File_t d;
 	
+	eDisk_Init(0);
+	eFile_Init();
 	eFile_Mount();
 	printf("Starting FS Tests, press SW2 to advance\r\n");
 	
@@ -729,14 +733,18 @@ void FS_tester(void) {
 	eFile_Unmount();
 }
 
+
+
 void TestFSMain(void) {
 	OS_Init();
+	PortD_Init();
 	OS_AddThread(&ThreadInit, 128, 0);
 	OS_AddPeriodicThread(&disk_timerproc, TIME_1MS, 0);
 	OS_AddThread(&Interpreter, 128, 5);
-	OS_AddThread(&FS_tester, 128, 5);
-	OS_AddSW1Task(&eFile_Format, 0);
-	OS_AddSW2Task(&adv, 1);
+	//OS_AddThread(&FS_tester, 128, 5);
+	//OS_AddSW1Task(&eFile_Format, 0);
+	//OS_AddSW2Task(&adv, 1);
+	OS_AddThread(&Idle, 128, 7);
 	OS_Launch(10*TIME_1MS);
 }
 
@@ -746,9 +754,9 @@ void TestFSMain(void) {
 int main(void) { 			// main
   // Testmain0();	// Passed
 	// Testmain1();	// Passed
-	 Testmain2();
+	// Testmain2();
 	// TestBandwidthMain(); // Passed - 304.48 KBps down alone, 178KBps up / down
-	// TestFSMain();
+	TestFSMain();
 	
 	// realmain();
 }
