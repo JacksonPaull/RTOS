@@ -20,9 +20,11 @@ PrioQ_node_t *Open_Nodes_Head;
 
 uint8_t buff1[BLOCK_SIZE];
 uint8_t buff2[BLOCK_SIZE];
+char pathbuff[BLOCK_SIZE];
 
 Sema4Type buff1_lock;
 Sema4Type buff2_lock;
+Sema4Type pathbuff_lock;
 
 // TODO Make work with general bitmap
 #define ROOTDIR_INODE 1
@@ -427,7 +429,7 @@ int iNode_close(iNode_t *node) {
 				uint32_t *b1 = (uint32_t *)buff1;
 				// Indirect sectors
 				l = min(NUM_INDIRECT_SECTORS, s);
-				r &= eDisk_ReadBlock(b1, node->iNode.SIP);
+				r &= !eDisk_ReadBlock(b1, node->iNode.SIP);
 				for(uint32_t i = 0; i < l; i++) {
 					Bitmap_free(b1[i]);
 				}
@@ -439,9 +441,9 @@ int iNode_close(iNode_t *node) {
 					
 					// Doubly indirect sectors
 					uint32_t nds = (s+NUM_INDIRECT_SECTORS-1)/NUM_INDIRECT_SECTORS;
-					r &=eDisk_ReadBlock(b1, node->iNode.DIP);
+					r &= !eDisk_ReadBlock(b1, node->iNode.DIP);
 					for(uint32_t i = 0; i < nds; i++) {
-						r &=eDisk_ReadBlock(b2, b1[i]);
+						r &= !eDisk_ReadBlock(b2, b1[i]);
 						
 						l = min(s, NUM_INDIRECT_SECTORS);
 						for(uint32_t j = 0; j < l; j++) {
@@ -748,7 +750,7 @@ int lookup(Dir_t *dir, const char name[], DirEntry_t *buff, uint32_t *offset) {
 	DirEntry_t de;
 	
 	if(name[0] == 0) {
-		// Empty strings will return the dir entry for .
+		// Empty strings will return the dir entry for . (which is always entry 0)
 		iNode_lock_read(dir->iNode);
 		iNode_read_at(dir->iNode, &de, sizeof de, 0);
 		iNode_unlock_read(dir->iNode);
@@ -889,42 +891,48 @@ int eFile_OpenCurrentDir(File_t *buff) {
 	return 1;
 }
 
-int eFile_Create(const char path[]) { 
-	uint32_t i;
-	for(i = strlen(path)-1; path[i] != '/'; --i) { }
+int eFile_parse_path(const char path[], Dir_t* dirBuff, char **fn_buff) {
+	int i;	
+	for(i = strlen(path)-1; path[i] != '/' && i >= 0; --i) { }
+	*fn_buff = (char *) path+i+1;
 	
+	OS_Wait(&pathbuff_lock);
+	__memcpy(pathbuff, path, i+1);
+	pathbuff[i+1] = 0;
+	i = eFile_D_dir_from_path(pathbuff, dirBuff);
+	OS_Signal(&pathbuff_lock);
+	return i;
+}
+
+int eFile_Create(const char path[]) { 
+	int i;
 	Dir_t d;
+	char *fn;
 	// TODO Replace these dirPath calls with malloc
-	char dirPath[64];
-	const char *fn = path+i+1;
-	__memcpy(dirPath, path, i);
-	dirPath[i] = 0;
-	eFile_D_dir_from_path(dirPath, &d);
+	// TODO place this parsing into a function - i wrote it 4x
+	
+	i = eFile_parse_path(path, &d, &fn);
 	
 	// Create a file of zero size
 	uint32_t s = Bitmap_AllocOne();
-	iNode_create(s, 0, 0);
-	eFile_D_add(&d, fn, s, 0);
-	eFile_D_close(&d);
+	i &= iNode_create(s, 0, 0);
+	i &=eFile_D_add(&d, fn, s, 0);
+	i &=eFile_D_close(&d);
 	
-	return 1;
+	return i;
 }
 
 int eFile_CreateDir(const char path[]) { 
-	uint32_t i;
-	for(i = strlen(path)-1; path[i] != '/'; --i) { }
-	
+	int i;
 	Dir_t d;
-	char dirPath[64];
-	const char *fn = path+i+1;
-	__memcpy(dirPath, path, i);
-	dirPath[i] = 0;
-	eFile_D_dir_from_path(dirPath, &d);
+	char *fn;
+	
+	i = eFile_parse_path(path, &d, &fn);
 	
 	// Create a file of zero size
 	uint32_t s = Bitmap_AllocOne();
-	eFile_D_create(d.iNode->sector_num,s,16);
-	eFile_D_close(&d);
+	i &= eFile_D_create(d.iNode->sector_num,s,16);
+	i &= eFile_D_close(&d);
 	
 	return 1;
 }
@@ -939,35 +947,27 @@ int eFile_CD(const char path[]) {
 
 int eFile_Open(const char path[], File_t *buff) {
 	//rfind('/')
-	uint32_t i;
-	for(i = strlen(path)-1; path[i] != '/'; --i) { }
-	
+	int i;
 	Dir_t d;
-	char dirPath[64];
-	const char *fn = path+i+1;
-	__memcpy(dirPath, path, i);
-	dirPath[i] = 0;
-	eFile_D_dir_from_path(dirPath, &d);
-	eFile_D_lookup(&d, fn, buff);
-	eFile_D_close(&d);
-	return 1;
+	char *fn;
+	
+	i = eFile_parse_path(path, &d, &fn);
+	
+	i &= eFile_D_lookup(&d, fn, buff);
+	i &= eFile_D_close(&d);
+	return i;
 }
 
 int eFile_Remove(const char path[]) {
-	//rfind('/')
-	uint32_t i;
-	for(i = strlen(path)-1; path[i] != '/'; --i) { }
-	
-	
+	int i;
 	Dir_t d;
-	char dirPath[64];
-	const char *fn = path+i+1;
-	__memcpy(dirPath, path, i);
-	dirPath[i] = 0;
-	eFile_D_dir_from_path(dirPath, &d);
-	eFile_D_remove(&d, fn);
-	eFile_D_close(&d);
-	return 1;
+	char *fn;
+	
+	i = eFile_parse_path(path, &d, &fn);
+	
+	i &= eFile_D_remove(&d, fn);
+	i &= eFile_D_close(&d);
+	return i;
 }
 
 
@@ -977,6 +977,7 @@ int eFile_Init(void) {
 		// TODO Update with dynamic memory allocation after lab 5
 	OS_InitSemaphore(&buff1_lock, 1);
 	OS_InitSemaphore(&buff2_lock, 1);
+	OS_InitSemaphore(&pathbuff_lock, 1);
 	
 	// Initialize Bitmap
 	Bitmap_Init(BLOCK_SIZE);

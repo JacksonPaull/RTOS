@@ -493,9 +493,11 @@ void TestFile(void){   int i; char data;
   for(i=0;i<1000;i++){
 		char x = 'a'+i%26;
     if(!eFile_F_write(&f1, &x, 1))   diskError("eFile_Write",i);
+		printf("%d", i);
     if(i%52==51){
 			char y[2] = "\r\n";
       if(!eFile_F_write(&f1, &y, 2))     diskError("eFile_Write",i); 
+			printf("\r\n");
     }
   }
   if(!eFile_F_close(&f1))            diskError("eFile_WClose",0);
