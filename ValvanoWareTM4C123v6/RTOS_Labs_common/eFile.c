@@ -519,7 +519,7 @@ int iNode_read_at(iNode_t *node, void* buff, uint32_t size, uint32_t offset) {
 		
 		offset += toRead;
 		size -= toRead;
-		bytes_read += size;
+		bytes_read += toRead;
 	}
 	
 	// return read operation status
@@ -633,14 +633,14 @@ uint32_t eFile_F_read(File_t *file, void* buffer, uint32_t size) {
 	uint32_t r = iNode_read_at(file->iNode, buffer, size, file->pos);
 	file->pos += size;
 	iNode_unlock_read(file->iNode);
-	return 1;
+	return r == size;
 }
 
 uint32_t eFile_F_read_at(File_t *file, void* buffer, uint32_t size, uint32_t pos) {
 	iNode_lock_read(file->iNode);
 	uint32_t r = iNode_read_at(file->iNode, buffer, size, pos);
 	iNode_unlock_read(file->iNode);
-	return 1;
+	return r == size;
 }
 
 
@@ -649,14 +649,14 @@ uint32_t eFile_F_write(File_t *file, const void* buffer, uint32_t size) {
 	uint32_t r = iNode_write_at(file->iNode, buffer, size, file->pos);
 	file->pos += size;
 	iNode_unlock_write(file->iNode);
-	return r;
+	return r == size;
 }
 
 uint32_t eFile_F_write_at(File_t *file, const void* buffer, uint32_t size, uint32_t pos) {
 	iNode_lock_write(file->iNode);
 	uint32_t r = iNode_write_at(file->iNode, buffer, size, pos);
 	iNode_unlock_write(file->iNode);
-	return r;
+	return r == size;
 }
 
 uint32_t eFile_F_length(File_t *file) {
@@ -695,9 +695,8 @@ int eFile_D_open(iNode_t *node, Dir_t *buff) {
 		iNode_close(node);
 		return 0;
 	}
-	RunPt->currentDir = node; // set the current dir in the TCB
 	buff->iNode = node;
-	buff->pos = 2 * sizeof(Dir_t);
+	buff->pos = 2 * sizeof(DirEntry_t);
 	return 1;
 }
 
@@ -728,7 +727,7 @@ int eFile_D_dir_from_path(const char path[], Dir_t *buff) {
 	}
 	else {
 		// Relative path, open current dir
-		eFile_D_open(eFile_getCurrentDirNode(), &dir);
+		eFile_OpenCurrentDir(&dir);
 	}
 	
 	char fn[MAX_FILE_NAME_LENGTH+1];
@@ -877,7 +876,7 @@ int eFile_D_read_next(Dir_t *dir, char buff[], uint32_t *sizeBuffer) {
 	
 	while(dir->pos < dir->iNode->iNode.size) {
 		iNode_read_at(dir->iNode, &de, sizeof(DirEntry_t), dir->pos);
-		dir->pos += sizeof de;
+		dir->pos += sizeof(DirEntry_t);
 		if(de.in_use) {
 			strcpy(buff, de.name);
 			
@@ -895,10 +894,11 @@ int eFile_D_read_next(Dir_t *dir, char buff[], uint32_t *sizeBuffer) {
 iNode_t* eFile_getCurrentDirNode(void) {
 	
 	if(RunPt->currentDir) {
-		return RunPt->currentDir;
+		return iNode_reopen(RunPt->currentDir);
 	}
 	
-	return iNode_open(eFile_get_root_sector());
+	RunPt->currentDir = iNode_open(eFile_get_root_sector());
+	return RunPt->currentDir;
 }
 
 
@@ -960,7 +960,7 @@ int eFile_CreateDir(const char path[]) {
 int eFile_CD(const char path[]) {
 	Dir_t d;
 	eFile_D_dir_from_path(path, &d);
-	iNode_close(eFile_getCurrentDirNode());
+	iNode_close(RunPt->currentDir);
 	RunPt->currentDir = iNode_reopen(eFile_D_get_iNode(&d));
 	return 1;
 }

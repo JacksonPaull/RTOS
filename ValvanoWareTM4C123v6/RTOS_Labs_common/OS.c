@@ -228,7 +228,7 @@ void SysTick_Handler(void) {
 void BackgroundThreadExit(void) {
 	scheduler_unlock(); // Force unlock
 	thread_cnt_alive--;
-	//iNode_close(eFile_getCurrentDirNode());
+	// iNode_close(RunPt->currentDir);
 	ContextSwitch();
 	EnableInterrupts(); // Force interrupt enable
 	for(;;){}; // Wait for interrupt

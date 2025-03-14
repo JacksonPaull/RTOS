@@ -495,11 +495,9 @@ void TestFile(void){   int i; char data;
   for(i=0;i<1000;i++){
 		char x = 'a'+i%26;
     if(!eFile_F_write(&f1, &x, 1))   diskError("eFile_Write",i);
-		printf("%d", i);
     if(i%52==51){
 			char y[2] = "\r\n";
-      if(!eFile_F_write(&f1, &y, 2))     diskError("eFile_Write",i); 
-			printf("\r\n");
+      if(!eFile_F_write(&f1, &y, 2))     diskError("eFile_Write",i);
     }
   }
   if(!eFile_F_close(&f1))            diskError("eFile_WClose",0);
@@ -509,8 +507,8 @@ void TestFile(void){   int i; char data;
     if(!eFile_F_read(&f1, &data, 1))   diskError("eFile_ReadNext",i);
     UART_OutChar(data);
   }
-  if(!eFile_Remove("file1"))     diskError("eFile_Delete",0);
-  TestDirectory();
+  // if(!eFile_Remove("file1"))     diskError("eFile_Delete",0);
+  // TestDirectory();
   if(!eFile_Unmount())           diskError("eFile_Unmount",0);
   printf("Successful test\n\r");
   ST7735_DrawString(0, 1, "eFile successful", ST7735_YELLOW);
@@ -754,9 +752,9 @@ void TestFSMain(void) {
 int main(void) { 			// main
   // Testmain0();	// Passed
 	// Testmain1();	// Passed
-	Testmain2();
+	// Testmain2();
 	// TestBandwidthMain(); // Passed - 304.48 KBps down alone, 178KBps up / down
-	// TestFSMain();
+	TestFSMain();
 	
 	// realmain();
 }

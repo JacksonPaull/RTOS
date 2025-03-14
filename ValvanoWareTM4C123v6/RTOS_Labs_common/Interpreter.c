@@ -53,7 +53,8 @@ int cat(int num_args, ...);
 int rm(int num_args, ...);
 int touch(int num_args, ...);
 int mkdir(int num_args, ...);
-
+int save(int num_args, ...);
+int append(int num_args, ...);
 
 // TODO Move help messages into a file
 
@@ -83,6 +84,8 @@ const Command commands[] = {
 	{"rm", &rm},
 	{"touch", &touch}, 
 	{"mkdir", &mkdir},
+	{"save", &save},
+	{"append", &append},
 	
 	// Sentinel function, do not replace or move from last spot
 	{"exit", 0} 													//, "exit\r\n\tExits\r\n\n"} 
@@ -113,7 +116,6 @@ void pwd(void) {
 
 // *********** Command line interpreter (shell) ************
 void Interpreter(void){ 
-
 	while(1) {
 		// Read Command
 		printf("[");
@@ -210,6 +212,10 @@ int cd(int num_args, ...) {
 	return 0;
 }
 
+int save(int num_args, ...) {
+	eFile_Unmount();
+	return 0;
+}
 
 int cat(int num_args, ...) {
 	va_list args;
@@ -219,13 +225,12 @@ int cat(int num_args, ...) {
 	
 	File_t f;
 	eFile_Open(path, &f);
-	char buff[128];
-	while(eFile_F_read(&f, buff, 128)) {
+	while(eFile_F_read(&f, line, 128)) {
 		for(int i = 0; i < 128; i++) {
-			printf("%c", buff[i]);
+			printf("%c", line[i]);
 		}
 	}
-	
+	printf("\r\n"); // Flush out
 	return 0;
 }
 
