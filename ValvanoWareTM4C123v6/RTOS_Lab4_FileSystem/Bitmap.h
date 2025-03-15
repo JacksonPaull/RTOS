@@ -65,4 +65,9 @@ uint32_t Bitmap_isAllocd(uint32_t idx);
 // output: none
 void Bitmap_free(uint32_t idx);
 
+// ******** Bitmap_Unmount ************
+// Write the bitmap to disk
+// input:  none
+// output: none
+void Bitmap_Unmount(void);
 #endif

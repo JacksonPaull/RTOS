@@ -59,6 +59,15 @@ void Bitmap_Mount(void) {
 	Bitmap_Read_In(0);
 }
 
+// ******** Bitmap_Unmount ************
+// Write the bitmap to disk
+// input:  none
+// output: none
+void Bitmap_Unount(void) {
+	// TODO Support general bitmap
+	Bitmap_Write_Out();
+}
+
 
 // ******** Bitmap_Init ************
 // Initialize the multi-sector bitmap

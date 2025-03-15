@@ -1020,7 +1020,7 @@ void eFile_Format(void) {
 	// Create root dir
 	r &= eFile_D_create(ROOTDIR_INODE, ROOTDIR_INODE, 16);
 	
-	Bitmap_Write_Out();
+	Bitmap_Unmount();
 	//return r;
 }
 
@@ -1037,7 +1037,7 @@ int eFile_Mount(void) {
 
 int eFile_Unmount(void) {
 	// Write out bitmap
-	Bitmap_Write_Out();
+	Bitmap_Unmount();
 	
 	// Could also close all iNodes if we wanted to but tbh that's on the callee
 	return 1;
