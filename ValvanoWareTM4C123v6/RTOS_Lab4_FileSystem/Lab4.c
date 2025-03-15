@@ -253,6 +253,7 @@ void Producer(uint32_t data){
 void Init(void){
   // initialize file system
   // needs to execute after periodic interrupts have started
+	eDisk_Init(0);
   if(eFile_Init()) {   
     printf("Error initializing file system.\n\r");
   }
@@ -754,7 +755,7 @@ int main(void) { 			// main
 	// Testmain1();	// Passed
 	// Testmain2();
 	// TestBandwidthMain(); // Passed - 304.48 KBps down alone, 178KBps up / down
-	TestFSMain();
+	// TestFSMain();
 	
-	// realmain();
+	realmain();
 }

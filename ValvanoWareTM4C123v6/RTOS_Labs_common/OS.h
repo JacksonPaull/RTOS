@@ -36,7 +36,7 @@
 #define TIME_100NS	8
 
 // Thread control stuff
-#define MAX_NUM_THREADS 10
+#define MAX_NUM_THREADS 5
 
 // Note: Periodic threads and switch tasks DO have their own stack
 //			 and therefore they take away from the total pool of threads (when allocated)

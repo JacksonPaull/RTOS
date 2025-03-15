@@ -22,7 +22,7 @@
 #define BLOCK_SIZE 512
 #define MAX_FILE_NAME_LENGTH 33
 #define DIR_ENTRY_LENGTH MAX_FILE_NAME_LENGH+7
-#define MAX_NODES_OPEN 10
+#define MAX_NODES_OPEN 3
 
 typedef struct File {
 	iNode_t *iNode;
