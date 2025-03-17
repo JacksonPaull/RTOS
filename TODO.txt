@@ -1,38 +1,14 @@
-File System:
-- Move the read/write locks to the iNode itself.
-	- Require files to reopen themselves when they read or write
-- Move bitmap to its own file
-	- give mutex
-	- give mutex to priority queues as well (at least the one for the filesystem)
 
-Path Parsing
-	- directory (file) opening / closing
-	- directory lookup
+Needs debugging:
+	- Changing dir
+	- Ensure that threads properly track (and keep open) their current directory (defaulting to root if they dont have one open)
 
-File Creation
-	- dir creation
+LAB 4
+- documentation
+- standardize error codes
+(graduate project report - Create call graph for documentation)
 
-File Deletion
-
-File Writing
-	- file growth
-	- (file shrinkage)
-
-Interpreter Commands
-	- mk
-	- mkdir
-	- rm
-	- rmdir
-	- cat
-	- cd
-	- pwd
-	- ls
-
-Bug:
-	- Using O1 optimizer optimizes something out of the UART FIFOs, and causes hard faults sometimes
-
-Done (needs debugging):
-	Testing BW
-	Initialization
-	Opening iNodes
-	Basic 1 block bitmap allocation
+LAB 5
+- PCB struct
+- add process
+- heap implementation (knuth buddy)

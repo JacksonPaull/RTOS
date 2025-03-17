@@ -13,6 +13,12 @@
 #ifndef HEAP_H
 #define HEAP_H
 
+// Note: must be a power of 2
+#define HEAP_SIZE 4096
+
+// Corresponds to an order of 0
+#define BASE_ORDER_BYTES 64
+
 #include <stdint.h>
 
 // struct for holding statistics on the state of the heap
