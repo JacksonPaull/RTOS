@@ -44,20 +44,20 @@
 #define PERIODIC_TIMER_PRIO 2
 #define MAX_SWITCH_TASKS 2
 #define MAX_THREAD_PRIORITY 10
-#define STACK_SIZE 256
 #define MAGIC 0x12312399
 
-
+// 23 bytes large, not very expensive
 typedef struct TCB {
 	struct TCB *next_ptr, *prev_ptr; 	// For use in linked lists
 	uint8_t priority;
 	uint8_t id;
 	uint8_t isBackgroundThread;				// Boolean for whether the thread is background (i.e. periodic or switch)
-	uint8_t stack_id;									// Remove when memory manager is implemented.
+	unsigned long *stack_base;				// Base of stack (useful for background threads)
 	unsigned long *sp; 								// Stack pointer
 	uint32_t sleep_count;							// In ms
 	void *currentDir;									// Pointer to currently open file struct (circular dependencies mean this must be a void ptr)
 																				// TCB -> Sema4 -> File -> TCB
+	
 } TCB_t;
 
 

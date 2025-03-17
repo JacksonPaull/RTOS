@@ -14,7 +14,7 @@
 #define HEAP_H
 
 // Note: must be a power of 2
-#define HEAP_SIZE 4096
+#define HEAP_SIZE 8192
 
 // Corresponds to an order of 0
 #define BASE_ORDER_BYTES 64

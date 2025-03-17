@@ -8,6 +8,7 @@
 
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "../inc/PLL.h"
 #include "../inc/LaunchPad.h"
@@ -46,7 +47,7 @@ void PortFEdge_Init(void);
 uint32_t OS_timer_triggers = 0;
 
 // Performance Measurements 
-#define MAX_JITTER_TRACKERS 3
+#define MAX_JITTER_TRACKERS 2
 Jitter_t Jitters[MAX_JITTER_TRACKERS];
 uint32_t os_int_time_enabled = 0;				// In 1us units
 uint32_t os_int_time_disabled = 0;			// In 1us units
@@ -63,8 +64,8 @@ uint16_t thread_cnt = 0;
 uint16_t thread_cnt_alive = 0;
 
 // Thread control structures
+// TODO Remove both of these, move to dynamic allocation
 TCB_t threads[MAX_NUM_THREADS];
-unsigned long stacks[MAX_NUM_THREADS][STACK_SIZE];
 
 TCB_t *RunPt = 0; // Currently running thread
 TCB_t *inactive_thread_list_head = 0;
@@ -271,11 +272,8 @@ void SysTick_Init(unsigned long period){
  * @return none
  * @brief Set up thread stack before launching
  */
-void thread_init_stack(TCB_t* thread, void(*task)(void), void(*return_task)(void)) {
-	uint8_t id = thread->stack_id - 1;
-	unsigned long* stack = stacks[id];
-	
-	thread->sp = stack+STACK_SIZE-18*sizeof(unsigned long); // Start at bottom of stack and init registers on stack 
+void thread_init_stack(TCB_t* thread, void(*task)(void), void(*return_task)(void), uint32_t stack_size) {	
+	thread->sp = thread->stack_base+stack_size-18*sizeof(unsigned long); // Start at bottom of stack and init registers on stack 
 	
 	thread->sp[0]  = 0x04040404; //R4
 	thread->sp[1]  = 0x05050505; //R5
@@ -316,7 +314,7 @@ void OS_thread_init(void) {
 
 		thread->sleep_count = 0;
 		thread->priority = 8;
-		thread->stack_id = 0;
+		thread->stack_base = 0;
 		thread->next_ptr = 0;
 		thread->prev_ptr = 0;
 		
@@ -342,10 +340,13 @@ void OS_Init(void){
 	LaunchPad_Init();
 	
 	// Init anything else used by OS
+	// Heap_Init();
+	
 	OS_MsTime_Init();
 	PortFEdge_Init();
 	Timer5A_Init(&DecrementSleepCounters, TIME_1MS, 1);
 	UART_Init();
+	eDisk_Init(0);
 	eFile_Init();
 	
 	
@@ -462,8 +463,8 @@ void OS_bSignal(Sema4Type *semaPt){
 	EndCritical(i);
 }; 
 
-
-TCB_t* SpawnThread(uint8_t isBackgroundThread, uint8_t priority) {
+// TODO Update from popping from pool and turn into malloc
+TCB_t* SpawnThread(uint8_t isBackgroundThread, uint8_t priority, uint32_t stack_size) {
 	int i = StartCritical();
 	TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **)&inactive_thread_list_head);
 	EndCritical(i);
@@ -473,9 +474,7 @@ TCB_t* SpawnThread(uint8_t isBackgroundThread, uint8_t priority) {
 	
 	// Init all TCB attributes
 	thread->id = ++thread_cnt;
-	if(thread->stack_id == 0) {
-		thread->stack_id = thread->id;
-	}
+	thread->stack_base = malloc(stack_size);
 	thread->isBackgroundThread = isBackgroundThread;
 	thread->sleep_count = 0;
 	thread->priority = priority;
@@ -498,17 +497,15 @@ TCB_t* SpawnThread(uint8_t isBackgroundThread, uint8_t priority) {
 // In Lab 3, you can ignore the stackSize fields
 int OS_AddThread(void(*task)(void), 
    uint32_t stackSize, uint32_t priority){
-	// Take first thread from active list
 		 
-	
-		 
-	TCB_t *thread = SpawnThread(0, priority);
+	// Allocate a foreground thread
+	TCB_t *thread = SpawnThread(0, priority, stackSize);
 	if(thread == 0) {
 		return 0;
 	}
 	
 	int I = StartCritical();
-	thread_init_stack(thread, task, &OS_Kill);
+	thread_init_stack(thread, task, &OS_Kill, stackSize);
 	scheduler_schedule(thread);
   EndCritical(I);
   return 1; 
@@ -542,13 +539,7 @@ uint32_t OS_Id(void){
 };
 
 
-// TODO remove
-#define PD0  (*((volatile uint32_t *)0x40007004))
-#define PD1  (*((volatile uint32_t *)0x40007008))
-#define PD2  (*((volatile uint32_t *)0x40007010))
-#define PD3  (*((volatile uint32_t *)0x40007020))
-
-
+// 25 bytes long - not very expensive
 typedef struct Periodic_TCB {
 	struct Periodic_TCB *next, *prev;
 	uint8_t priority;
@@ -558,15 +549,13 @@ typedef struct Periodic_TCB {
 	void (*task)(void);
 } Periodic_TCB_t;
 
-
+// TODO Update to be malloc'd and free'd (Can use linked list)
 uint8_t NumPeriodicThreads = 0;
 Periodic_TCB_t Periodic_Threads[MAX_PERIODIC_THREADS];
 
 void PeriodicThreadHandler() {
 	DisableInterrupts();
 	uint32_t min_cnt = 0xFFFFFFFF;
-	PD0 ^= 0x1;
-	
 	// Check all periodic tasks and launch them as needed
 	for( int i = 0; i < NumPeriodicThreads; i++) {
 		Periodic_TCB_t *node = &Periodic_Threads[i];
@@ -577,9 +566,8 @@ void PeriodicThreadHandler() {
 		if(node->cnt == 0) {
 			node->cnt = node->period;
 			
-			// Note: An issue arises using this method when two threads attempt to be scheduled simultaneously, not sure what yet
 			// Schedule thread (need to init the stack each time)
-			thread_init_stack(node->TCB, node->task, &BackgroundThreadExit);
+			thread_init_stack(node->TCB, node->task, &BackgroundThreadExit, 128);
 			scheduler_schedule(node->TCB);
 			ContextSwitch();	// Switch to scheduled task asap
 			
@@ -593,7 +581,6 @@ void PeriodicThreadHandler() {
 	
 	// Reset timer based on min cnt value
 	Timer4A_RestartOneShot(min_cnt);
-	PD0 ^= 0x1;
 	EnableInterrupts();
 }
 
@@ -611,12 +598,12 @@ void PeriodicThreadHandler() {
 // This task can call OS_Signal  OS_bSignal   OS_AddThread
 // This task does not have a Thread ID
 
-
+// TODO Add stack size parameter? Note: Updating this requires updating thread_init_stack above
 int OS_AddPeriodicThread(void(*task)(void), 
    uint32_t period, uint32_t priority){
 		 
   int i = StartCritical();
-	TCB_t *thread = SpawnThread(1, priority);
+	TCB_t *thread = SpawnThread(1, priority, 128);
 	if(thread == 0) {
 		// Can't allocate thread / stack
 		EndCritical(i);
@@ -644,6 +631,9 @@ int OS_AddPeriodicThread(void(*task)(void),
 /*----------------------------------------------------------------------------
   PF1 Interrupt Handler
  *----------------------------------------------------------------------------*/
+
+// TODO update to malloc and free
+// 8 bytes long - not very expensive
 typedef struct SW_Task {
 	TCB_t *TCB;
 	void (*task)(void);
@@ -667,7 +657,7 @@ void GPIOPortF_Handler(void){
 		DisableInterrupts();
 		for(int i = 0; i < num_sw1_tasks; i++) {
 			SW_Task_t *sw = &sw1_tasks[i];
-			thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit);
+			thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit, 128);
 			scheduler_schedule(sw->TCB);
 			ContextSwitch();
 			
@@ -683,7 +673,7 @@ void GPIOPortF_Handler(void){
 		DisableInterrupts();
 		for(int i = 0; i < num_sw2_tasks; i++) {
 			SW_Task_t *sw = &sw2_tasks[i];
-			thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit);
+			thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit, 128);
 			scheduler_schedule(sw->TCB);
 			ContextSwitch();
 			
@@ -732,8 +722,10 @@ void PortFEdge_Init(void) {
 // In lab 2, the priority field can be ignored
 // In lab 3, there will be up to four background threads, and this priority field 
 //           determines the relative priority of these four threads
+
+// TODO Add stack size parameter?
 int OS_AddSW1Task(void(*task)(void), uint32_t priority){
-	TCB_t *thread = SpawnThread(1, priority);
+	TCB_t *thread = SpawnThread(1, priority, 128);
 	if(thread == 0) {
 		return 0; // Can't allocate a thread
 	}
@@ -759,8 +751,10 @@ int OS_AddSW1Task(void(*task)(void), uint32_t priority){
 // In lab 3, this command will be called will be called 0 or 1 times
 // In lab 3, there will be up to four background threads, and this priority field 
 //           determines the relative priority of these four threads
+
+// TODO same as above
 int OS_AddSW2Task(void(*task)(void), uint32_t priority){
-  TCB_t *thread = SpawnThread(1, priority);
+  TCB_t *thread = SpawnThread(1, priority, 128);
 	if(thread == 0) {
 		return 0; // Can't allocate a thread
 	}
@@ -801,6 +795,7 @@ void OS_Kill(void){
 	TCB_t *node = RunPt;
 	
 	// Reset TCB properties
+	free(node->stack_base);
 	node->sleep_count = 0;
 	node->isBackgroundThread = 0;
 	iNode_close(RunPt->currentDir);
