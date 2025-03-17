@@ -517,7 +517,9 @@ DRESULT eDisk_Read(uint8_t drv, void *buff, uint32_t sector, uint32_t count){
 
   if (!(CardType & CT_BLOCK)) sector *= 512;  /* LBA ot BA conversion (byte addressing cards) */
 
+	#if EFILE_H
 	OS_Wait(&LCDFree);
+	#endif
   if (count == 1) {  /* Single sector read */
     if ((send_cmd(CMD17, sector) == 0)  /* READ_SINGLE_BLOCK */
       && rcvr_datablock(buff, 512))
@@ -533,7 +535,9 @@ DRESULT eDisk_Read(uint8_t drv, void *buff, uint32_t sector, uint32_t count){
     }
   }
   deselect();
+	#if EFILE_H
 	OS_Signal(&LCDFree);
+	#endif
 
   return count ? RES_ERROR : RES_OK;  /* Return result */
 }
@@ -572,7 +576,9 @@ DRESULT eDisk_Write(uint8_t drv, const void *buff, uint32_t sector, uint32_t cou
 
   if (!(CardType & CT_BLOCK)) sector *= 512;  /* LBA ==> BA conversion (byte addressing cards) */
 
+	#if EFILE_H
 	OS_Wait(&LCDFree);
+	#endif
   if (count == 1) {  /* Single sector write */
     if ((send_cmd(CMD24, sector) == 0)  /* WRITE_BLOCK */
       && xmit_datablock(buff, 0xFE))
@@ -591,7 +597,9 @@ DRESULT eDisk_Write(uint8_t drv, const void *buff, uint32_t sector, uint32_t cou
   }
   deselect();
 
+	#if EFILE_H
 	OS_Signal(&LCDFree);
+	#endif
   return count ? RES_ERROR : RES_OK;  /* Return result */
 }
 //*************** eDisk_WriteBlock ***********
@@ -632,7 +640,9 @@ DRESULT disk_ioctl(uint8_t drv, uint8_t cmd, void *buff){
 
   res = RES_ERROR;
 
+	#if EFILE_H
 	OS_Wait(&LCDFree);
+	#endif
   switch (cmd) {
   case CTRL_SYNC :    /* Wait for end of internal write process of the drive */
     if (select()) res = RES_OK;
@@ -691,8 +701,10 @@ DRESULT disk_ioctl(uint8_t drv, uint8_t cmd, void *buff){
   }
 
   deselect();
-
+	
+	#if EFILE_H
 	OS_Signal(&LCDFree);
+	#endif
   return res;
 }
 #endif
