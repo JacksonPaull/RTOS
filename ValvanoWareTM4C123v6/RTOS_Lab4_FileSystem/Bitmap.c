@@ -63,7 +63,7 @@ void Bitmap_Mount(void) {
 // Write the bitmap to disk
 // input:  none
 // output: none
-void Bitmap_Unount(void) {
+void Bitmap_Unmount(void) {
 	// TODO Support general bitmap
 	Bitmap_Write_Out();
 }
