@@ -113,8 +113,8 @@ int8_t* BuddyAdd(int8_t* block_ptr, uint32_t block_size) {
 // More than enough for this implementation, changing to a 32 bit integer increases this astronmically
 // (i.e. on the order of nonabytes of potential storage)
 uint32_t Order2Size(int8_t order) {
-	if(order < 0) {
-		return order *= -1;
+	if(order < 0) { // Take abs so this works for allocated or unallocated blocks
+		order *= -1;
 	}
 	return (1 << order) * BASE_ORDER_BYTES;
 }
@@ -148,6 +148,7 @@ int32_t Heap_Init(void){
 // output: void* pointing to the allocated memory or will return NULL
 //   if there isn't sufficient space to satisfy allocation request
 void* Heap_Malloc(int32_t desiredBytes){
+	int I = StartCritical();
 	uint32_t hs = getHeapSize();
 	int8_t* heap = getHeapBase();
 	
@@ -156,26 +157,29 @@ void* Heap_Malloc(int32_t desiredBytes){
 	
 	int8_t* current_block = heap;
 	
-	// We can jump by blocks of size min_order
-	// Because blocks are always aligned based on their order
 	while(current_block - heap < hs) {
-		if(*current_block > 0) {
+		if(*current_block > 0 || *current_block > -1*min_order) {
 			// Block is allocated, continue to next
-			current_block += Order2Size(min_order);
-			
+			// or
+			// Block is too small, continue to next
+			current_block += Order2Size(*current_block);
 		}
+		
 		else if(*current_block < -1 * min_order) {
 			// Unnalocated large block, can split (don't advance)
 			*current_block += 1;
 			int8_t* buddy = BuddyAdd(current_block, Order2Size(*current_block));
 			*buddy = *current_block;
 		}
-		if(*current_block == -1 * min_order) {
-			// Mark as allocated
+		
+		else if(*current_block == -1 * min_order) {
+			// Mark as allocated and return
 			*current_block *= -1;
+			EndCritical(I);
 			return current_block+1;
 		}
 	}
+	EndCritical(I);
 	return 0;
 }
 

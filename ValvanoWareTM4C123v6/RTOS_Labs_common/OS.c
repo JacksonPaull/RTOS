@@ -326,6 +326,12 @@ void OS_thread_init(void) {
 	}
 }
 
+void fs_init_task(void) {
+	eDisk_Init(0);
+	eFile_Init();
+	eFile_Mount();
+}
+
 /**
  * @details  Initialize operating system, disable interrupts until OS_Launch.
  * Initialize OS controlled I/O: serial, ADC, systick, LaunchPad I/O and timers.
@@ -347,8 +353,8 @@ void OS_Init(void){
 	PortFEdge_Init();
 	Timer5A_Init(&DecrementSleepCounters, TIME_1MS, 1);
 	UART_Init();
-	eDisk_Init(0);
-	eFile_Init();
+	OS_AddPeriodicThread(&disk_timerproc, TIME_1MS,0);
+	OS_AddThread(&fs_init_task, 128, 0);	// Note: OS_Init should always be called before adding any threads so this should always execute first. Adding threads to a non-initialized OS is undefined behavior
 	
 	
 	DisableInterrupts();	// Disable after the OS clock is init so that we can track time ints disabled
