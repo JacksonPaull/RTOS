@@ -296,6 +296,8 @@ int Testmain0(void){  // Testmain0
 
 //*****************Test project 1*************************
 // Heap test, allocate and deallocate memory
+#define TEST_MALLOC 1
+
 void heapError(const char* errtype,const char* v,uint32_t n){
   printf("%s",errtype);
   printf(" heap error %s%u",v,n);
@@ -326,6 +328,7 @@ void TestHeap(void){  int16_t i;
   printf("\n\rEE445M/EE380L, Lab 5 Heap Test\n\r");
   // if(Heap_Init())         heapError("Heap_Init","",0);
 
+	#if TEST_MALLOC
   ptr = Heap_Malloc(sizeof(int16_t));
   if(!ptr)                heapError("Heap_Malloc","ptr",0);
   *ptr = 0x1111;
@@ -364,6 +367,7 @@ void TestHeap(void){  int16_t i;
   if(ptr)                 heapError("Heap_Malloc","i",i);
   heapStats();
   
+	#else
   printf("Realloc test\n\r");
   // if(Heap_Init())         heapError("Heap_Init","",1);
   q1 = Heap_Malloc(1);
@@ -405,7 +409,8 @@ void TestHeap(void){  int16_t i;
 
   if(Heap_Free(bigBlock)) heapError("Heap_Free","bigBlock",0);
   heapStats();
-  
+  #endif
+	
   printf("Successful heap test\n\r");
   ST7735_DrawString(0, 0, "Heap test successful", ST7735_YELLOW);
   OS_Kill();
@@ -413,7 +418,7 @@ void TestHeap(void){  int16_t i;
 
 void SW1Push1(void){
   if(OS_MsTime() > 20){ // debounce
-    if(OS_AddThread(&TestHeap,128,1)){
+    if(OS_AddThread(&TestHeap,512,1)){
       NumCreated++;
     }
     OS_ClearMsTime();  // at least 20ms between touches
@@ -430,7 +435,7 @@ int Testmain1(void){   // Testmain1
   // create initial foreground threads
   NumCreated = 0 ;
   NumCreated += OS_AddThread(&TestHeap,512,2);  
-  NumCreated += OS_AddThread(&Idle,128,3); 
+  NumCreated += OS_AddThread(&Idle,512,3); 
  
   OS_Launch(10*TIME_1MS); // doesn't return, interrupts enabled in here
   return 0;               // this never executes

@@ -27,7 +27,7 @@ static FILINFO fi;
 // Output: 0 if successful and 1 on failure (already initialized)
 int eFile_Init(void){ // initialize file system
   // do nothing for FAT
-	return eDisk_Init(0);
+	return 0;
 }
 
 //---------- eFile_Format-----------------

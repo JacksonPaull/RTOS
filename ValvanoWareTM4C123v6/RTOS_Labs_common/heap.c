@@ -59,7 +59,7 @@ uint32_t getHeapSize(void) {
 
 int8_t* getHeapBase(void) {
 	TCB_t *r = OS_get_current_TCB();
-	if(r) {
+	if(r && r->process) {
 		return r->process->heap;
 	}
 	return HeapMem;
@@ -148,6 +148,7 @@ int32_t Heap_Init(void){
 // output: void* pointing to the allocated memory or will return NULL
 //   if there isn't sufficient space to satisfy allocation request
 void* Heap_Malloc(int32_t desiredBytes){
+	desiredBytes = (desiredBytes+3)/4 * 4; // Round up to nearest word
 	
 	int I = StartCritical();
 	uint32_t hs = getHeapSize();
@@ -170,8 +171,8 @@ void* Heap_Malloc(int32_t desiredBytes){
 			return currentBlock+4;
 		}
 		
-		if(currentBlock < 0) {
-			currentBlock -= block_size - 8;
+		if(block_size < 0) {
+			currentBlock += 8 - block_size;
 		}
 		else {
 			currentBlock += block_size + 8;
@@ -224,8 +225,8 @@ void* Heap_Realloc(void* oldBlock, int32_t desiredBytes){
 				// Next page is free and large enough to grow this sector instead of reallocating 
 				*block_header 													= desiredBytes;								// Alloc header
 				*(block_header+desiredWords+1)  				= desiredBytes; 							// Alloc footer
-				*(block_header+desiredWords+2)  				= desiredBytes - next_block_size - block_size - 8;	// Frag header
-				*(nextBlockHeader+next_block_size/4+1) 	= desiredBytes - next_block_size - block_size - 8; 	// Frag footer
+				*(block_header+desiredWords+2)  				= next_block_size-block_size + desiredBytes+8; 		// Frag header
+				*(nextBlockHeader+next_block_size/4+1) 	= next_block_size-block_size + desiredBytes+8 ; 	// Frag footer
 				
 				ptr = oldBlock;
 		
@@ -265,8 +266,8 @@ void* Heap_Realloc(void* oldBlock, int32_t desiredBytes){
 int32_t Heap_Free(void* pointer){
 	int I = StartCritical();
 	
-	int32_t* block_header = pointer-4;
-	int32_t* block_footer = pointer + *block_header+8;
+	int32_t* block_header = (int32_t*) (pointer-4);
+	int32_t* block_footer = (int32_t*) (pointer + *block_header);
 	
 	if(*block_header != *block_footer) {
 		EndCritical(I);
@@ -277,23 +278,26 @@ int32_t Heap_Free(void* pointer){
 	*block_footer *= -1;
 	*block_header *= -1;
 	
-	// Check to see if we can merge with the next and previous block
-	if(*(block_header-1) < 0) {
+	
+	// Check to see if we can merge with the next and previous block (and also make sure they exist before doing so)
+	// Also reclaim space for header and footer
+	if(((int8_t*)block_header - HeapMem >= 8) 
+			&& *(block_header-1) < 0) {
 		// Merge
 		int32_t* new_header = block_header + *(block_header-1)/4 - 2;
 		
-		*new_header 	= *(block_header-1) + *(block_header);
-		*block_footer = *(block_header-1) + *(block_header);
+		*new_header 	= *(block_header-1) + *(block_header)-8;
+		*block_footer = *(block_header-1) + *(block_header)-8;
 		
 		block_header = new_header;
 		
 	}
-	if(*(block_footer+1) < 0) {
+	if(((int8_t*)block_footer - HeapMem + 8 < HEAP_SIZE) && *(block_footer+1) < 0) {
 		// Merge
 		int32_t* footer = block_footer - *(block_footer+1)/4 + 2;
 		
-		*block_header = *(block_header-1) + *(block_header);
-		*footer 			= *(block_header-1) + *(block_header);
+		*block_header = *(block_footer) + *(block_footer+1)-8;
+		*footer 			= *(block_footer) + *(block_footer+1)-8;
 	}
 	
 	EndCritical(I);
@@ -306,16 +310,21 @@ int32_t Heap_Free(void* pointer){
 // input: reference to a heap_stats_t that returns the current usage of the heap
 // output: 0 in case of success, non-zeror in case of error (e.g. corrupted heap)
 int32_t Heap_Stats(heap_stats_t *stats){
+	int I = StartCritical();
 	uint32_t hs = getHeapSize();
 	int8_t* heap = getHeapBase();
 	
 	stats->size = hs;
+	stats->free = 0;
+	stats->used = 0;
 	int8_t* currentBlock = heap;
-	int32_t n_bytes = *((int32_t*) currentBlock);
+	
 	
 	// Go through the whole heap
 	while(currentBlock - heap < hs) {
-		if(*currentBlock < 0) {
+		int32_t n_bytes = *((int32_t*) currentBlock);
+		
+		if(n_bytes < 0) {
 			// Block is free
 			n_bytes *= -1;
 			stats->free += n_bytes; 
@@ -325,8 +334,16 @@ int32_t Heap_Stats(heap_stats_t *stats){
 			stats->used += n_bytes; 
 		}
 		
+		// Check that the footer matches the header
+		int32_t check = *((int32_t*) (currentBlock+4+n_bytes));
+		if(check < 0) check *= -1;
+		if(check != n_bytes) {
+			EndCritical(I);
+			return 1;
+		}
+		
 		currentBlock += n_bytes+8; // Account for header / footer
-		int32_t n_bytes = *((int32_t*) currentBlock);
 	}
+	EndCritical(I);
   return 0;
 }

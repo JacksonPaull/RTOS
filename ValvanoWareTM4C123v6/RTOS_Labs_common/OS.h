@@ -36,7 +36,7 @@
 #define TIME_100NS	8
 
 // Thread control stuff
-#define MAX_NUM_THREADS 5
+#define MAX_NUM_THREADS 25
 #define BACKGROUND_STACK_SIZE 512
 
 // Note: Periodic threads and switch tasks DO have their own stack

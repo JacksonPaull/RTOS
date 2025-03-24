@@ -360,7 +360,7 @@ void OS_Init(void){
 	SYSPRI3 = (SYSPRI3 &0xFF0FFFFF) | 0x00E00000;
 	
 	OS_AddPeriodicThread(&disk_timerproc, TIME_1MS, 0);
-	OS_AddThread(&fs_init_task, 128, 0);	// Note: OS_Init should always be called before adding any threads so this should always execute first. Adding threads to a non-initialized OS is undefined behavior
+	OS_AddThread(&fs_init_task, 512, 0);	// Note: OS_Init should always be called before adding any threads so this should always execute first. Adding threads to a non-initialized OS is undefined behavior
 	
 	//TODO  any OS controlled ADCs, etc
 
@@ -578,7 +578,7 @@ void PeriodicThreadHandler() {
 			node->cnt = node->period;
 			
 			// Schedule thread (need to init the stack each time)
-			thread_init_stack(node->TCB, node->task, &BackgroundThreadExit, 128);
+			thread_init_stack(node->TCB, node->task, &BackgroundThreadExit, BACKGROUND_STACK_SIZE);
 			scheduler_schedule(node->TCB);
 			ContextSwitch();	// Switch to scheduled task asap
 			
