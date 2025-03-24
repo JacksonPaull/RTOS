@@ -429,7 +429,7 @@ int Testmain1(void){   // Testmain1
     
   // create initial foreground threads
   NumCreated = 0 ;
-  NumCreated += OS_AddThread(&TestHeap,512,1);  
+  NumCreated += OS_AddThread(&TestHeap,512,2);  
   NumCreated += OS_AddThread(&Idle,128,3); 
  
   OS_Launch(10*TIME_1MS); // doesn't return, interrupts enabled in here

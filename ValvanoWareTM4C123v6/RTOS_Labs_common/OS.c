@@ -348,22 +348,19 @@ void OS_Init(void){
 	
 	// Init anything else used by OS
 	Heap_Init();
-	
 	OS_MsTime_Init();
 	PortFEdge_Init();
 	Timer5A_Init(&DecrementSleepCounters, TIME_1MS, 1);
 	UART_Init();
-	OS_AddPeriodicThread(&disk_timerproc, TIME_1MS,0);
-	OS_AddThread(&fs_init_task, 128, 0);	// Note: OS_Init should always be called before adding any threads so this should always execute first. Adding threads to a non-initialized OS is undefined behavior
-	
-	
 	DisableInterrupts();	// Disable after the OS clock is init so that we can track time ints disabled
 	OS_thread_init();
-	
 	ST7735_InitR(INITR_REDTAB);
 
 	// Set PendSV priority to 7;
 	SYSPRI3 = (SYSPRI3 &0xFF0FFFFF) | 0x00E00000;
+	
+	OS_AddPeriodicThread(&disk_timerproc, TIME_1MS, 0);
+	OS_AddThread(&fs_init_task, 128, 0);	// Note: OS_Init should always be called before adding any threads so this should always execute first. Adding threads to a non-initialized OS is undefined behavior
 	
 	//TODO  any OS controlled ADCs, etc
 
