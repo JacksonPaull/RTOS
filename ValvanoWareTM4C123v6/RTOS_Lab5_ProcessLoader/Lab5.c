@@ -324,7 +324,7 @@ uint8_t* bigBlock;
 void TestHeap(void){  int16_t i;  
   ST7735_DrawString(0, 0, "Heap test            ", ST7735_WHITE);
   printf("\n\rEE445M/EE380L, Lab 5 Heap Test\n\r");
-  if(Heap_Init())         heapError("Heap_Init","",0);
+  // if(Heap_Init())         heapError("Heap_Init","",0);
 
   ptr = Heap_Malloc(sizeof(int16_t));
   if(!ptr)                heapError("Heap_Malloc","ptr",0);
@@ -365,7 +365,7 @@ void TestHeap(void){  int16_t i;
   heapStats();
   
   printf("Realloc test\n\r");
-  if(Heap_Init())         heapError("Heap_Init","",1);
+  // if(Heap_Init())         heapError("Heap_Init","",1);
   q1 = Heap_Malloc(1);
   if(!q1)                 heapError("Heap_Malloc","q",1);
   q2 = Heap_Malloc(2);
@@ -429,7 +429,7 @@ int Testmain1(void){   // Testmain1
     
   // create initial foreground threads
   NumCreated = 0 ;
-  NumCreated += OS_AddThread(&TestHeap,128,1);  
+  NumCreated += OS_AddThread(&TestHeap,512,1);  
   NumCreated += OS_AddThread(&Idle,128,3); 
  
   OS_Launch(10*TIME_1MS); // doesn't return, interrupts enabled in here

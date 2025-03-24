@@ -13,7 +13,7 @@
 #ifndef HEAP_H
 #define HEAP_H
 
-// Note: must be a power of 2
+// Note: the real heap size is defined in startup.s. These must match
 #define HEAP_SIZE 8192
 
 // Corresponds to an order of 0

@@ -37,6 +37,7 @@
 
 // Thread control stuff
 #define MAX_NUM_THREADS 5
+#define BACKGROUND_STACK_SIZE 512
 
 // Note: Periodic threads and switch tasks DO have their own stack
 //			 and therefore they take away from the total pool of threads (when allocated)
@@ -60,8 +61,10 @@ typedef struct TCB {
 	uint8_t priority;
 	uint8_t id;
 	uint8_t isBackgroundThread;				// Boolean for whether the thread is background (i.e. periodic or switch)
-	unsigned long *stack_base;				// Base of stack (useful for background threads)
 	unsigned long *sp; 								// Stack pointer
+	
+	// EDIT BENEATH THIS - its important that the above remains untouched
+	unsigned long *stack_base;				// Base of stack (useful for background threads)
 	uint32_t sleep_count;							// In ms
 	void *currentDir;									// Pointer to currently open file struct (circular dependencies mean this must be a void ptr)
 																				// TCB -> Sema4 -> File -> TCB

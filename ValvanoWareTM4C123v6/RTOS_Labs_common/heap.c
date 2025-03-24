@@ -39,17 +39,15 @@
  Blocks are iteratively merged with free buddies when they are free
  */
 
-// TODO: Update to read from current process struct
-// PCB ID of 0 implies OS processes and use the OS heap
-// Should add an init thread to OS_Init which initializes the disk 
-// and mounts the filesys like from lab 4 
+// TODO: Update to use knuth buddy allocation instead of this
 
 #include <stdint.h>
 #include <stdlib.h>
 #include "../RTOS_Labs_common/heap.h"
 #include "../RTOS_Labs_common/OS.h"
 
-int8_t HEAP[HEAP_SIZE];
+
+extern int8_t HeapMem[HEAP_SIZE];	// Align to full word addresses
 
 uint32_t getHeapSize(void) {
 	TCB_t *r = OS_get_current_TCB();
@@ -64,7 +62,7 @@ int8_t* getHeapBase(void) {
 	if(r) {
 		return r->process->heap;
 	}
-	return HEAP;
+	return HeapMem;
 }
 
 void* memset(void* dst, int v, size_t num_bytes) {
@@ -90,38 +88,38 @@ void free(void* ptr) {
 	Heap_Free(ptr);
 }
 
-// Take the (ceil of the) base 2 log (can be replaced with CLZ asm though...)
-int8_t logbase2(uint32_t x) {
-	int8_t i = 0;
-	while(x > 0) {
-		i++;
-		x = x >> 1;
-	}
-	return i;
-}
+//// Take the (ceil of the) base 2 log (can be replaced with CLZ asm though...)
+//int8_t logbase2(uint32_t x) {
+//	int8_t i = 0;
+//	while(x > 0) {
+//		i++;
+//		x = x >> 1;
+//	}
+//	return i;
+//}
 
-int8_t* BuddyAdd(int8_t* block_ptr, uint32_t block_size) {
-	uint32_t hs = getHeapSize();
-	int8_t* heap = getHeapBase();
-	
-	// Use casting to force the bitwise XOR
-	return (int8_t *) ((uint32_t) (block_ptr-heap) ^ block_size + (uint32_t) heap);
-}
+//int8_t* BuddyAdd(int8_t* block_ptr, uint32_t block_size) {
+//	uint32_t hs = getHeapSize();
+//	int8_t* heap = getHeapBase();
+//	
+//	// Use casting to force the bitwise XOR
+//	return (int8_t *) ((uint32_t) (block_ptr-heap) ^ block_size + (uint32_t) heap);
+//}
 
 
-// Allows for an order of 128 = roughly 7MB of heap storage. 
-// More than enough for this implementation, changing to a 32 bit integer increases this astronmically
-// (i.e. on the order of nonabytes of potential storage)
-uint32_t Order2Size(int8_t order) {
-	if(order < 0) { // Take abs so this works for allocated or unallocated blocks
-		order *= -1;
-	}
-	return (1 << order) * BASE_ORDER_BYTES;
-}
+//// Allows for an order of 128 = roughly 7MB of heap storage. 
+//// More than enough for this implementation, changing to a 32 bit integer increases this astronmically
+//// (i.e. on the order of nonabytes of potential storage)
+//uint32_t Order2Size(int8_t order) {
+//	if(order < 0) { // Take abs so this works for allocated or unallocated blocks
+//		order *= -1;
+//	}
+//	return (1 << order) * BASE_ORDER_BYTES;
+//}
 
-int8_t Size2Order(uint32_t size) {
-	return logbase2(size) - logbase2(BASE_ORDER_BYTES);
-}
+//int8_t Size2Order(uint32_t size) {
+//	return logbase2(size) - logbase2(BASE_ORDER_BYTES);
+//}
 
 
 
@@ -133,10 +131,12 @@ int8_t Size2Order(uint32_t size) {
 //  is allocated.
 int32_t Heap_Init(void){
 	uint32_t hs = getHeapSize();
-	int8_t* heap = getHeapBase();
+	int32_t* heap = (int32_t*) getHeapBase();
 	
-	int8_t order = -1 * Size2Order(hs);
-	heap[0] = order;
+	// set header and footer
+	heap[0] = 8-hs;
+	heap[hs/4-1] = 8-hs;
+	
   return 0; 
 }
 
@@ -148,37 +148,36 @@ int32_t Heap_Init(void){
 // output: void* pointing to the allocated memory or will return NULL
 //   if there isn't sufficient space to satisfy allocation request
 void* Heap_Malloc(int32_t desiredBytes){
+	
 	int I = StartCritical();
 	uint32_t hs = getHeapSize();
-	int8_t* heap = getHeapBase();
+	void* heap = getHeapBase();
 	
-	int8_t min_order = Size2Order(desiredBytes); // Relative to the base order
-	uint32_t bs = Order2Size(min_order); 					// Effectively just rounds up to the nearest power of 2
+	void* currentBlock = heap;
 	
-	int8_t* current_block = heap;
-	
-	while(current_block - heap < hs) {
-		if(*current_block > 0 || *current_block > -1*min_order) {
-			// Block is allocated, continue to next
-			// or
-			// Block is too small, continue to next
-			current_block += Order2Size(*current_block);
-		}
-		
-		else if(*current_block < -1 * min_order) {
-			// Unnalocated large block, can split (don't advance)
-			*current_block += 1;
-			int8_t* buddy = BuddyAdd(current_block, Order2Size(*current_block));
-			*buddy = *current_block;
-		}
-		
-		else if(*current_block == -1 * min_order) {
-			// Mark as allocated and return
-			*current_block *= -1;
+	while(currentBlock - heap < hs) {
+		int32_t block_size = *((int32_t*) currentBlock);
+		if(block_size < 0 && block_size + 8 < -1 * desiredBytes) {
+			// Large enough free block to allocate
+			int32_t frag_size = block_size + desiredBytes + 8; // Size of the new block accounting for the new header and footer in the middle
+			
+			*(int32_t *) currentBlock 			 					= desiredBytes;		// Allocated header
+			*(int32_t *)(currentBlock+desiredBytes+4) = desiredBytes;		// Allocated footer
+			*(int32_t *)(currentBlock+desiredBytes+8) = frag_size;	// Frament header
+			*(int32_t *)(currentBlock-block_size+4)   = frag_size;	// Fragment footer
+			
 			EndCritical(I);
-			return current_block+1;
+			return currentBlock+4;
+		}
+		
+		if(currentBlock < 0) {
+			currentBlock -= block_size - 8;
+		}
+		else {
+			currentBlock += block_size + 8;
 		}
 	}
+	
 	EndCritical(I);
 	return 0;
 }
@@ -192,9 +191,6 @@ void* Heap_Malloc(int32_t desiredBytes){
 //   if there isn't sufficient space to satisfy allocation request
 //notes: the allocated memory block will be zeroed out
 void* Heap_Calloc(int32_t desiredBytes){  
-	uint32_t hs = getHeapSize();
-	int8_t* heap = getHeapBase();
-	
 	void *ptr = Heap_Malloc(desiredBytes); // Alloc
 	
 	if(ptr)
@@ -214,18 +210,48 @@ void* Heap_Calloc(int32_t desiredBytes){
 // notes: the given block may be unallocated and its contents
 //   are copied to a new block if growing/shrinking not possible
 void* Heap_Realloc(void* oldBlock, int32_t desiredBytes){
+	int32_t desiredWords = (desiredBytes+3)/4;
 	void* ptr = 0;
-	// Check to see if we can grow this sector (critical section)
-		// If possible, allocate away
-		// Check buddy, then new levels of buddys until its confirmed that we can grow the block
-		// Note: The buddies must be successive, not precursors
 	
-	// Else
-		// Alloc new block
-		ptr = Heap_Malloc(desiredBytes);
-		memcpy(ptr, oldBlock, desiredBytes); // Copy extra garbage over but thats ok, this isnt calloc
-		Heap_Free(oldBlock);
+	int I = StartCritical();
+	int32_t* block_header = (int32_t*) (oldBlock-4);
+	int32_t block_size = *block_header;
+	int32_t* nextBlockHeader = (int32_t*) (oldBlock + block_size + 4);
+	int32_t next_block_size = *nextBlockHeader;
 	
+	if(desiredBytes > block_size) { // Potential for growth
+			if(block_size - next_block_size  + 8 >= desiredBytes) { // Account for the fact that we can remove the header and footer in the middle potentially
+				// Next page is free and large enough to grow this sector instead of reallocating 
+				*block_header 													= desiredBytes;								// Alloc header
+				*(block_header+desiredWords+1)  				= desiredBytes; 							// Alloc footer
+				*(block_header+desiredWords+2)  				= desiredBytes - next_block_size - block_size - 8;	// Frag header
+				*(nextBlockHeader+next_block_size/4+1) 	= desiredBytes - next_block_size - block_size - 8; 	// Frag footer
+				
+				ptr = oldBlock;
+		
+				// Note: if the next block isnt free, then nextBlockHeader will be positive, and therefore the subtraction will be less than the desired bytes
+			}
+			else { // Alloc new block
+				ptr = Heap_Malloc(desiredBytes);
+				memcpy(ptr, oldBlock, desiredBytes); // Copy extra garbage over but thats ok, this isnt calloc
+				Heap_Free(oldBlock);
+			}
+	}
+	else if(desiredBytes < block_size - 8) {
+		// shrinkage
+		
+		*block_header 									= desiredBytes;								// Alloc header
+		*(block_header+desiredWords+1)  = desiredBytes; 							// Alloc footer
+		*(block_header+desiredWords+2)  = desiredBytes-block_size+8; 	// Frag header
+		*(block_header+block_size/4+1) 	= desiredBytes-block_size+8; 	// Frag footer
+		
+		ptr = oldBlock;
+	}	
+	
+	// if the desired bytes is exactly what we have allocated already then who cares
+	// Additionally, if we are shrinking, we need to insert a new header and footer
+	
+	EndCritical(I);
   return ptr;   // NULL
 }
 
@@ -237,28 +263,40 @@ void* Heap_Realloc(void* oldBlock, int32_t desiredBytes){
 // output: 0 if everything is ok, non-zero in case of error (e.g. invalid pointer
 //     or trying to unallocate memory that has already been unallocated
 int32_t Heap_Free(void* pointer){
-	//(note: pointers start after the block order)
-	int8_t* ptr = (int8_t *) (pointer-1);
+	int I = StartCritical();
 	
-	// 1. Find the buddy
-	int8_t* buddy = BuddyAdd(ptr, Order2Size(*ptr)); // TODO Fix
+	int32_t* block_header = pointer-4;
+	int32_t* block_footer = pointer + *block_header+8;
 	
-	// While buddy is free
-	while(buddy[0] < 0) {
-		// And is of the same size 
-		if(buddy[0] == ptr[0]) {
-			// Merge (add 1 to the order magnitude)
-			buddy[0] -= 1;
-			ptr[0] -= 1;
-			
-			// Find new buddy
-			buddy = BuddyAdd(ptr, Order2Size(*ptr));
-		}
-		else {
-			break; // Buddy is not of the same order - cant merge
-		}
+	if(*block_header != *block_footer) {
+		EndCritical(I);
+		return 1; // uh oh
 	}
 	
+	// Mark block as free
+	*block_footer *= -1;
+	*block_header *= -1;
+	
+	// Check to see if we can merge with the next and previous block
+	if(*(block_header-1) < 0) {
+		// Merge
+		int32_t* new_header = block_header + *(block_header-1)/4 - 2;
+		
+		*new_header 	= *(block_header-1) + *(block_header);
+		*block_footer = *(block_header-1) + *(block_header);
+		
+		block_header = new_header;
+		
+	}
+	if(*(block_footer+1) < 0) {
+		// Merge
+		int32_t* footer = block_footer - *(block_footer+1)/4 + 2;
+		
+		*block_header = *(block_header-1) + *(block_header);
+		*footer 			= *(block_header-1) + *(block_header);
+	}
+	
+	EndCritical(I);
   return 0;
 }
 
@@ -273,23 +311,22 @@ int32_t Heap_Stats(heap_stats_t *stats){
 	
 	stats->size = hs;
 	int8_t* currentBlock = heap;
-	int8_t order = heap[0];
+	int32_t n_bytes = *((int32_t*) currentBlock);
 	
 	// Go through the whole heap
 	while(currentBlock - heap < hs) {
 		if(*currentBlock < 0) {
 			// Block is free
-			uint32_t n_bytes = BASE_ORDER_BYTES << -(*currentBlock);
-			stats->free += n_bytes - 1; // Account for the byte of overhead
-			currentBlock += n_bytes;
+			n_bytes *= -1;
+			stats->free += n_bytes; 
 		}
 		else {
 			// Block is used
-			uint32_t n_bytes = BASE_ORDER_BYTES << *currentBlock;
-			stats->free += n_bytes - 1; // Account for the byte of overhead
-			currentBlock += n_bytes;
+			stats->used += n_bytes; 
 		}
 		
+		currentBlock += n_bytes+8; // Account for header / footer
+		int32_t n_bytes = *((int32_t*) currentBlock);
 	}
-  return 0;   // replace
+  return 0;
 }

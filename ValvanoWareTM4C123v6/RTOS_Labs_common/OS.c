@@ -20,6 +20,7 @@
 #include "../RTOS_Labs_common/ST7735.h"
 #include "../RTOS_Labs_common/eDisk.h"
 #include "../RTOS_Labs_common/eFile.h"
+#include "../RTOS_Labs_common/heap.h"
 #include "../RTOS_Lab4_FileSystem/iNode.h"
 
 #include "../inc/ADCT0ATrigger.h"
@@ -274,7 +275,8 @@ void SysTick_Init(unsigned long period){
  * @brief Set up thread stack before launching
  */
 void thread_init_stack(TCB_t* thread, void(*task)(void), void(*return_task)(void), uint32_t stack_size) {	
-	thread->sp = thread->stack_base+stack_size-18*sizeof(unsigned long); // Start at bottom of stack and init registers on stack 
+	thread->sp = ((void *)thread->stack_base + stack_size - 16*sizeof(unsigned long)); // Start at bottom of stack and init registers on stack 
+	thread->stack_base[0] = MAGIC;
 	
 	thread->sp[0]  = 0x04040404; //R4
 	thread->sp[1]  = 0x05050505; //R5
@@ -292,8 +294,6 @@ void thread_init_stack(TCB_t* thread, void(*task)(void), void(*return_task)(void
 	thread->sp[13] = (uint32_t) return_task; //LR - Note: any exiting thread should call OS_Kill
 	thread->sp[14] = (uint32_t) task; // PC, should point to thread main task
 	thread->sp[15] = 0x01000000;	// Set thumb mode in PSR
-	thread->sp[16] = MAGIC;
-	thread->sp[17] = MAGIC;
 }
 
 
@@ -347,7 +347,7 @@ void OS_Init(void){
 	LaunchPad_Init();
 	
 	// Init anything else used by OS
-	// Heap_Init();
+	Heap_Init();
 	
 	OS_MsTime_Init();
 	PortFEdge_Init();
@@ -617,7 +617,7 @@ int OS_AddPeriodicThread(void(*task)(void),
    uint32_t period, uint32_t priority){
 		 
   int i = StartCritical();
-	TCB_t *thread = SpawnThread(1, priority, 128);
+	TCB_t *thread = SpawnThread(1, priority, BACKGROUND_STACK_SIZE);
 	if(thread == 0) {
 		// Can't allocate thread / stack
 		EndCritical(i);
@@ -671,7 +671,7 @@ void GPIOPortF_Handler(void){
 		DisableInterrupts();
 		for(int i = 0; i < num_sw1_tasks; i++) {
 			SW_Task_t *sw = &sw1_tasks[i];
-			thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit, 128);
+			thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit, BACKGROUND_STACK_SIZE);
 			scheduler_schedule(sw->TCB);
 			ContextSwitch();
 			
@@ -687,7 +687,7 @@ void GPIOPortF_Handler(void){
 		DisableInterrupts();
 		for(int i = 0; i < num_sw2_tasks; i++) {
 			SW_Task_t *sw = &sw2_tasks[i];
-			thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit, 128);
+			thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit, BACKGROUND_STACK_SIZE);
 			scheduler_schedule(sw->TCB);
 			ContextSwitch();
 			
@@ -737,9 +737,8 @@ void PortFEdge_Init(void) {
 // In lab 3, there will be up to four background threads, and this priority field 
 //           determines the relative priority of these four threads
 
-// TODO Add stack size parameter?
 int OS_AddSW1Task(void(*task)(void), uint32_t priority){
-	TCB_t *thread = SpawnThread(1, priority, 128);
+	TCB_t *thread = SpawnThread(1, priority, BACKGROUND_STACK_SIZE);
 	if(thread == 0) {
 		return 0; // Can't allocate a thread
 	}
@@ -766,9 +765,8 @@ int OS_AddSW1Task(void(*task)(void), uint32_t priority){
 // In lab 3, there will be up to four background threads, and this priority field 
 //           determines the relative priority of these four threads
 
-// TODO same as above
 int OS_AddSW2Task(void(*task)(void), uint32_t priority){
-  TCB_t *thread = SpawnThread(1, priority, 128);
+  TCB_t *thread = SpawnThread(1, priority, BACKGROUND_STACK_SIZE);
 	if(thread == 0) {
 		return 0; // Can't allocate a thread
 	}
@@ -809,11 +807,11 @@ void OS_Kill(void){
 	TCB_t *node = RunPt;
 	
 	int I = StartCritical();
-	// Adjust PCB
-	if(--node->process->numThreadsAlive == 0) {
-		// Can delete the process as well
-		free(node->process->heap);
-	}
+	// Adjust PCB // TODO Fix this
+//	if(--node->process->numThreadsAlive == 0) {
+//		// Can delete the process as well
+//		free(node->process->heap);
+//	}
 	EndCritical(I);
 	
 	// Reset TCB properties
