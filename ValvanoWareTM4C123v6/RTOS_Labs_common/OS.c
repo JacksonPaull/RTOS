@@ -215,7 +215,6 @@ void DecrementSleepCounters(void) {
 	EndCritical(i);
 }
 
-
 /*------------------------------------------------------------------------------
   Systick Interrupt Handler
   SysTick interrupt happens every 10 ms
@@ -229,7 +228,9 @@ void SysTick_Handler(void) {
 void BackgroundThreadExit(void) {
 	scheduler_unlock(); // Force unlock
 	thread_cnt_alive--;
-	// iNode_close(RunPt->currentDir);
+	#if EFILE_H
+	iNode_close(RunPt->currentDir);
+	#endif
 	ContextSwitch();
 	EnableInterrupts(); // Force interrupt enable
 	for(;;){}; // Wait for interrupt
@@ -480,6 +481,13 @@ TCB_t* SpawnThread(uint8_t isBackgroundThread, uint8_t priority, uint32_t stack_
 	thread->priority = priority;
 	
 	thread->currentDir = 0;
+	
+	if(RunPt) {
+		thread->process = RunPt->process;
+	}
+	else {
+		thread->process = 0;
+	}
 	
 	return thread;
 }
@@ -794,11 +802,21 @@ void OS_Sleep(uint32_t sleepTime){
 void OS_Kill(void){
 	TCB_t *node = RunPt;
 	
+	int I = StartCritical();
+	// Adjust PCB
+	if(--node->process->numThreadsAlive == 0) {
+		// Can delete the process as well
+		free(node->process->heap);
+	}
+	EndCritical(I);
+	
 	// Reset TCB properties
 	free(node->stack_base);
 	node->sleep_count = 0;
 	node->isBackgroundThread = 0;
+	#if EFILE_H
 	iNode_close(RunPt->currentDir);
+	#endif
 	
 	// Note: We don't need to mess with the SP 
 	//				as it will be automatically reset when a new thread is added
@@ -1014,6 +1032,8 @@ void OS_Launch(uint32_t theTimeSlice){
 //************** I/O Redirection *************** 
 // redirect terminal I/O to UART or file (Lab 4)
 
+
+#if EFILE_H
 int StreamToDevice=0;                // 0=UART, 1=stream to file (Lab 4)
 File_t file;
 
@@ -1079,4 +1099,73 @@ int OS_RedirectToST7735(void){
   
   return 1;
 }
+
+#else
+
+int StreamToDevice=0;                // 0=UART, 1=stream to file (Lab 4)
+
+int fputc (int ch, FILE *f) { 
+  if(StreamToDevice==1){  // Lab 4
+    if(eFile_Write(ch)){          // close file on error
+       OS_EndRedirectToFile(); // cannot write to file
+       return 1;                  // failure
+    }
+    return 0; // success writing
+  }
+  
+  // default UART output
+  UART_OutChar(ch);
+  return ch; 
+}
+
+int fgetc (FILE *f){
+  char ch = UART_InChar();  // receive from keyboard
+  UART_OutChar(ch);         // echo
+  return ch;
+}
+
+int putc (int ch, FILE *f) { 
+  if(StreamToDevice==1){  // Lab 4
+    if(eFile_Write(ch)){          // close file on error
+       OS_EndRedirectToFile(); // cannot write to file
+       return 1;                  // failure
+    }
+    return 0; // success writing
+  }
+  
+  // default UART output
+  UART_OutChar(ch);
+  return ch; 
+}
+
+int getc (FILE *f){
+  char ch = UART_InChar();  // receive from keyboard
+  UART_OutChar(ch);         // echo
+  return ch;
+}
+
+int OS_RedirectToFile(const char *name){  // Lab 4
+  eFile_Create(name);              // ignore error if file already exists
+  if(eFile_WOpen(name)) return 1;  // cannot open file
+  StreamToDevice = 1;
+  return 0;
+}
+
+int OS_EndRedirectToFile(void){  // Lab 4
+  StreamToDevice = 0;
+  if(eFile_WClose()) return 1;    // cannot close file
+  return 0;
+}
+
+int OS_RedirectToUART(void){
+  StreamToDevice = 0;
+  return 0;
+}
+
+int OS_RedirectToST7735(void){
+  
+  return 1;
+}
+
+#endif
 

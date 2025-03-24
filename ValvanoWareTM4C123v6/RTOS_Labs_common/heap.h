@@ -28,6 +28,10 @@ typedef struct heap_stats {
   uint32_t free;   // number of bytes available to allocate
 } heap_stats_t;
 
+typedef struct heap {
+	uint32_t* base;	// Base pointer to the heap
+	uint32_t size;	// heap size (in bytes)
+} heap_t;
 
 /**
  * @details Initialize the Heap

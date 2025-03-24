@@ -46,6 +46,14 @@
 #define MAX_THREAD_PRIORITY 10
 #define MAGIC 0x12312399
 
+typedef struct PCB {
+	uint8_t id;
+	uint8_t numThreadsAlive;
+	int8_t *heap;
+	uint32_t heap_size; 
+	
+} PCB_t;
+
 // 23 bytes large, not very expensive
 typedef struct TCB {
 	struct TCB *next_ptr, *prev_ptr; 	// For use in linked lists
@@ -57,8 +65,9 @@ typedef struct TCB {
 	uint32_t sleep_count;							// In ms
 	void *currentDir;									// Pointer to currently open file struct (circular dependencies mean this must be a void ptr)
 																				// TCB -> Sema4 -> File -> TCB
-	
+	PCB_t *process;
 } TCB_t;
+
 
 
 extern TCB_t *RunPt;

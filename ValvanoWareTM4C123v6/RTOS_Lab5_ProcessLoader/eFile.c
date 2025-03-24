@@ -6,6 +6,7 @@
 #include <string.h>
 #include "../RTOS_Labs_common/OS.h"
 #include "../RTOS_Labs_common/eFile.h"
+#include "../RTOS_Labs_common/eDisk.h"
 #include "ff.h"
 #include <stdio.h>
 
@@ -26,7 +27,7 @@ static FILINFO fi;
 // Output: 0 if successful and 1 on failure (already initialized)
 int eFile_Init(void){ // initialize file system
   // do nothing for FAT
-  return 0;
+	return eDisk_Init(0);
 }
 
 //---------- eFile_Format-----------------

@@ -39,27 +39,50 @@
  Blocks are iteratively merged with free buddies when they are free
  */
 
+// TODO: Update to read from current process struct
+// PCB ID of 0 implies OS processes and use the OS heap
+// Should add an init thread to OS_Init which initializes the disk 
+// and mounts the filesys like from lab 4 
 
 #include <stdint.h>
 #include <stdlib.h>
 #include "../RTOS_Labs_common/heap.h"
+#include "../RTOS_Labs_common/OS.h"
 
 int8_t HEAP[HEAP_SIZE];
 
-// TODO Fix this
-void memset(void* base, int v, size_t num_bytes) {
-	for(uint32_t i = 0; i < num_bytes; i++) {
-		*((int8_t*)base+i) = v;
+uint32_t getHeapSize(void) {
+	TCB_t *r = OS_get_current_TCB();
+	if(r && r->process) {
+		return r->process->heap_size;
 	}
+	return HEAP_SIZE;
 }
 
-void memcpy(int* dst, int *src, uint32_t num_bytes) {
-	for(uint32_t i = 0; i < num_bytes; i++) {
-		*(dst+i) = *(src+i);
+int8_t* getHeapBase(void) {
+	TCB_t *r = OS_get_current_TCB();
+	if(r) {
+		return r->process->heap;
 	}
+	return HEAP;
+}
+
+void* memset(void* dst, int v, size_t num_bytes) {
+	for(uint32_t i = 0; i < num_bytes; i++) {
+		*((int8_t*)dst+i) = v;
+	}
+	return dst;
+}
+
+void* memcpy(void* dst, const void *src, size_t num_bytes) {
+	for(uint32_t i = 0; i < num_bytes; i++) {
+		*((int* ) dst+i) = *((int *) src+i);
+	}
+	return dst;
 }
 
 void* malloc(size_t size) {
+	// Get current process heap, then pass to Heap_Malloc
 	return Heap_Malloc(size);
 }
 
@@ -77,9 +100,12 @@ int8_t logbase2(uint32_t x) {
 	return i;
 }
 
-void* BuddyAdd(void* block_ptr, uint32_t block_size) {
-	// Use caseting to force the bitwise XOR
-	return (void *) ((uint32_t) block_ptr ^ block_size);
+int8_t* BuddyAdd(int8_t* block_ptr, uint32_t block_size) {
+	uint32_t hs = getHeapSize();
+	int8_t* heap = getHeapBase();
+	
+	// Use casting to force the bitwise XOR
+	return (int8_t *) ((uint32_t) (block_ptr-heap) ^ block_size + (uint32_t) heap);
 }
 
 
@@ -97,6 +123,8 @@ int8_t Size2Order(uint32_t size) {
 	return logbase2(size) - logbase2(BASE_ORDER_BYTES);
 }
 
+
+
 //******** Heap_Init *************** 
 // Initialize the Heap
 // input: none
@@ -104,8 +132,11 @@ int8_t Size2Order(uint32_t size) {
 // notes: Initializes/resets the heap to a clean state where no memory
 //  is allocated.
 int32_t Heap_Init(void){
-	int8_t order = -1 * Size2Order(HEAP_SIZE);
-	HEAP[0] = order;
+	uint32_t hs = getHeapSize();
+	int8_t* heap = getHeapBase();
+	
+	int8_t order = -1 * Size2Order(hs);
+	heap[0] = order;
   return 0; 
 }
 
@@ -117,14 +148,17 @@ int32_t Heap_Init(void){
 // output: void* pointing to the allocated memory or will return NULL
 //   if there isn't sufficient space to satisfy allocation request
 void* Heap_Malloc(int32_t desiredBytes){
+	uint32_t hs = getHeapSize();
+	int8_t* heap = getHeapBase();
+	
 	int8_t min_order = Size2Order(desiredBytes); // Relative to the base order
 	uint32_t bs = Order2Size(min_order); 					// Effectively just rounds up to the nearest power of 2
 	
-	int8_t* current_block = HEAP;
+	int8_t* current_block = heap;
 	
 	// We can jump by blocks of size min_order
 	// Because blocks are always aligned based on their order
-	while(current_block - HEAP < HEAP_SIZE) {
+	while(current_block - heap < hs) {
 		if(*current_block > 0) {
 			// Block is allocated, continue to next
 			current_block += Order2Size(min_order);
@@ -154,6 +188,9 @@ void* Heap_Malloc(int32_t desiredBytes){
 //   if there isn't sufficient space to satisfy allocation request
 //notes: the allocated memory block will be zeroed out
 void* Heap_Calloc(int32_t desiredBytes){  
+	uint32_t hs = getHeapSize();
+	int8_t* heap = getHeapBase();
+	
 	void *ptr = Heap_Malloc(desiredBytes); // Alloc
 	
 	if(ptr)
@@ -202,18 +239,19 @@ int32_t Heap_Free(void* pointer){
 	// 1. Find the buddy
 	int8_t* buddy = BuddyAdd(ptr, Order2Size(*ptr)); // TODO Fix
 	
-	
-	
 	// While buddy is free
 	while(buddy[0] < 0) {
 		// And is of the same size 
 		if(buddy[0] == ptr[0]) {
-			// Merge
+			// Merge (add 1 to the order magnitude)
 			buddy[0] -= 1;
 			ptr[0] -= 1;
 			
 			// Find new buddy
-			buddy = HEAP; // TODO Fix
+			buddy = BuddyAdd(ptr, Order2Size(*ptr));
+		}
+		else {
+			break; // Buddy is not of the same order - cant merge
 		}
 	}
 	
@@ -226,21 +264,24 @@ int32_t Heap_Free(void* pointer){
 // input: reference to a heap_stats_t that returns the current usage of the heap
 // output: 0 in case of success, non-zeror in case of error (e.g. corrupted heap)
 int32_t Heap_Stats(heap_stats_t *stats){
-	stats->size = HEAP_SIZE;
-	int8_t* currentBlock = HEAP;
-	int8_t order = HEAP[0];
+	uint32_t hs = getHeapSize();
+	int8_t* heap = getHeapBase();
+	
+	stats->size = hs;
+	int8_t* currentBlock = heap;
+	int8_t order = heap[0];
 	
 	// Go through the whole heap
-	while(currentBlock - HEAP < HEAP_SIZE) {
+	while(currentBlock - heap < hs) {
 		if(*currentBlock < 0) {
 			// Block is free
-			uint32_t n_bytes = MIN_SIZE << -(*currentBlock);
+			uint32_t n_bytes = BASE_ORDER_BYTES << -(*currentBlock);
 			stats->free += n_bytes - 1; // Account for the byte of overhead
 			currentBlock += n_bytes;
 		}
 		else {
 			// Block is used
-			uint32_t n_bytes = MIN_SIZE << *currentBlock;
+			uint32_t n_bytes = BASE_ORDER_BYTES << *currentBlock;
 			stats->free += n_bytes - 1; // Account for the byte of overhead
 			currentBlock += n_bytes;
 		}

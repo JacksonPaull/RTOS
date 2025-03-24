@@ -46,7 +46,7 @@ uint32_t NumCreated;   // number of foreground threads created
 uint32_t IdleCount;    // CPU idle counter
 
 //---------------------User debugging-----------------------
-extern int32_t MaxJitter;             // largest time jitter between interrupts in usec
+// extern int32_t MaxJitter;             // largest time jitter between interrupts in usec
 
 #define PD0  (*((volatile uint32_t *)0x40007004))
 #define PD1  (*((volatile uint32_t *)0x40007008))
@@ -130,7 +130,7 @@ void Idle(void){
 int realmain(void){ // realmain
   OS_Init();        // initialize, disable interrupts
   PortD_Init();     // debugging profile
-  MaxJitter = 0;    // in 1us units
+  // MaxJitter = 0;    // in 1us units
 	
   // hardware init
   ADC_Init(0);  // sequencer 3, channel 0, PE3, sampling in Interpreter
@@ -517,7 +517,7 @@ int Testmain2(void){   // Testmain2
 
 //*****************Test project 3*************************
 // Test supervisor calls (SVC exceptions)
-// Using inline assembly, syntax is dependent on the compiler
+// Using in_line assembly, syntax is dependent on the compiler
 // Implemented in startup.s
 uint32_t SVC_OS_Id(void);
 void SVC_OS_Kill(void);
@@ -525,13 +525,13 @@ void SVC_OS_Sleep(uint32_t t);
 uint32_t SVC_OS_Time(void);
 int SVC_OS_AddThread(void(*t)(void), uint32_t s, uint32_t p);
 
-uint32_t line = 0;
+uint32_t _line = 0;
 void TestSVCThread(void){ uint32_t id;	
   id = SVC_OS_Id();
   PD3 ^= 0x08;
-  ST7735_Message(0,line++, "Thread: ", id);
+  ST7735_Message(0,_line++, "Thread: ", id);
   SVC_OS_Sleep(500);
-  ST7735_Message(0,line++, "Thread dying: ", id);
+  ST7735_Message(0,_line++, "Thread dying: ", id);
   PD3 ^= 0x08;
   SVC_OS_Kill();
 }
@@ -541,14 +541,14 @@ void TestSVC(void){ uint32_t id; uint32_t time;
   printf("\n\rEE445M/EE380L, Lab 5 SCV Test\n\r");
   id = SVC_OS_Id();
   PD2 ^= 0x04;
-  ST7735_Message(0,line++, "SVC test: ", id);
+  ST7735_Message(0,_line++, "SVC test: ", id);
   SVC_OS_AddThread(TestSVCThread, 128, 1);
   time = SVC_OS_Time();
   SVC_OS_Sleep(1000);
   time = (((OS_TimeDifference(time, SVC_OS_Time()))/1000ul)*125ul)/10000ul;
-  ST7735_Message(0,line++, "Sleep time: ", time);
+  ST7735_Message(0,_line++, "Sleep time: ", time);
   PD2 ^= 0x04;
-  if(line != 4) {
+  if(_line != 4) {
     printf("SVC test error");
     OS_Kill();
   }
@@ -558,8 +558,8 @@ void TestSVC(void){ uint32_t id; uint32_t time;
 }
 
 void SWPush3(void){
-  if(line>=4){
-    line = 0;
+  if(_line>=4){
+    _line = 0;
     if(OS_AddThread(&TestSVC,128,1)){
       NumCreated++;
     }
@@ -583,7 +583,9 @@ int Testmain3(void){   // Testmain3
   return 0;               // this never executes
 }
 
-//*******************Trampoline for selecting main to execute**********
+//*******************Trampo_line for selecting main to execute**********
 int main(void) { 			// main
-  realmain();
+	Testmain1();
+	
+  // realmain();
 }

@@ -4,8 +4,11 @@
 
 #include "./scheduler.h"
 
+// TODO: Update the the INIT_TCB to just be a thread added in OS_Launch with minimum priority 
+// that counts idle cycles and can report CPU Utilization 
+// Note: Need a high priority version of the same thread that executes for 1ms or so to calibrate on launch
 
-TCB_t INIT_TCB;		// TCB Used upon first entry into the scheduler
+TCB_t INIT_TCB;
 
 // A separate linked list for each priority level
 // +1 for inclusive max_priority (i.e. max_prio = 8 -> thread.priority = 8 is valid)

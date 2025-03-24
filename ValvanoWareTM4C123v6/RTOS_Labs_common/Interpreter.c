@@ -78,6 +78,7 @@ const Command commands[] = {
 	{"help", &print_help}, 								//"help\r\n\tPrints all help strings\r\n\n"},
 	{"clear", &clear_screen},							// "clear\r\n\tNo arguments, clears the screen\r\n\n"},	
 	
+#if EFILE_H
 	{"ls", &ls},
 	{"cd", &cd},
 	{"cat", &cat},
@@ -86,6 +87,7 @@ const Command commands[] = {
 	{"mkdir", &mkdir},
 	{"save", &save},
 	{"append", &append},
+#endif
 	
 	// Sentinel function, do not replace or move from last spot
 	{"exit", 0} 													//, "exit\r\n\tExits\r\n\n"} 
@@ -94,7 +96,7 @@ const Command commands[] = {
 extern void DisableInterrupts();
 extern void EnableInterrupts();
 
-
+#if EFILE_H
 void pwd(void) {
 	Dir_t d;
 	Dir_t parent;
@@ -113,14 +115,20 @@ void pwd(void) {
 	eFile_D_close(&d);
 	eFile_D_close(&parent);
 }
+#endif
 
 // *********** Command line interpreter (shell) ************
 void Interpreter(void){ 
 	while(1) {
 		// Read Command
+		#if EFILE_H
 		printf("[");
 		pwd();
 		printf("]: ");
+		#else
+		printf("[command] "); 
+		#endif
+		
 		UART_InString(line, 512);
 		printf("\r\n"); //Flush
 		
@@ -186,6 +194,7 @@ void Interpreter(void){
 	}
 }
 
+#if EFILE_H
 int ls(int num_args, ...) {
 	Dir_t d;
 	eFile_Open(".", &d);
@@ -276,6 +285,7 @@ int mkdir(int num_args, ...) {
 	
 	return eFile_CreateDir(path) != 1;
 }
+#endif
 
 int int_time_reset(int num_args, ...) {
 	// No args
