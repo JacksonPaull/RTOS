@@ -296,7 +296,7 @@ int Testmain0(void){  // Testmain0
 
 //*****************Test project 1*************************
 // Heap test, allocate and deallocate memory
-#define TEST_MALLOC 1
+#define TEST_MALLOC 3
 
 void heapError(const char* errtype,const char* v,uint32_t n){
   printf("%s",errtype);
@@ -328,7 +328,7 @@ void TestHeap(void){  int16_t i;
   printf("\n\rEE445M/EE380L, Lab 5 Heap Test\n\r");
   // if(Heap_Init())         heapError("Heap_Init","",0);
 
-	#if TEST_MALLOC
+	#if TEST_MALLOC == 1
   ptr = Heap_Malloc(sizeof(int16_t));
   if(!ptr)                heapError("Heap_Malloc","ptr",0);
   *ptr = 0x1111;
@@ -367,7 +367,7 @@ void TestHeap(void){  int16_t i;
   if(ptr)                 heapError("Heap_Malloc","i",i);
   heapStats();
   
-	#else
+	#elif TEST_MALLOC == 2
   printf("Realloc test\n\r");
   // if(Heap_Init())         heapError("Heap_Init","",1);
   q1 = Heap_Malloc(1);
@@ -391,10 +391,11 @@ void TestHeap(void){  int16_t i;
   q1 = Heap_Realloc(q6, 2);
   heapStats();
 
+	#elif TEST_MALLOC == 3
   printf("Large block test\n\r");
-  if(Heap_Init())         heapError("Heap_Init","",2);
+  // if(Heap_Init())         heapError("Heap_Init","",2);
   heapStats();
-  maxBlockSize = stats.free;
+  maxBlockSize = 4000;	// Big number that accounts for the heap fragmentation from the initial stacks
   bigBlock = Heap_Malloc(maxBlockSize);
   for(i = 0; i < maxBlockSize; i++){
     bigBlock[i] = 0xFF;

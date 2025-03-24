@@ -150,19 +150,19 @@
       <Breakpoint>
         <Bp>
           <Number>0</Number>
-          <Type>0</Type>
-          <LineNumber>583</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>5668</Address>
-          <ByteObject>0</ByteObject>
+          <Type>2</Type>
+          <LineNumber>0</LineNumber>
+          <EnabledFlag>0</EnabledFlag>
+          <Address>536875264</Address>
+          <ByteObject>1</ByteObject>
           <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
+          <ManyObjects>1</ManyObjects>
+          <SizeOfObject>1</SizeOfObject>
+          <BreakByAccess>2</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\RTOS_Labs_common\OS.c</Filename>
+          <Filename></Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\Lab5\../RTOS_Labs_common/OS.c\583</Expression>
+          <Expression>HeapMem</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>
@@ -214,7 +214,7 @@
         <Mm>
           <WinNumber>2</WinNumber>
           <SubType>0</SubType>
-          <ItemText>0x200010f0</ItemText>
+          <ItemText>0x20001308</ItemText>
           <AccSizeX>0</AccSizeX>
         </Mm>
       </MemoryWindow2>

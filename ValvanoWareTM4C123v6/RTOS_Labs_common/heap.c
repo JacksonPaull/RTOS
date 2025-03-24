@@ -211,7 +211,7 @@ void* Heap_Calloc(int32_t desiredBytes){
 // notes: the given block may be unallocated and its contents
 //   are copied to a new block if growing/shrinking not possible
 void* Heap_Realloc(void* oldBlock, int32_t desiredBytes){
-	int32_t desiredWords = (desiredBytes+3)/4;
+	desiredBytes = (desiredBytes+3)/4 * 4;	// Round up to the nearest word
 	void* ptr = 0;
 	
 	int I = StartCritical();
@@ -221,20 +221,28 @@ void* Heap_Realloc(void* oldBlock, int32_t desiredBytes){
 	int32_t next_block_size = *nextBlockHeader;
 	
 	if(desiredBytes > block_size) { // Potential for growth
-			if(block_size - next_block_size  + 8 >= desiredBytes) { // Account for the fact that we can remove the header and footer in the middle potentially
-				// Next page is free and large enough to grow this sector instead of reallocating 
+			
+			if(next_block_size < 0 && 															// Next Block Free
+				block_size - next_block_size  + 8 == desiredBytes) { 	// Account for the fact that we can remove the header and footer in the middle potentially
+				// Merge both of these blocks together as one
+				*block_header = desiredBytes;
+				*(nextBlockHeader+next_block_size/4+1) 	= desiredBytes;
+				ptr = oldBlock;
+			}
+			else if (next_block_size < 0 &&
+				block_size-next_block_size >= desiredBytes) {
+				// Next page is free and large enough to grow this sector instead of reallocating , but we still need the headers and footers
 				*block_header 													= desiredBytes;								// Alloc header
-				*(block_header+desiredWords+1)  				= desiredBytes; 							// Alloc footer
-				*(block_header+desiredWords+2)  				= next_block_size-block_size + desiredBytes+8; 		// Frag header
-				*(nextBlockHeader+next_block_size/4+1) 	= next_block_size-block_size + desiredBytes+8 ; 	// Frag footer
+				*(block_header+desiredBytes/4+1)  			= desiredBytes; 							// Alloc footer
+				*(block_header+desiredBytes/4+2)  			= next_block_size-block_size + desiredBytes; 		// Frag header
+				*(nextBlockHeader+next_block_size/4+1) 	= next_block_size-block_size + desiredBytes ; 	// Frag footer
 				
 				ptr = oldBlock;
-		
 				// Note: if the next block isnt free, then nextBlockHeader will be positive, and therefore the subtraction will be less than the desired bytes
 			}
 			else { // Alloc new block
 				ptr = Heap_Malloc(desiredBytes);
-				memcpy(ptr, oldBlock, desiredBytes); // Copy extra garbage over but thats ok, this isnt calloc
+				memcpy(ptr, oldBlock, block_size);
 				Heap_Free(oldBlock);
 			}
 	}
@@ -242,8 +250,8 @@ void* Heap_Realloc(void* oldBlock, int32_t desiredBytes){
 		// shrinkage
 		
 		*block_header 									= desiredBytes;								// Alloc header
-		*(block_header+desiredWords+1)  = desiredBytes; 							// Alloc footer
-		*(block_header+desiredWords+2)  = desiredBytes-block_size+8; 	// Frag header
+		*(block_header+desiredBytes/4+1)= desiredBytes; 							// Alloc footer
+		*(block_header+desiredBytes/4+2)= desiredBytes-block_size+8; 	// Frag header
 		*(block_header+block_size/4+1) 	= desiredBytes-block_size+8; 	// Frag footer
 		
 		ptr = oldBlock;
@@ -264,6 +272,9 @@ void* Heap_Realloc(void* oldBlock, int32_t desiredBytes){
 // output: 0 if everything is ok, non-zero in case of error (e.g. invalid pointer
 //     or trying to unallocate memory that has already been unallocated
 int32_t Heap_Free(void* pointer){
+	if(!pointer) 
+		return 0; // Freeing null pointer OK
+	
 	int I = StartCritical();
 	
 	int32_t* block_header = (int32_t*) (pointer-4);
