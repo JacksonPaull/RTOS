@@ -1,9 +1,7 @@
 
 LAB 5
-- Heap free (and probably realloc as well) should be reworked - they do be hard faulting tho
 - PCB struct
 - add process
-- heap implementation (knuth buddy)
 - SVC calls and handling
 - place user.axf onto a formatted FAT filesys
 	- altap salamander for fatfs
