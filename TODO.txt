@@ -1,14 +1,31 @@
 
-Needs debugging:
-	- Changing dir
-	- Ensure that threads properly track (and keep open) their current directory (defaulting to root if they dont have one open)
-
-LAB 4
-- documentation
-- standardize error codes
-(graduate project report - Create call graph for documentation)
-
 LAB 5
 - PCB struct
 - add process
 - heap implementation (knuth buddy)
+- SVC calls and handling
+- place user.axf onto a formatted FAT filesys
+	- altap salamander for fatfs
+- SVC calls
+- add interpreter command to launch and load
+		
+
+
+Graduate Project
+--------------------------------------------------
+	Filesys
+	----------------
+	a) Create better documentation
+	b) Create call graph
+	c) Standardize error codes
+	d) Thoroughly debug changing directories and such
+
+	Background Threads
+	---------------------
+	a) Create better documentation
+	b) Create diagrams
+	c) Update all threads to use malloc instead of global pools
+
+	Heap
+	----------------------
+	a) Update to knuth buddy allocation
