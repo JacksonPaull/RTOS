@@ -151,22 +151,6 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>1032</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>5076</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\RTOS_Labs_common\OS.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\Lab5\../RTOS_Labs_common/OS.c\1032</Expression>
-        </Bp>
-        <Bp>
-          <Number>1</Number>
-          <Type>0</Type>
           <LineNumber>330</LineNumber>
           <EnabledFlag>1</EnabledFlag>
           <Address>18652</Address>
@@ -179,38 +163,6 @@
           <Filename>..\RTOS_Labs_common\OS.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression>\\Lab5\../RTOS_Labs_common/OS.c\330</Expression>
-        </Bp>
-        <Bp>
-          <Number>2</Number>
-          <Type>0</Type>
-          <LineNumber>325</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>9564</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>.\Lab5.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\Lab5\Lab5.c\325</Expression>
-        </Bp>
-        <Bp>
-          <Number>3</Number>
-          <Type>0</Type>
-          <LineNumber>1029</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>0</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>0</BreakIfRCount>
-          <Filename>..\RTOS_Labs_common\OS.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression></Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>
