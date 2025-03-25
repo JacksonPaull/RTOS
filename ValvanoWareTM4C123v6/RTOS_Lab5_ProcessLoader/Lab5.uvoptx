@@ -150,19 +150,51 @@
       <Breakpoint>
         <Bp>
           <Number>0</Number>
-          <Type>2</Type>
-          <LineNumber>0</LineNumber>
-          <EnabledFlag>0</EnabledFlag>
-          <Address>536875264</Address>
-          <ByteObject>1</ByteObject>
+          <Type>0</Type>
+          <LineNumber>475</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>9840</Address>
+          <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
-          <ManyObjects>1</ManyObjects>
-          <SizeOfObject>1</SizeOfObject>
-          <BreakByAccess>2</BreakByAccess>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename></Filename>
+          <Filename>.\Lab5.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>HeapMem</Expression>
+          <Expression>\\Lab5\Lab5.c\475</Expression>
+        </Bp>
+        <Bp>
+          <Number>1</Number>
+          <Type>0</Type>
+          <LineNumber>489</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>10066</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>.\Lab5.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\Lab5\Lab5.c\489</Expression>
+        </Bp>
+        <Bp>
+          <Number>2</Number>
+          <Type>0</Type>
+          <LineNumber>456</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>10286</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>.\Lab5.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\Lab5\Lab5.c\456</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>
@@ -184,21 +216,6 @@
         <Ww>
           <count>3</count>
           <WinNumber>1</WinNumber>
-          <ItemText>Periodic_Threads</ItemText>
-        </Ww>
-        <Ww>
-          <count>4</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>sw2_tasks</ItemText>
-        </Ww>
-        <Ww>
-          <count>5</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>OS_FIFO_data</ItemText>
-        </Ww>
-        <Ww>
-          <count>6</count>
-          <WinNumber>1</WinNumber>
           <ItemText>RunPt</ItemText>
         </Ww>
       </WatchWindow1>
@@ -214,7 +231,7 @@
         <Mm>
           <WinNumber>2</WinNumber>
           <SubType>0</SubType>
-          <ItemText>0x20001308</ItemText>
+          <ItemText>0x200016A0</ItemText>
           <AccSizeX>0</AccSizeX>
         </Mm>
       </MemoryWindow2>

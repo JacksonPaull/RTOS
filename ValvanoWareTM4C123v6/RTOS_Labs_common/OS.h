@@ -20,24 +20,14 @@
 #include "../inc/tm4c123gh6pm.h"
 #include "../inc/CortexM.h"
 
-/**
- * \brief Times assuming a 80 MHz
- */      
- 
-#define TIME_1S			80000000
-#define TIME_1MS    80000          
-#define TIME_2MS    (2*TIME_1MS)  
-#define TIME_10MS   (10*TIME_1MS) 
-#define TIME_500US  (TIME_1MS/2)  
-#define TIME_250US  (TIME_1MS/4)  
-#define TIME_100US	8000
-#define TIME_10US		800
-#define TIME_1US		80
-#define TIME_100NS	8
+
 
 // Thread control stuff
 #define MAX_NUM_THREADS 25
 #define BACKGROUND_STACK_SIZE 512
+
+// Flag to indicate whether a filesys is loaded (and therefore to start the timer
+#define USEFILESYS 0
 
 // Note: Periodic threads and switch tasks DO have their own stack
 //			 and therefore they take away from the total pool of threads (when allocated)
@@ -50,8 +40,11 @@
 typedef struct PCB {
 	uint8_t id;
 	uint8_t numThreadsAlive;
-	int8_t *heap;
-	uint32_t heap_size; 
+	void *text;
+	void *data;
+	void* heap;
+	int32_t heap_size;
+	struct PCB *parent;
 	
 } PCB_t;
 
@@ -430,5 +423,17 @@ int OS_RedirectToUART(void);
  int OS_RedirectToST7735(void);
 
 TCB_t* OS_get_current_TCB(void);
+
+// Time defines
+#define TIME_1S			80000000
+#define TIME_1MS    80000          
+#define TIME_2MS    (2*TIME_1MS)  
+#define TIME_10MS   (10*TIME_1MS) 
+#define TIME_500US  (TIME_1MS/2)  
+#define TIME_250US  (TIME_1MS/4)  
+#define TIME_100US	8000
+#define TIME_10US		800
+#define TIME_1US		80
+#define TIME_100NS	8
 
 #endif

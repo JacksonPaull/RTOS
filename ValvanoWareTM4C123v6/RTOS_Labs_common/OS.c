@@ -63,6 +63,8 @@ FIFO_t OS_FIFO;
 
 uint16_t thread_cnt = 0;
 uint16_t thread_cnt_alive = 0;
+uint16_t num_processes = 0;
+uint16_t num_processes_alive = 0;
 
 // Thread control structures
 // TODO Remove both of these, move to dynamic allocation
@@ -359,8 +361,10 @@ void OS_Init(void){
 	// Set PendSV priority to 7;
 	SYSPRI3 = (SYSPRI3 &0xFF0FFFFF) | 0x00E00000;
 	
+	#if USEFILESYS
 	OS_AddPeriodicThread(&disk_timerproc, TIME_1MS, 0);
 	OS_AddThread(&fs_init_task, 512, 0);	// Note: OS_Init should always be called before adding any threads so this should always execute first. Adding threads to a non-initialized OS is undefined behavior
+	#endif
 	
 	//TODO  any OS controlled ADCs, etc
 
@@ -482,14 +486,12 @@ TCB_t* SpawnThread(uint8_t isBackgroundThread, uint8_t priority, uint32_t stack_
 	thread->isBackgroundThread = isBackgroundThread;
 	thread->sleep_count = 0;
 	thread->priority = priority;
-	
 	thread->currentDir = 0;
+	thread->process = 0;
 	
+	// Inherit the RunPt process if possible. Defaults to 0 (base OS process)
 	if(RunPt) {
 		thread->process = RunPt->process;
-	}
-	else {
-		thread->process = 0;
 	}
 	
 	return thread;
@@ -535,9 +537,58 @@ int OS_AddThread(void(*task)(void),
 int OS_AddProcess(void(*entry)(void), void *text, void *data, 
   unsigned long stackSize, unsigned long priority){
   // put Lab 5 solution here
-
+	
+	// Create new PCB
+	PCB_t *PCB = malloc(sizeof(PCB_t));
+	if(!PCB) {
+		return 0;
+	}
+		
+	PCB->text = text;
+	PCB->data = data;
+	PCB->id = ++num_processes;
+	++num_processes_alive;
+	PCB->heap_size = PROCESS_HEAP_SIZE;
+	PCB->heap = malloc(PROCESS_HEAP_SIZE);
+	PCB->parent = RunPt->process; // Will be 0 for the base OS process, and nonzero for any user added process.
+	if(!PCB->heap) {
+		free(PCB);
+		return 0;
+	}
+	
+	/*
+		Doing the above nesting allows for user proceses to create other processes without inflating the total memory allocation they are given.
+		Any process must maintain its total allocation on disk including any additional threads and other processes it chooses to create.
+		The OS is the base process and therefore has access to the entire heap space.
+	*/
+		
+	int I = StartCritical();
+	
+	
+	// Do stuff in the context of the new proccess heap
+	RunPt->process = PCB;
+	
+	// Allocate a foreground thread and link to the PCB
+	Heap_Init(); // initialize the new heap
+	TCB_t *thread = SpawnThread(0, priority, stackSize);
+	
+	// Return the heap context to the parent process
+	RunPt->process = PCB->parent;
+	
+	if(thread == 0) {
+		free(PCB->heap);
+		free(PCB);
+		EndCritical(I);
+		return 0;
+	}
+	
+	thread->process = PCB;
+	PCB->numThreadsAlive++;
+	thread_init_stack(thread, entry, &OS_Kill, stackSize);
+	scheduler_schedule(thread);
+  EndCritical(I);
      
-  return 0; // replace this line with Lab 5 solution
+  return 1; // replace this line with Lab 5 solution
 }
 
 
@@ -627,6 +678,11 @@ int OS_AddPeriodicThread(void(*task)(void),
 	t->TCB = thread;
 	t->task = task;
 	t->cnt = period;
+	
+	if(RunPt->process) {
+		t->TCB->process = RunPt->process;
+		t->TCB->process->numThreadsAlive++; // Note: adding a periodic thread to a process means it will never die. This makes sense when its considered that periodic tasks return and are scheduled again
+	}
 
 	if(NumPeriodicThreads == 1) {
 		// Set the timer to start running on first added thread
@@ -648,6 +704,7 @@ int OS_AddPeriodicThread(void(*task)(void),
 typedef struct SW_Task {
 	TCB_t *TCB;
 	void (*task)(void);
+	// ack flag (x10, x01, or 0x11) -- allows you to register to either switch or both and uses same pool
 } SW_Task_t;
 
 SW_Task_t sw1_tasks[MAX_SWITCH_TASKS];
@@ -743,6 +800,11 @@ int OS_AddSW1Task(void(*task)(void), uint32_t priority){
 	SW_Task_t *sw = &sw1_tasks[num_sw1_tasks];
 	sw->task = task;
 	sw->TCB = thread;
+	
+	if(RunPt->process) {
+		sw->TCB->process = RunPt->process;
+		sw->TCB->process->numThreadsAlive++; // Note: adding a background thread to a process means it will never die.
+	}
 
 	num_sw1_tasks++;
   return 1;
@@ -772,6 +834,11 @@ int OS_AddSW2Task(void(*task)(void), uint32_t priority){
 	sw->task = task;
 	sw->TCB = thread;
 
+	if(RunPt->process) {
+		sw->TCB->process = RunPt->process;
+		sw->TCB->process->numThreadsAlive++; // Note: adding a background thread to a process means it will never die.
+	}
+	
 	num_sw2_tasks++;
   return 1;
 };
@@ -783,13 +850,11 @@ int OS_AddSW2Task(void(*task)(void), uint32_t priority){
 // output: none
 // You are free to select the time resolution for this function
 // OS_Sleep(0) implements cooperative multitasking
-void OS_Sleep(uint32_t sleepTime){
+void OS_Sleep(uint32_t sleepTime){ 
+	DisableInterrupts(); // Disable Interrupts while we mess with the TCBs
 	TCB_t *thread = RunPt;
 	thread->sleep_count = sleepTime;
 	
-	// Disable Interrupts while we mess with the TCBs
-	
-	DisableInterrupts();
 	scheduler_unschedule(thread); // Unschedule current thread
 	LL_append_linear((LL_node_t **) &sleeping_thread_list_head, (LL_node_t *)thread); // Add to sleeping list
 	ContextSwitch();
@@ -801,15 +866,13 @@ void OS_Sleep(uint32_t sleepTime){
 // input:  none
 // output: none
 void OS_Kill(void){
-	TCB_t *node = RunPt;
 	
-	int I = StartCritical();
-	// Adjust PCB // TODO Fix this
-//	if(--node->process->numThreadsAlive == 0) {
-//		// Can delete the process as well
-//		free(node->process->heap);
-//	}
-	EndCritical(I);
+	DisableInterrupts();
+	TCB_t *node = RunPt;
+	PCB_t *proc = node->process;
+	scheduler_unschedule(node);
+	thread_cnt_alive--;
+
 	
 	// Reset TCB properties
 	free(node->stack_base);
@@ -822,10 +885,23 @@ void OS_Kill(void){
 	// Note: We don't need to mess with the SP 
 	//				as it will be automatically reset when a new thread is added
 	
+	// Adjust PCB // TODO Fix this
+	if(proc) {
+		// Node was a part of a user-loaded process
+		if(--proc->numThreadsAlive == 0) {
+			// Need to free the process resources from the base heap (or other parent's heap)
+			RunPt->process = proc->parent; // Since we are killing the thread anyways this is fine
+			free(proc->data);
+			free(proc->text);
+			free(proc->heap);
+			free(proc);
+			
+			num_processes_alive--;
+		}
+	}
 	
-	DisableInterrupts();
-	scheduler_unschedule(node);
-	thread_cnt_alive--;
+	
+	
 	LL_append_linear((LL_node_t **) &inactive_thread_list_head, (LL_node_t *)node);
 	ContextSwitch();
 	EnableInterrupts();

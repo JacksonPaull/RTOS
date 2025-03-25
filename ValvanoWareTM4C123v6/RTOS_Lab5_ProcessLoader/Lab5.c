@@ -472,7 +472,7 @@ void TestProcess(void){ heap_stats_t heap1, heap2;
   ST7735_Message(1,2,"Heap free  =",heap1.free);
   ST7735_Message(1,3,"Heap waste =",heap1.size - heap1.used - heap1.free);
   PD1 ^= 0x02;
-  if(!OS_AddProcess(&TestUser,Heap_Calloc(128),Heap_Calloc(128),128,1)){
+  if(!OS_AddProcess(&TestUser,Heap_Calloc(128),Heap_Calloc(128),512,1)){
     printf("OS_AddProcess error");
     OS_Kill();
   }
@@ -514,8 +514,8 @@ int Testmain2(void){   // Testmain2
   
   // create initial foreground threads
   NumCreated = 0;
-  NumCreated += OS_AddThread(&TestProcess,128,1);  
-  NumCreated += OS_AddThread(&Idle,128,3); 
+  NumCreated += OS_AddThread(&TestProcess,512,1);  
+  NumCreated += OS_AddThread(&Idle,256,3); 
  
   OS_Launch(10*TIME_1MS); // doesn't return, interrupts enabled in here
   return 0;               // this never executes
@@ -591,7 +591,7 @@ int Testmain3(void){   // Testmain3
 
 //*******************Trampo_line for selecting main to execute**********
 int main(void) { 			// main
-	Testmain1();
-	
+	// Testmain1(); // Passed
+	Testmain2();
   // realmain();
 }

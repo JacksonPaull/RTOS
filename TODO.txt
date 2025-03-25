@@ -1,7 +1,5 @@
 
 LAB 5
-- PCB struct
-- add process
 - SVC calls and handling
 - place user.axf onto a formatted FAT filesys
 	- altap salamander for fatfs

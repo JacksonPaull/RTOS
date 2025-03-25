@@ -277,6 +277,8 @@ int32_t Heap_Free(void* pointer){
 	
 	int I = StartCritical();
 	
+	uint32_t hs = getHeapSize();
+	int8_t* heap = getHeapBase();
 	int32_t* block_header = (int32_t*) (pointer-4);
 	int32_t* block_footer = (int32_t*) (pointer + *block_header);
 	
@@ -292,7 +294,7 @@ int32_t Heap_Free(void* pointer){
 	
 	// Check to see if we can merge with the next and previous block (and also make sure they exist before doing so)
 	// Also reclaim space for header and footer
-	if(((int8_t*)block_header - HeapMem >= 8) 
+	if(((int8_t*)block_header - heap >= 8) 
 			&& *(block_header-1) < 0) {
 		// Merge
 		int32_t* new_header = block_header + *(block_header-1)/4 - 2;
@@ -303,7 +305,7 @@ int32_t Heap_Free(void* pointer){
 		block_header = new_header;
 		
 	}
-	if(((int8_t*)block_footer - HeapMem + 8 < HEAP_SIZE) && *(block_footer+1) < 0) {
+	if(((int8_t*)block_footer - heap + 8 < hs) && *(block_footer+1) < 0) {
 		// Merge
 		int32_t* footer = block_footer - *(block_footer+1)/4 + 2;
 		

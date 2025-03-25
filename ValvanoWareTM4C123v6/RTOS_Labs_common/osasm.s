@@ -105,7 +105,7 @@ PendSV_Handler
 	BL scheduler_next	; R0 <-- pointer to next thread
 	POP {LR}
 	
-	; 2) Reset STCURRENT=0 (TODO Divorce systick and sleeping threads, then add this back)
+	; 2) Reset STCURRENT=0
 	LDR R1, =STCURRENT
 	MOV R2, #0
 	STR R2, [R1]
