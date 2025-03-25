@@ -548,7 +548,7 @@ void TestSVC(void){ uint32_t id; uint32_t time;
   id = SVC_OS_Id();
   PD2 ^= 0x04;
   ST7735_Message(0,_line++, "SVC test: ", id);
-  SVC_OS_AddThread(TestSVCThread, 128, 1);
+  SVC_OS_AddThread(&TestSVCThread, 512, 1);
   time = SVC_OS_Time();
   SVC_OS_Sleep(1000);
   time = (((OS_TimeDifference(time, SVC_OS_Time()))/1000ul)*125ul)/10000ul;
@@ -566,7 +566,7 @@ void TestSVC(void){ uint32_t id; uint32_t time;
 void SWPush3(void){
   if(_line>=4){
     _line = 0;
-    if(OS_AddThread(&TestSVC,128,1)){
+    if(OS_AddThread(&TestSVC,512,1)){
       NumCreated++;
     }
   }
@@ -582,7 +582,7 @@ int Testmain3(void){   // Testmain3
   
   // create initial foreground threads
   NumCreated = 0;
-  NumCreated += OS_AddThread(&TestSVC,128,1);  
+  NumCreated += OS_AddThread(&TestSVC,512,1);  
   NumCreated += OS_AddThread(&Idle,128,3); 
  
   OS_Launch(10*TIME_1MS); // doesn't return, interrupts enabled in here
@@ -592,6 +592,8 @@ int Testmain3(void){   // Testmain3
 //*******************Trampo_line for selecting main to execute**********
 int main(void) { 			// main
 	// Testmain1(); // Passed
-	Testmain2();
-  // realmain();
+	// Testmain2(); // Passed
+  Testmain3(); 
+	
+	// realmain();
 }

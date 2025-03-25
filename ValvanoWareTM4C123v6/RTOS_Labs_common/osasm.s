@@ -147,11 +147,32 @@ PendSV_exit
 
 SVC_Handler
 ; put your Lab 5 code here
+	LDR R12, [SP, #24]
+	LDRH R12, [R12, #-2]
+	BIC R12, #0xFF00
+	LDM SP, {R0-R3}
+	PUSH {LR}
+	LDR LR, =svc_done
+	
+	CMP R12, #0
+	BEQ OS_Id
+	
+	CMP R12, #1
+	BEQ OS_Kill
+	
+	CMP R12, #2
+	BEQ OS_Sleep
+	
+	CMP R12, #3
+	BEQ OS_Time
+	
+	CMP R12, #4
+	BEQ OS_AddThread
 
-
+svc_done
+	POP {LR}
+	STR R0, [SP]
     BX      LR                   ; Return from exception
-
-
 
     ALIGN
     END

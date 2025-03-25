@@ -361,6 +361,9 @@ void OS_Init(void){
 	// Set PendSV priority to 7;
 	SYSPRI3 = (SYSPRI3 &0xFF0FFFFF) | 0x00E00000;
 	
+	// Set SVC priority to 6
+	SYSPRI2 = (SYSPRI2 &0x0FFFFFFF) | 0xC0000000;
+	
 	#if USEFILESYS
 	OS_AddPeriodicThread(&disk_timerproc, TIME_1MS, 0);
 	OS_AddThread(&fs_init_task, 512, 0);	// Note: OS_Init should always be called before adding any threads so this should always execute first. Adding threads to a non-initialized OS is undefined behavior
@@ -904,12 +907,7 @@ void OS_Kill(void){
 	
 	LL_append_linear((LL_node_t **) &inactive_thread_list_head, (LL_node_t *)node);
 	ContextSwitch();
-	EnableInterrupts();
-	
-
-	
-  for(;;){};        // can not return, just wait for interrupt
-    
+	EnableInterrupts();  
 }; 
 
 // ******** OS_Suspend ************
