@@ -363,6 +363,9 @@ void OS_Init(void){
 	
 	// Set SVC priority to 6
 	SYSPRI2 = (SYSPRI2 &0x0FFFFFFF) | 0xC0000000;
+	/* Note: Setting SVC to priority 6 means that PendSV is guaranteed non-reentrant and will always return to a thread context when context switching
+		 a BX LR while in handler mode without 0xFFFFFFE9 as the LR would not properly pop the stack.
+		 In practice this means that threads will be non-preemtive while executing OS routines */
 	
 	#if USEFILESYS
 	OS_AddPeriodicThread(&disk_timerproc, TIME_1MS, 0);

@@ -1,9 +1,7 @@
 
 LAB 5
-- SVC calls and handling
 - place user.axf onto a formatted FAT filesys
 	- altap salamander for fatfs
-- SVC calls
 - add interpreter command to launch and load
 		
 

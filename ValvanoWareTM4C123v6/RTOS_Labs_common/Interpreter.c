@@ -55,6 +55,7 @@ int touch(int num_args, ...);
 int mkdir(int num_args, ...);
 int save(int num_args, ...);
 int append(int num_args, ...);
+int format_drive(int num_armgs, ...);
 
 // TODO Move help messages into a file
 
@@ -77,6 +78,8 @@ const Command commands[] = {
 	{"jitter_hist", &jitter_hist}, 				// "jitter_hist <id> <lcd_id>\r\n\t" "id: ID of jitter tracker to print out\r\n\t"},
 	{"help", &print_help}, 								//"help\r\n\tPrints all help strings\r\n\n"},
 	{"clear", &clear_screen},							// "clear\r\n\tNo arguments, clears the screen\r\n\n"},	
+	{"save", &save},
+	{"format_drive", &format_drive},
 	
 #if EFILE_H
 	{"ls", &ls},
@@ -85,7 +88,6 @@ const Command commands[] = {
 	{"rm", &rm},
 	{"touch", &touch}, 
 	{"mkdir", &mkdir},
-	{"save", &save},
 	{"append", &append},
 #endif
 	
@@ -194,6 +196,16 @@ void Interpreter(void){
 	}
 }
 
+int format_drive(int num_armgs, ...) {
+	eFile_Format();
+	return 0;
+}
+
+int save(int num_args, ...) {
+	eFile_Unmount();
+	return 0;
+}
+
 #if EFILE_H
 int ls(int num_args, ...) {
 	Dir_t d;
@@ -218,11 +230,6 @@ int cd(int num_args, ...) {
 	va_end(args);
 
 	eFile_CD(path);
-	return 0;
-}
-
-int save(int num_args, ...) {
-	eFile_Unmount();
 	return 0;
 }
 
