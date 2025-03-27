@@ -16,6 +16,7 @@
 #include "../RTOS_Labs_common/UART0int.h"
 #include "../RTOS_Labs_common/eDisk.h"
 #include "../RTOS_Labs_common/eFile.h"
+#include "../RTOS_Lab5_ProcessLoader/loader.h"
 #include "Interpreter.h"
 
 
@@ -56,6 +57,7 @@ int mkdir(int num_args, ...);
 int save(int num_args, ...);
 int append(int num_args, ...);
 int format_drive(int num_armgs, ...);
+int run(int num_args, ...);
 
 // TODO Move help messages into a file
 
@@ -80,6 +82,7 @@ const Command commands[] = {
 	{"clear", &clear_screen},							// "clear\r\n\tNo arguments, clears the screen\r\n\n"},	
 	{"save", &save},
 	{"format_drive", &format_drive},
+	{"run", &run},
 	
 #if EFILE_H
 	{"ls", &ls},
@@ -203,6 +206,21 @@ int format_drive(int num_armgs, ...) {
 
 int save(int num_args, ...) {
 	eFile_Unmount();
+	return 0;
+}
+
+
+static const ELFSymbol_t symtab[] = {
+	{"ST7735_Message", ST7735_Message}
+};
+int run(int num_args, ...) {
+	va_list args;
+	va_start(args, num_args);
+	char *path = va_arg(args, char*);
+	va_end(args);
+	
+	ELFEnv_t env = {symtab, 1};
+	if(!exec_elf(path, &env)) {return 1;}
 	return 0;
 }
 

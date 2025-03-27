@@ -236,7 +236,6 @@ void BackgroundThreadExit(void) {
 	#endif
 	ContextSwitch();
 	EnableInterrupts(); // Force interrupt enable
-	for(;;){}; // Wait for interrupt
 }
 
 unsigned long OS_LockScheduler(void){
@@ -285,7 +284,12 @@ void thread_init_stack(TCB_t* thread, void(*task)(void), void(*return_task)(void
 	thread->sp[2]  = 0x06060606; //R6
 	thread->sp[3]  = 0x07070707; //R7
 	thread->sp[4]  = 0x08080808; //R8
-	thread->sp[5]  = 0x09090909; //R9
+	if(thread->process) {
+		thread->sp[5]  = (unsigned long) thread->process->data; //R9
+	}
+	else {
+		thread->sp[5]  = 0x09090909; //R9
+	}
 	thread->sp[6]  = 0x10101010; //R10
 	thread->sp[7]  = 0x11111111; //R11
 	thread->sp[8]  = 0x00000000; //R0
@@ -479,16 +483,24 @@ void OS_bSignal(Sema4Type *semaPt){
 
 // TODO Update from popping from pool and turn into malloc
 TCB_t* SpawnThread(uint8_t isBackgroundThread, uint8_t priority, uint32_t stack_size) {
+	
+	
 	int i = StartCritical();
+	void* stack_base = malloc(stack_size);
+	if(!stack_base) {
+		EndCritical(i);
+		return 0;
+	}
 	TCB_t *thread = (TCB_t *) LL_pop_head_linear((LL_node_t **)&inactive_thread_list_head);
-	EndCritical(i);
+	
 	if(thread == 0) {
+		EndCritical(i);
 		return 0; // Cannot pull anything from list
 	}
 	
 	// Init all TCB attributes
 	thread->id = ++thread_cnt;
-	thread->stack_base = malloc(stack_size);
+	thread->stack_base = stack_base;
 	thread->isBackgroundThread = isBackgroundThread;
 	thread->sleep_count = 0;
 	thread->priority = priority;
@@ -500,6 +512,7 @@ TCB_t* SpawnThread(uint8_t isBackgroundThread, uint8_t priority, uint32_t stack_
 		thread->process = RunPt->process;
 	}
 	
+	EndCritical(i);
 	return thread;
 }
 
@@ -516,6 +529,9 @@ TCB_t* SpawnThread(uint8_t isBackgroundThread, uint8_t priority, uint32_t stack_
 // In Lab 3, you can ignore the stackSize fields
 int OS_AddThread(void(*task)(void), 
    uint32_t stackSize, uint32_t priority){
+		 if(stackSize < 512) {
+			 stackSize = 512;
+		 }
 		 
 	// Allocate a foreground thread
 	TCB_t *thread = SpawnThread(0, priority, stackSize);
@@ -543,6 +559,9 @@ int OS_AddThread(void(*task)(void),
 int OS_AddProcess(void(*entry)(void), void *text, void *data, 
   unsigned long stackSize, unsigned long priority){
   // put Lab 5 solution here
+	if(stackSize < 512) {
+			 stackSize = 512;
+		 }
 	
 	// Create new PCB
 	PCB_t *PCB = malloc(sizeof(PCB_t));
@@ -874,6 +893,8 @@ void OS_Sleep(uint32_t sleepTime){
 void OS_Kill(void){
 	
 	DisableInterrupts();
+	ContextSwitch();
+	
 	TCB_t *node = RunPt;
 	PCB_t *proc = node->process;
 	scheduler_unschedule(node);
@@ -909,7 +930,7 @@ void OS_Kill(void){
 	
 	
 	LL_append_linear((LL_node_t **) &inactive_thread_list_head, (LL_node_t *)node);
-	ContextSwitch();
+	
 	EnableInterrupts();  
 }; 
 

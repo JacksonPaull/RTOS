@@ -88,7 +88,7 @@ void ButtonWork(void){  heap_stats_t heap;
 // background threads execute once and return
 void SW1Push(void){
   if(OS_MsTime() > 20){ // debounce
-    if(OS_AddThread(&ButtonWork,256,2)){
+    if(OS_AddThread(&ButtonWork,512,2)){
       NumCreated++; 
     }
     OS_ClearMsTime();  // at least 20ms between touches
@@ -101,7 +101,7 @@ void SW1Push(void){
 // background threads execute once and return
 void SW2Push(void){
   if(OS_MsTime() > 20){ // debounce
-    if(OS_AddThread(&ButtonWork,256,2)){
+    if(OS_AddThread(&ButtonWork,512,2)){
       NumCreated++; 
     }
     OS_ClearMsTime();  // at least 20ms between touches
@@ -136,14 +136,13 @@ int realmain(void){ // realmain
   ADC_Init(0);  // sequencer 3, channel 0, PE3, sampling in Interpreter
   
   // attach background tasks
-  OS_AddPeriodicThread(&disk_timerproc,TIME_1MS,0);   // time out routines for disk  
   OS_AddSW1Task(&SW1Push,2);
   OS_AddSW2Task(&SW2Push,2);  
 
   // create initial foreground threads
   NumCreated = 0;
-  NumCreated += OS_AddThread(&Interpreter,512,2); 
-  NumCreated += OS_AddThread(&Idle,128,5);  // at lowest priority 
+  NumCreated += OS_AddThread(&Interpreter,1024,2); 
+  NumCreated += OS_AddThread(&Idle,256,5);  // at lowest priority 
  
   OS_Launch(TIME_2MS); // doesn't return, interrupts enabled in here
   return 0;            // this never executes

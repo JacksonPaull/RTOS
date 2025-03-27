@@ -154,6 +154,10 @@ SVC_Handler
 	PUSH {LR}
 	LDR LR, =svc_done
 	
+	;
+	; ADD R12, R12, PC
+	; MOV PC, R12
+	
 	CMP R12, #0
 	BEQ OS_Id
 	

@@ -158,8 +158,18 @@ void* Heap_Malloc(int32_t desiredBytes){
 	
 	while(currentBlock - heap < hs) {
 		int32_t block_size = *((int32_t*) currentBlock);
-		if(block_size < 0 && block_size + 8 < -1 * desiredBytes) {
-			// Large enough free block to allocate
+		
+		if(block_size < 0 && block_size == -1 * desiredBytes) {
+			// Large enough free block to allocate directly
+			*(int32_t *) currentBlock 			 					= desiredBytes;		// Allocated header
+			*(int32_t *)(currentBlock-block_size+4)   = desiredBytes;	// Fragment footer
+			
+			EndCritical(I);
+			return currentBlock+4;
+		}
+		
+		if(block_size < 0 && block_size + 8 <= -1 * desiredBytes) {
+			// Large enough free block to split and allocate
 			int32_t frag_size = block_size + desiredBytes + 8; // Size of the new block accounting for the new header and footer in the middle
 			
 			*(int32_t *) currentBlock 			 					= desiredBytes;		// Allocated header

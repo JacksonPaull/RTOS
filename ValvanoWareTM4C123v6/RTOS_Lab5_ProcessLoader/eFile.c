@@ -36,11 +36,14 @@ int eFile_Init(void){ // initialize file system
 // Output: 0 if successful and 1 on failure (e.g., trouble writing to flash)
 int eFile_Format(void){ // erase disk, add format
 	OS_bWait(&LCDFree);
+	printf("formatting...\r\n");
   if(f_mkfs("", 0, 0)){
 		OS_bSignal(&LCDFree);
+		printf("failed...");
     return 1;
   }
 	OS_bSignal(&LCDFree);  
+	printf("Done!\r\n");
   return 0;
 }
 

@@ -15,7 +15,7 @@
 
 // Note [1]: the real heap size is defined in startup.s. These must match
 // Note [2]: This is the total heap space in RAM. Process heaps are virtual heaps allocated within the main heap
-#define HEAP_SIZE 8192
+#define HEAP_SIZE 12288
 #define PROCESS_HEAP_SIZE 2048
 
 // Corresponds to an order of 0
