@@ -8,6 +8,19 @@ LAB 5
 
 Graduate Project
 --------------------------------------------------
+	General
+	-----------------------------------------
+	a) Find minimum reliable stack space
+	b) Try and optimize individual functions to minimize cpu util
+	c) Change OS init to add a low priority idle thread to track CPU Util
+		- Can keep the INIT_TCB as a failsafe at the cost of a couple bytes of RAM 
+
+	d) Change the hardfault/memfault handlers to call OS kill? 
+		- This way the OS stays alive with other threads but the offending thread dies
+		- (find a way to permanently remove background threads?)
+
+	e) Ensure that the interpreter is thread safe
+
 	Filesys
 	----------------
 	a) Create better documentation
@@ -24,3 +37,13 @@ Graduate Project
 	Heap
 	----------------------
 	a) Update to knuth buddy allocation
+
+	MPU
+	-------------------------
+	a) Integrate Jenna's code
+
+	REPORT
+	-------------------------
+	a) Description of all added features
+	b) Documentation for all added features
+	c) 

@@ -120,7 +120,7 @@ void Idle(void){
   while(1) {
     IdleCount++;
     PD0 ^= 0x01;
-    WaitForInterrupt();
+    // WaitForInterrupt();
   }
 }
 
@@ -136,6 +136,7 @@ int realmain(void){ // realmain
   ADC_Init(0);  // sequencer 3, channel 0, PE3, sampling in Interpreter
   
   // attach background tasks
+	PD0^=1;
   OS_AddSW1Task(&SW1Push,2);
   OS_AddSW2Task(&SW2Push,2);  
 
@@ -143,7 +144,8 @@ int realmain(void){ // realmain
   NumCreated = 0;
   NumCreated += OS_AddThread(&Interpreter,1024,2); 
   NumCreated += OS_AddThread(&Idle,256,5);  // at lowest priority 
- 
+	PD0^=1;
+	
   OS_Launch(TIME_2MS); // doesn't return, interrupts enabled in here
   return 0;            // this never executes
 }
