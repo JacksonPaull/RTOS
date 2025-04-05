@@ -235,7 +235,7 @@ void BackgroundThreadExit(void) {
 	#if EFILE_H
 	iNode_close(RunPt->currentDir);
 	#endif
-	ContextSwitch();
+	SVC_ContextSwitch();
 	EnableInterrupts(); // Force interrupt enable
 }
 

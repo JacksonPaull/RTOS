@@ -576,8 +576,8 @@ int Testmain3(void){   // Testmain3
   PortD_Init();
 
   // attach background tasks
-  //OS_AddSW1Task(&SWPush3,2);  // PF4, SW1
-  //OS_AddSW2Task(&SWPush3,2);  // PF0, SW2
+  OS_AddSW1Task(&SWPush3,2);  // PF4, SW1
+  OS_AddSW2Task(&SWPush3,2);  // PF0, SW2
   
   // create initial foreground threads
   NumCreated = 0;
@@ -606,8 +606,8 @@ int basicmain(){
   PortD_Init();
 
   // attach background tasks
-  //OS_AddSW1Task(&SWPush3,2);  // PF4, SW1
-  //OS_AddSW2Task(&SWPush3,2);  // PF0, SW2
+  OS_AddSW1Task(&SWPush3,2);  // PF4, SW1
+  OS_AddSW2Task(&SWPush3,2);  // PF0, SW2
   
   // create initial foreground threads
   NumCreated = 0;
@@ -622,8 +622,8 @@ int basicmain(){
 int main(void) { 			// main
 	// Testmain1(); // Passed
 	// Testmain2(); // Passed
-  // Testmain3(); // Passed
-	basicmain();
+  Testmain3(); // Passed
+	//basicmain();
 	
 	// realmain();
 }
