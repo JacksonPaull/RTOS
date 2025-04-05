@@ -555,7 +555,7 @@ void TestSVC(void){ uint32_t id; uint32_t time;
   PD2 ^= 0x04;
   if(_line != 4) {
     printf("SVC test error");
-    OS_Kill();
+    SVC_OS_Kill();
   }
   printf("Successful SVC test\n\r");
   ST7735_Message(0,0, "SVC test done ", id);
@@ -576,13 +576,43 @@ int Testmain3(void){   // Testmain3
   PortD_Init();
 
   // attach background tasks
-  OS_AddSW1Task(&SWPush3,2);  // PF4, SW1
-  OS_AddSW2Task(&SWPush3,2);  // PF0, SW2
+  //OS_AddSW1Task(&SWPush3,2);  // PF4, SW1
+  //OS_AddSW2Task(&SWPush3,2);  // PF0, SW2
   
   // create initial foreground threads
   NumCreated = 0;
   NumCreated += OS_AddThread(&TestSVC,512,1);  
   NumCreated += OS_AddThread(&Idle,128,3); 
+ 
+  OS_Launch(10*TIME_1MS); // doesn't return, interrupts enabled in here
+  return 0;               // this never executes
+}
+void thread1(){
+	static volatile int int1 = 0;
+	for(;;){
+		int1 = SVC_OS_Id();
+	}
+}
+void thread2(){
+	static volatile int int2 = 0;
+	for(;;){
+		int2+=1;
+	}
+}
+
+int basicmain(){
+	
+	OS_Init();           // initialize, disable interrupts
+  PortD_Init();
+
+  // attach background tasks
+  //OS_AddSW1Task(&SWPush3,2);  // PF4, SW1
+  //OS_AddSW2Task(&SWPush3,2);  // PF0, SW2
+  
+  // create initial foreground threads
+  NumCreated = 0;
+  NumCreated += OS_AddThread(&TestSVC,512,1);  
+  NumCreated += OS_AddThread(&thread2,512,2); 
  
   OS_Launch(10*TIME_1MS); // doesn't return, interrupts enabled in here
   return 0;               // this never executes
@@ -593,6 +623,7 @@ int main(void) { 			// main
 	// Testmain1(); // Passed
 	// Testmain2(); // Passed
   // Testmain3(); // Passed
+	basicmain();
 	
-	realmain();
+	// realmain();
 }

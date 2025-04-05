@@ -668,6 +668,11 @@ SVC_OS_Time
 SVC_OS_AddThread
    SVC #4
    BX  LR
+   
+   EXPORT  SVC_ContextSwitch
+SVC_ContextSwitch
+   SVC #5
+   BX  LR
 
 ;******************************************************************************
 ;

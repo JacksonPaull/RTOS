@@ -35,6 +35,7 @@ extern void ContextSwitch(void);
 extern void StartOS(void);
 extern void OSThreadReset(void);
 void PortFEdge_Init(void);
+extern void SVC_ContextSwitch(void);
 
 // For use with OS_time and related functions
 #define TRIGGERS_TO_MS 53687
@@ -405,7 +406,7 @@ void OS_Wait(Sema4Type *semaPt){
 		TCB_t *thread = RunPt;
 		scheduler_unschedule(thread);
 		PrioQ_insert((PrioQ_node_t **) &semaPt->blocked_threads_head, (PrioQ_node_t *)thread);
-		ContextSwitch(); // Trigger PendSV
+		SVC_ContextSwitch(); // Trigger PendSV
 	}
 	
 	EnableInterrupts();
