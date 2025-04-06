@@ -406,7 +406,7 @@ void OS_Wait(Sema4Type *semaPt){
 		TCB_t *thread = RunPt;
 		scheduler_unschedule(thread);
 		PrioQ_insert((PrioQ_node_t **) &semaPt->blocked_threads_head, (PrioQ_node_t *)thread);
-		SVC_ContextSwitch(); // Trigger PendSV
+		ContextSwitch(); // Trigger PendSV
 	}
 	
 	EnableInterrupts();

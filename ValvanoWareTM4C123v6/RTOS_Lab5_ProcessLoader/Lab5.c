@@ -40,6 +40,8 @@
 #include "../RTOS_Labs_common/ST7735.h"
 #include "../RTOS_Labs_common/eDisk.h"
 #include "../RTOS_Labs_common/eFile.h"
+#include "../RTOS_Lab5_ProcessLoader/svc.h"
+
 
 
 uint32_t NumCreated;   // number of foreground threads created
@@ -529,11 +531,16 @@ void SVC_OS_Kill(void);
 void SVC_OS_Sleep(uint32_t t);
 uint32_t SVC_OS_Time(void);
 int SVC_OS_AddThread(void(*t)(void), uint32_t s, uint32_t p);
+void SVC_InitSemaphore(Sema4Type *semaPt, int32_t value); 
+void SVC_ContextSwitch();
+Sema4Type sema4;
 
 uint32_t _line = 0;
 void TestSVCThread(void){ uint32_t id;	
   id = SVC_OS_Id();
   PD3 ^= 0x08;
+	
+	SVC_InitSemaphore(&sema4,1);
   ST7735_Message(0,_line++, "Thread: ", id);
   SVC_OS_Sleep(500);
   ST7735_Message(0,_line++, "Thread dying: ", id);
@@ -545,19 +552,20 @@ void TestSVC(void){ uint32_t id; uint32_t time;
   ST7735_DrawString(0, 0, "SVC test         ", ST7735_WHITE);
   printf("\n\rEE445M/EE380L, Lab 5 SCV Test\n\r");
   id = SVC_OS_Id();
+	SVC_ContextSwitch();
   PD2 ^= 0x04;
   ST7735_Message(0,_line++, "SVC test: ", id);
   SVC_OS_AddThread(&TestSVCThread, 512, 1);
   time = SVC_OS_Time();
   SVC_OS_Sleep(1000);
-  time = (((OS_TimeDifference(time, SVC_OS_Time()))/1000ul)*125ul)/10000ul;
+  time = (((SVC_TimeDifference(time, SVC_OS_Time()))/1000ul)*125ul)/10000ul;
   ST7735_Message(0,_line++, "Sleep time: ", time);
   PD2 ^= 0x04;
   if(_line != 4) {
     printf("SVC test error");
     SVC_OS_Kill();
   }
-  printf("Successful SVC test\n\r");
+	printf("Successful SVC test\n\r");
   ST7735_Message(0,0, "SVC test done ", id);
   SVC_OS_Kill();
 }
@@ -579,6 +587,8 @@ int Testmain3(void){   // Testmain3
   OS_AddSW1Task(&SWPush3,2);  // PF4, SW1
   OS_AddSW2Task(&SWPush3,2);  // PF0, SW2
   
+	
+	
   // create initial foreground threads
   NumCreated = 0;
   NumCreated += OS_AddThread(&TestSVC,512,1);  
@@ -587,36 +597,7 @@ int Testmain3(void){   // Testmain3
   OS_Launch(10*TIME_1MS); // doesn't return, interrupts enabled in here
   return 0;               // this never executes
 }
-void thread1(){
-	static volatile int int1 = 0;
-	for(;;){
-		int1 = SVC_OS_Id();
-	}
-}
-void thread2(){
-	static volatile int int2 = 0;
-	for(;;){
-		int2+=1;
-	}
-}
 
-int basicmain(){
-	
-	OS_Init();           // initialize, disable interrupts
-  PortD_Init();
-
-  // attach background tasks
-  OS_AddSW1Task(&SWPush3,2);  // PF4, SW1
-  OS_AddSW2Task(&SWPush3,2);  // PF0, SW2
-  
-  // create initial foreground threads
-  NumCreated = 0;
-  NumCreated += OS_AddThread(&TestSVC,512,1);  
-  NumCreated += OS_AddThread(&thread2,512,2); 
- 
-  OS_Launch(10*TIME_1MS); // doesn't return, interrupts enabled in here
-  return 0;               // this never executes
-}
 
 //*******************Trampo_line for selecting main to execute**********
 int main(void) { 			// main

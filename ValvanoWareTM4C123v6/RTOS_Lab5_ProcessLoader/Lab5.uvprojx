@@ -534,6 +534,11 @@
               <FileType>1</FileType>
               <FilePath>..\inc\Timer5A.c</FilePath>
             </File>
+            <File>
+              <FileName>svc.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\svc.h</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>

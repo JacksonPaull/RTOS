@@ -18,7 +18,6 @@
         EXPORT  SVC_Handler
 		
 		IMPORT scheduler_next
-		IMPORT SVC_OS_Id
 
 NVIC_INT_CTRL   EQU     0xE000ED04                              ; Interrupt control state register.
 NVIC_SYSPRI14   EQU     0xE000ED22                              ; PendSV priority register (position 14).
@@ -207,7 +206,32 @@ PendSV_exit
         IMPORT    OS_Sleep
         IMPORT    OS_Time
         IMPORT    OS_AddThread
-
+		IMPORT 	  OS_InitSemaphore
+		IMPORT	  OS_Wait
+		IMPORT OS_Signal
+		IMPORT OS_bWait
+		IMPORT OS_bSignal
+		IMPORT OS_AddPeriodicThread
+		IMPORT OS_AddSW1Task
+		IMPORT OS_AddSW2Task
+		IMPORT OS_Suspend
+		IMPORT OS_LockScheduler
+		IMPORT OS_UnLockScheduler
+		IMPORT OS_Fifo_Init
+		IMPORT OS_Fifo_Get
+		IMPORT OS_Fifo_Put
+		IMPORT OS_Fifo_Size
+		IMPORT OS_MailBox_Init
+		IMPORT OS_MailBox_Send
+		IMPORT OS_MailBox_Recv
+		IMPORT OS_TimeDifference
+		IMPORT OS_ClearMsTime
+		IMPORT OS_MsTime
+		IMPORT OS_RedirectToFile
+		IMPORT OS_EndRedirectToFile
+		IMPORT OS_RedirectToUART
+		IMPORT OS_RedirectToST7735
+			
 SVC_Handler
 ; put your Lab 5 code here
 
@@ -244,7 +268,83 @@ SVC_Handler
 	
 	CMP R12, #5
 	BEQ ContextSwitch
+	
+	CMP R12, #6
+	BEQ OS_InitSemaphore
+	
+	CMP R12, #7
+	BEQ OS_Wait
+	
+	CMP R12, #8
+	BEQ OS_Signal
+	
+	CMP R12, #9
+	BEQ OS_bWait
+	
+	CMP R12, #10
+	BEQ OS_bSignal
+	
+	CMP R12, #11
+	BEQ OS_AddPeriodicThread
 
+	CMP R12, #12
+	BEQ OS_AddSW1Task
+
+	CMP R12, #13
+	BEQ OS_AddSW2Task
+	
+	CMP R12, #14
+	BEQ OS_Suspend
+
+	CMP R12, #15
+	BEQ OS_LockScheduler
+
+	CMP R12, #16
+	BEQ OS_UnLockScheduler
+	
+	CMP R12, #17
+	BEQ OS_Fifo_Init
+	
+	CMP R12, #18
+	BEQ OS_Fifo_Put
+	
+	CMP R12, #19
+	BEQ OS_Fifo_Get
+
+	CMP R12, #20
+	BEQ OS_Fifo_Size
+	
+	CMP R12, #21
+	BEQ OS_MailBox_Init
+	
+	CMP R12, #22
+	BEQ OS_MailBox_Send
+	
+	CMP R12, #23
+	BEQ OS_MailBox_Recv
+	
+	CMP R12, #24
+	BEQ OS_TimeDifference
+	
+	CMP R12, #25
+	BEQ OS_ClearMsTime
+	
+	CMP R12, #26
+	BEQ OS_MsTime
+	
+	CMP R12, #27
+	BEQ OS_RedirectToFile
+	
+	CMP R12, #28
+	BEQ OS_EndRedirectToFile
+	
+	CMP R12, #29
+	BEQ OS_RedirectToUART
+	
+	CMP R12, #30
+	BEQ OS_RedirectToST7735
+	
+	
 svc_done
 	LDM R4, {LR}
 	ADDS R4, R4, #0x4

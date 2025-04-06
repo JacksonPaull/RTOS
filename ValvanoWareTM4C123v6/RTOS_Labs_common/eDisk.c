@@ -725,18 +725,18 @@ void disk_timerproc(void){
 
   n = Timer1;            /* 1kHz decrement timer stopped at 0 */
   if (n) Timer1 = --n;
-  n = Timer2;
-  if (n) Timer2 = --n;
+//  n = Timer2;
+//  if (n) Timer2 = --n;
 
-  s = Stat;
-  if (MMC_WP)    /* Write protected */
-    s |= STA_PROTECT;
-  else    /* Write enabled */
-    s &= ~STA_PROTECT;
-  if (MMC_CD)  /* Card is in socket */
-    s &= ~STA_NODISK;
-  else    /* Socket empty */
-    s |= (STA_NODISK | STA_NOINIT);
-  Stat = s;
+//  s = Stat;
+//  if (MMC_WP)    /* Write protected */
+//    s |= STA_PROTECT;
+//  else    /* Write enabled */
+//    s &= ~STA_PROTECT;
+//  if (MMC_CD)  /* Card is in socket */
+//    s &= ~STA_NODISK;
+//  else    /* Socket empty */
+//    s |= (STA_NODISK | STA_NOINIT);
+//  Stat = s;
 }
 
