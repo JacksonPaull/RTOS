@@ -643,7 +643,7 @@ uint32_t eFile_F_length(File_t *file) {
 }
 uint32_t eFile_F_seek(File_t *file, uint32_t pos) {
 	file->pos = pos;
-	return 0
+	return 0;
 }
 
 uint32_t eFile_F_tell(File_t *file) {
@@ -984,7 +984,7 @@ int eFile_Init(void) {
 	return 1;
 }
 
-void eFile_Format(void) {
+int eFile_Format(void) {
 	// Format drive
 	int r = 1;
 	for(uint32_t i = 0; i < NumSectors; i++) {
@@ -999,6 +999,7 @@ void eFile_Format(void) {
 	
 	Bitmap_Unmount();
 	//return r;
+	return 0;
 }
 
 uint32_t eFile_get_root_sector(void) {

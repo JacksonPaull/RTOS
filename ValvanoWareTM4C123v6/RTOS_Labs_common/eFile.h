@@ -260,8 +260,8 @@ int eFile_Init(void);
 // ******** eFile_Format ************
 // Erase the disk, reset the bitmap, and create the root directory
 // input: none
-// output: none
-void eFile_Format(void);
+// output: always 0
+int eFile_Format(void);
 
 // ******** eFile_Mount ************
 // Load the filesystem from disk

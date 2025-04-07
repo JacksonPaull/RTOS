@@ -1129,13 +1129,14 @@ void OS_Launch(uint32_t theTimeSlice){
 // TODO Figure out how to redirect to ESP if necessary
 // See the value of f when called from printf
 
-int fputc (int ch, File_t *f) { 
+int fputc (int ch, FILE *f) { 
 	// if ID == telnet_id
 	if(f == stdout) {
 		UART_OutChar(ch);
 	}
 	else {
-		eFile_F_write(f, &ch, 1);
+		printf("fuck\r\n");
+		//eFile_F_write(f, &ch, 1);
 	}
   return ch; 
 }
@@ -1146,7 +1147,8 @@ int fgetc (FILE *f){
 		ch = UART_InChar();
 	}
 	else {
-		eFile_F_read(f, &ch, 1);
+		printf("fuck2\r\n");
+		//eFile_F_read(f, &ch, 1);
 	}
   return ch;
 }

@@ -54,18 +54,19 @@ int OS_AddProcess(void(*entry)(void), void *text, void *data,
 typedef unsigned long int off_t;
 typedef void(entry_t)(void);
 
+
 // TODO Update the loader defines to use old filesys
-#define LOADER_FD_T FILE *
-FILE* LOADER_OPEN_FOR_RD(const char* path) { 
-	static FILE fd;		// only one open file at a time
+#define LOADER_FD_T File_t *
+File_t* LOADER_OPEN_FOR_RD(const char* path) { 
+	static File_t fd;		// only one open file at a time
   if(eFile_Open(path, &fd)) return NULL;
   return &fd;
 }
 #define LOADER_FD_VALID(fd) (fd != NULL)
-uint32_t LOADER_READ(FILE* fd, void *buffer, size_t size) {
+uint32_t LOADER_READ(File_t* fd, void *buffer, size_t size) {
   return eFile_F_read(fd, buffer, size);
 }
-uint32_t LOADER_WRITE(FILE* fd, void* buffer, size_t size) {
+uint32_t LOADER_WRITE(File_t* fd, void* buffer, size_t size) {
   return eFile_F_write(fd, buffer, size);
 }
 #define LOADER_CLOSE(fd) eFile_F_close(fd)

@@ -534,6 +534,11 @@
               <FileType>5</FileType>
               <FilePath>..\RTOS_Labs_common\WifiSettings.h</FilePath>
             </File>
+            <File>
+              <FileName>Bitmap.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\RTOS_Lab4_FileSystem\Bitmap.c</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>
