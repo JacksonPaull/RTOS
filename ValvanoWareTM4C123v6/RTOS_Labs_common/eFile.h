@@ -13,7 +13,7 @@
 //Define as 0 for FAT, 1 for iNode
 
 #ifndef EFILE_H
-#define EFILE_H 0
+#define EFILE_H 1
 
 
 #if EFILE_H
@@ -114,8 +114,8 @@ uint32_t eFile_F_length(File_t *file);
 // ******** eFile_F_seek ************
 // Set the cursor position of a file
 // input:  File_t *file - File being inspected
-// output: none
-void eFile_F_seek(File_t *file, uint32_t pos);
+// output: always 0
+uint32_t eFile_F_seek(File_t *file, uint32_t pos);
 
 // ******** eFile_F_tell ************
 // Get the cursor position of a file

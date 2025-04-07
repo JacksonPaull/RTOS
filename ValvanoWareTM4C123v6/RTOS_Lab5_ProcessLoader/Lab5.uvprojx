@@ -432,12 +432,7 @@
             <File>
               <FileName>eFile.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\eFile.c</FilePath>
-            </File>
-            <File>
-              <FileName>ff.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\ff.c</FilePath>
+              <FilePath>..\RTOS_Labs_common\eFile.c</FilePath>
             </File>
             <File>
               <FileName>osasm.s</FileName>
@@ -505,11 +500,6 @@
               <FilePath>..\RTOS_Lab2_RTOSkernel\LinkedList.c</FilePath>
             </File>
             <File>
-              <FileName>LinkedList.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\RTOS_Lab2_RTOSkernel\LinkedList.h</FilePath>
-            </File>
-            <File>
               <FileName>scheduler.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\RTOS_Lab2_RTOSkernel\scheduler.c</FilePath>
@@ -533,6 +523,16 @@
               <FileName>Timer5A.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\inc\Timer5A.c</FilePath>
+            </File>
+            <File>
+              <FileName>esp8266.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\RTOS_Labs_common\esp8266.c</FilePath>
+            </File>
+            <File>
+              <FileName>WifiSettings.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\RTOS_Labs_common\WifiSettings.h</FilePath>
             </File>
           </Files>
         </Group>

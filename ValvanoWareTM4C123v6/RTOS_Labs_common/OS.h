@@ -28,6 +28,7 @@
 
 // Flag to indicate whether a filesys is loaded (and therefore to start the timer and init the disk)
 #define USEFILESYS 1
+#define USEWIFI 0
 
 // Note: Periodic threads and switch tasks DO have their own stack
 //			 and therefore they take away from the total pool of threads (when allocated)
@@ -231,19 +232,13 @@ uint32_t OS_Id(void);
 int OS_AddPeriodicThread(void(*task)(void), 
    uint32_t period, uint32_t priority);
 
+int OS_AddSWTask(void(*task)(void), uint32_t priority, uint8_t mask);
+
 //******** OS_AddSW1Task *************** 
 // add a background task to run whenever the SW1 (PF4) button is pushed
 // Inputs: pointer to a void/void background function
 //         priority 0 is the highest, 5 is the lowest
 // Outputs: 1 if successful, 0 if this thread can not be added
-// It is assumed that the user task will run to completion and return
-// This task can not spin, block, loop, sleep, or kill
-// This task can call OS_Signal  OS_bSignal   OS_AddThread
-// This task does not have a Thread ID
-// In labs 2 and 3, this command will be called 0 or 1 times
-// In lab 2, the priority field can be ignored
-// In lab 3, there will be up to four background threads, and this priority field 
-//           determines the relative priority of these four threads
 int OS_AddSW1Task(void(*task)(void), uint32_t priority);
 
 //******** OS_AddSW2Task *************** 
@@ -251,14 +246,6 @@ int OS_AddSW1Task(void(*task)(void), uint32_t priority);
 // Inputs: pointer to a void/void background function
 //         priority 0 is highest, 5 is lowest
 // Outputs: 1 if successful, 0 if this thread can not be added
-// It is assumed user task will run to completion and return
-// This task can not spin block loop sleep or kill
-// This task can call issue OS_Signal, it can call OS_AddThread
-// This task does not have a Thread ID
-// In lab 2, this function can be ignored
-// In lab 3, this command will be called will be called 0 or 1 times
-// In lab 3, there will be up to four background threads, and this priority field 
-//           determines the relative priority of these four threads
 int OS_AddSW2Task(void(*task)(void), uint32_t priority);
 
 // ******** OS_Sleep ************

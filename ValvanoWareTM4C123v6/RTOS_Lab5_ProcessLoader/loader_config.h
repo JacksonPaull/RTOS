@@ -42,8 +42,8 @@
 #ifdef VALVANOWARE
 
 #include <stdint.h>
-#include "ff.h"
 #include "../RTOS_Labs_common/heap.h"
+#include "../RTOS_Labs_common/eFile.h"
 #include "../RTOS_Labs_common/UART0int.h"
 #include "../RTOS_Labs_common/OS.h"
 
@@ -54,24 +54,23 @@ int OS_AddProcess(void(*entry)(void), void *text, void *data,
 typedef unsigned long int off_t;
 typedef void(entry_t)(void);
 
-#define LOADER_FD_T FIL *
-FIL* LOADER_OPEN_FOR_RD(const TCHAR* path) { 
-	static FIL fd;		// only one open file at a time
-  if(f_open(&fd, path, FA_READ)) return NULL;
+// TODO Update the loader defines to use old filesys
+#define LOADER_FD_T FILE *
+FILE* LOADER_OPEN_FOR_RD(const char* path) { 
+	static FILE fd;		// only one open file at a time
+  if(eFile_Open(path, &fd)) return NULL;
   return &fd;
 }
 #define LOADER_FD_VALID(fd) (fd != NULL)
-UINT LOADER_READ(FIL* fd, void *buffer, size_t size) { UINT r;
-  if(f_read(fd, buffer, size, &r)) return 0;
-  return r;
+uint32_t LOADER_READ(FILE* fd, void *buffer, size_t size) {
+  return eFile_F_read(fd, buffer, size);
 }
-UINT LOADER_WRITE(FIL* fd, void* buffer, size_t size) { UINT w;
-  if(f_write(fd, buffer, size, &w)) return 0;
-  return w;
+uint32_t LOADER_WRITE(FILE* fd, void* buffer, size_t size) {
+  return eFile_F_write(fd, buffer, size);
 }
-#define LOADER_CLOSE(fd) f_close(fd)
-#define LOADER_SEEK_FROM_START(fd, off) f_lseek(fd, off)
-#define LOADER_TELL(fd) (fd->fptr)
+#define LOADER_CLOSE(fd) eFile_F_close(fd)
+#define LOADER_SEEK_FROM_START(fd, off) eFile_F_seek(fd, off)
+#define LOADER_TELL(fd) (fd->pos)
 
 #define LOADER_ALIGN_ALLOC(size, align, perm) Heap_Malloc(size)
 #define LOADER_FREE(ptr) Heap_Free(ptr)

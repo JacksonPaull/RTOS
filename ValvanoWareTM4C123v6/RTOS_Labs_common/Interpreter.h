@@ -16,7 +16,7 @@
 #ifndef INTERPRETER_H
 #define INTERPRETER_H
 
-#include "../RTOS_Labs_common/os.h"
+
 
 /**
  * @details  Run the user interface.
@@ -27,5 +27,7 @@
 void Interpreter(void);
 void Jitter(Jitter_t* J, uint8_t lcd_id);
 
+void Interpreter_register_remote_thread(void);
+void Interpreter_unregister_remote_thread(void);
 
 #endif

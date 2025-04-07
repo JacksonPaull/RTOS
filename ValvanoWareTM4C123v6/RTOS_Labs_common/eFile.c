@@ -33,12 +33,7 @@ Sema4Type pathbuff_lock;
 
 // -------------------- ------------ Utility Functions -------------------------------------- //
 
-void* __memcpy(void* dst, const void* src, size_t i) {
-	for(size_t j = 0; j < i; j++) {
-		((char *) dst)[j] = ((char *) src)[j];
-	}
-	return dst;
-}
+
 
 //size_t strlen(const char *str) {
 //	size_t i;
@@ -56,22 +51,6 @@ char* strcpy(char *dst, const char *src) {
 	return 0; // should never execute
 }
 
-void* memset(void *ptr, int value, size_t num) {
-	for(size_t i = 0; i < num; i++) {
-		((int *) ptr)[i] = value;
-	}
-	
-	return ptr;
-}
-
-void* malloc(size_t size) {
-	printf("BAD MALLOC CALL UH OH\r\n");
-	return 0;
-}
-
-void free(void *ptr) {
-	
-}
 
 
 int32_t min(int32_t a, int32_t b) {
@@ -512,7 +491,7 @@ int iNode_read_at(iNode_t *node, void* buff, uint32_t size, uint32_t offset) {
 			// Read only a portion of the block
 			OS_Wait(&buff1_lock);
 			eDisk_ReadBlock(buff1, s);
-			__memcpy(buff+bytes_read, buff1+block_ofs, toRead);
+			memcpy(buff+bytes_read, buff1+block_ofs, toRead);
 			OS_Signal(&buff1_lock);
 			
 		}
@@ -557,7 +536,7 @@ int iNode_write_at(iNode_t *node, const void* buff, uint32_t size, uint32_t offs
 		else {
 			OS_Wait(&buff1_lock);
 			eDisk_ReadBlock(buff1, s);
-			__memcpy(buff1+sector_ofs, buff+bytes_written, count);
+			memcpy(buff1+sector_ofs, buff+bytes_written, count);
 			eDisk_WriteBlock(buff1, s);
 			OS_Signal(&buff1_lock);
 		}
@@ -633,14 +612,14 @@ uint32_t eFile_F_read(File_t *file, void* buffer, uint32_t size) {
 	uint32_t r = iNode_read_at(file->iNode, buffer, size, file->pos);
 	file->pos += size;
 	iNode_unlock_read(file->iNode);
-	return r == size;
+	return r;
 }
 
 uint32_t eFile_F_read_at(File_t *file, void* buffer, uint32_t size, uint32_t pos) {
 	iNode_lock_read(file->iNode);
 	uint32_t r = iNode_read_at(file->iNode, buffer, size, pos);
 	iNode_unlock_read(file->iNode);
-	return r == size;
+	return r;
 }
 
 
@@ -649,21 +628,22 @@ uint32_t eFile_F_write(File_t *file, const void* buffer, uint32_t size) {
 	uint32_t r = iNode_write_at(file->iNode, buffer, size, file->pos);
 	file->pos += size;
 	iNode_unlock_write(file->iNode);
-	return r == size;
+	return r;
 }
 
 uint32_t eFile_F_write_at(File_t *file, const void* buffer, uint32_t size, uint32_t pos) {
 	iNode_lock_write(file->iNode);
 	uint32_t r = iNode_write_at(file->iNode, buffer, size, pos);
 	iNode_unlock_write(file->iNode);
-	return r == size;
+	return r;
 }
 
 uint32_t eFile_F_length(File_t *file) {
 	return file->iNode->iNode.size;
 }
-void eFile_F_seek(File_t *file, uint32_t pos) {
+uint32_t eFile_F_seek(File_t *file, uint32_t pos) {
 	file->pos = pos;
+	return 0
 }
 
 uint32_t eFile_F_tell(File_t *file) {
@@ -754,7 +734,7 @@ int eFile_D_dir_from_path(const char path[], Dir_t *buff) {
 		}
 	}
 	
-	__memcpy(buff, &dir, sizeof(dir));
+	memcpy(buff, &dir, sizeof(dir));
 	return 1;
 }
 
@@ -766,7 +746,7 @@ int lookup(Dir_t *dir, const char name[], DirEntry_t *buff, uint32_t *offset) {
 		iNode_lock_read(dir->iNode);
 		iNode_read_at(dir->iNode, &de, sizeof de, 0);
 		iNode_unlock_read(dir->iNode);
-		__memcpy(buff, &de, sizeof de);
+		memcpy(buff, &de, sizeof de);
 		return 1;
 	}
 	
@@ -775,7 +755,7 @@ int lookup(Dir_t *dir, const char name[], DirEntry_t *buff, uint32_t *offset) {
 		iNode_read_at(dir->iNode, &de, sizeof de, ofs);
 		if(strcmp(de.name, name) == 0) {
 			*offset = ofs;
-			__memcpy(buff, &de, sizeof de);
+			memcpy(buff, &de, sizeof de);
 			iNode_unlock_read(dir->iNode);
 			return 1;
 		}
@@ -794,7 +774,7 @@ int eFile_D_lookup_by_sector(Dir_t *dir, uint32_t sector, DirEntry_t *buff) {
 		iNode_read_at(dir->iNode, &de, sizeof de, ofs);
 		if(de.Header_Sector == sector) {
 			ret = 1;
-			__memcpy(buff, &de, sizeof de);
+			memcpy(buff, &de, sizeof de);
 		}
 	}
 	
@@ -913,7 +893,7 @@ int eFile_parse_path(const char path[], Dir_t* dirBuff, char **fn_buff) {
 	*fn_buff = (char *) path+i+1;
 	
 	OS_Wait(&pathbuff_lock);
-	__memcpy(pathbuff, path, i+1);
+	memcpy(pathbuff, path, i+1);
 	pathbuff[i+1] = 0;
 	i = eFile_D_dir_from_path(pathbuff, dirBuff);
 	
@@ -924,9 +904,6 @@ int eFile_Create(const char path[]) {
 	int i;
 	Dir_t d;
 	char *fn;
-	// TODO Replace these dirPath calls with malloc
-	// TODO place this parsing into a function - i wrote it 4x
-	
 	eFile_parse_path(path, &d, &fn);
 	
 	// Create a file of zero size
