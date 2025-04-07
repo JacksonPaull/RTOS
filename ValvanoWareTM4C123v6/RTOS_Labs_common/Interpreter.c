@@ -36,6 +36,8 @@
 #define arg7 (args+ARG_LEN_MAX*7)
 
 
+#define EMERGENCY 0
+
 int ADC(int num_args, ...);
 int lcd(int num_args, ...);
 int print_help(int num_args, ...);
@@ -128,19 +130,18 @@ void pwd(void) {
 	DirEntry_t de;
 	eFile_OpenCurrentDir(&d);
 	eFile_Open("..", &parent);
-	if(parent.iNode->sector_num == d.iNode->sector_num) {
+	if(d.iNode->sector_num == parent.iNode->sector_num) {
 		// Only the root is its own parent
-		Interpreter_Out("root");
+		Interpreter_Out("[root] > ");
 	}
 	else {
 		eFile_D_lookup_by_sector(&parent, d.iNode->sector_num, &de);
-		char s[20];
-		sprintf(s, "[%s]: ", de.name);
+		char s[32];
+		sprintf(s, "[%s] > ", de.name);
 		Interpreter_Out(s);
 	}
-	
-	eFile_D_close(&d);
 	eFile_D_close(&parent);
+	eFile_D_close(&d);
 }
 #endif
 
@@ -161,12 +162,16 @@ void Interpreter(void){
 	char* cmd_name = malloc(CMD_NAME_LEN_MAX);
 	char* args = malloc(16*8);
 	
+	#if EMERGENCY
+	format_drive(0);
+	#endif
+	
 	while(1) {
 		// Read Command
 		#if EFILE_H
 		pwd();
 		#else
-		printf("[command] "); 
+		Interpreter_Out("[command] > "); 
 		#endif
 		
 		Interpreter_In(line, MAX_LINE_LEN);

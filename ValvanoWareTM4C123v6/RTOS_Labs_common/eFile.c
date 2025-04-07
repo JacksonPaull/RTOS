@@ -656,13 +656,14 @@ uint32_t eFile_F_tell(File_t *file) {
 int eFile_D_create(uint32_t parent_sector, uint32_t dir_sector, uint32_t entry_cnt) {
 	Dir_t buff;
 	int r = 1;
-	
-	r &= iNode_create(dir_sector, entry_cnt * sizeof(DirEntry_t), 1);
-	
-	r &=eFile_D_open(iNode_open(dir_sector), &buff);
 	if(parent_sector == 0) {
 		parent_sector = ROOTDIR_INODE; // Root dir sector
 	}
+	
+	r &= iNode_create(dir_sector, entry_cnt * sizeof(DirEntry_t), 1);
+	
+	r &= eFile_D_open(iNode_open(dir_sector), &buff);
+	
 	r &=eFile_D_add(&buff, ".", dir_sector, 1);
 	r &=eFile_D_add(&buff, "..", parent_sector, 1);
 	
@@ -878,6 +879,9 @@ iNode_t* eFile_getCurrentDirNode(void) {
 	}
 	
 	RunPt->currentDir = iNode_open(eFile_get_root_sector());
+	iNode_open(eFile_get_root_sector()); // Open twice to fake that the thread had this open already
+	// Note: This is OK because currentDir never gets fully closed until the thread dies, where it closes it
+	// The only exception is when the thread never opens a directory, in which case this isnt called anyways
 	return RunPt->currentDir;
 }
 
@@ -926,7 +930,7 @@ int eFile_CreateDir(const char path[]) {
 	
 	// Create a file of zero size
 	uint32_t s = Bitmap_AllocOne();
-	i = eFile_D_create(d.iNode->sector_num,s,16);
+	i = eFile_D_create(d.iNode->sector_num, s, 16);
 	i &= eFile_D_add(&d, fn, s, 1);
 	OS_Signal(&pathbuff_lock);
 	i &= eFile_D_close(&d);

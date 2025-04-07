@@ -20,7 +20,9 @@
 #include "../inc/tm4c123gh6pm.h"
 #include "../inc/CortexM.h"
 
-
+#define SWITCH_MASK_1 0x01
+#define SWITCH_MASK_2 0x10
+#define SWITCH_MASK_BOTH 0x11
 
 // Thread control stuff
 #define MAX_NUM_THREADS 25
@@ -28,7 +30,8 @@
 
 // Flag to indicate whether a filesys is loaded (and therefore to start the timer and init the disk)
 #define USEFILESYS 1
-#define USEWIFI 0
+#define USEWIFI 1
+#define AUTOMOUNT 0
 
 // Note: Periodic threads and switch tasks DO have their own stack
 //			 and therefore they take away from the total pool of threads (when allocated)

@@ -137,13 +137,12 @@ int realmain(void){ // realmain
   
   // attach background tasks
 	PD0^=1;
-  OS_AddSW1Task(&SW1Push,2);
-  OS_AddSW2Task(&SW2Push,2);  
+  // OS_AddSWTask(&SW1Push, 2, SWITCH_MASK_BOTH);
 
   // create initial foreground threads
   NumCreated = 0;
   NumCreated += OS_AddThread(&Interpreter,1024,2); 
-  NumCreated += OS_AddThread(&Idle,256,5);  // at lowest priority 
+  NumCreated += OS_AddThread(&Idle,512,5);  // at lowest priority 
 	PD0^=1;
 	
   OS_Launch(TIME_2MS); // doesn't return, interrupts enabled in here

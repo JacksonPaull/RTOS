@@ -34,10 +34,6 @@ Graduate Project
 	b) Create diagrams
 	c) Update all threads to use malloc instead of global pools
 
-	Heap
-	----------------------
-	a) Update to knuth buddy allocation
-
 	MPU
 	-------------------------
 	a) Integrate Jenna's code

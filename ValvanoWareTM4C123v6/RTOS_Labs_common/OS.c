@@ -336,7 +336,10 @@ void OS_thread_init(void) {
 void fs_init_task(void) {
 	eDisk_Init(0);
 	eFile_Init();
+	
+	#if AUTOMOUNT
 	eFile_Mount();
+	#endif
 }
 
 void RemoteInterpreter(void){
@@ -359,12 +362,17 @@ void RemoteInterpreter(void){
   }  
   ST7735_DrawString(0,2,"Server started",ST7735_GREEN);
   
+	Interpreter_register_remote_thread();
+	
   while(1) {
     // Wait for connection
     ESP8266_WaitForConnection();
     
     Interpreter();
+		ESP8266_CloseTCPConnection();
   }
+	
+	Interpreter_unregister_remote_thread();
 }  
 
 /**
@@ -405,12 +413,11 @@ void OS_Init(void){
 	OS_AddThread(&fs_init_task, 512, 0);	// Note: OS_Init should always be called before adding any threads so this should always execute first. Adding threads to a non-initialized OS is undefined behavior
 	#endif
 	
+
+	
 	#if USEWIFI
 	OS_AddThread(&RemoteInterpreter, 1024, 4);
 	#endif
-	
-	//TODO  any OS controlled ADCs, etc
-
 }; 
 
 // ******** OS_InitSemaphore ************
