@@ -539,6 +539,21 @@
               <FileType>5</FileType>
               <FilePath>.\svc.h</FilePath>
             </File>
+            <File>
+              <FileName>mpu.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\driverlib\mpu.c</FilePath>
+            </File>
+            <File>
+              <FileName>interrupt.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\driverlib\interrupt.c</FilePath>
+            </File>
+            <File>
+              <FileName>cpu.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\driverlib\cpu.c</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>

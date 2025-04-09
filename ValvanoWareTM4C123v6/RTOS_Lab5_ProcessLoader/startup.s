@@ -800,6 +800,11 @@ SVC_RedirectToST7735
    SVC #30
    BX  LR
    
+   EXPORT  SVC_AddProcess
+SVC_AddProcess
+   SVC #31
+   BX  LR
+   
    
 ;******************************************************************************
 ;

@@ -231,6 +231,7 @@ PendSV_exit
 		IMPORT OS_EndRedirectToFile
 		IMPORT OS_RedirectToUART
 		IMPORT OS_RedirectToST7735
+		IMPORT OS_AddProcess
 			
 SVC_Handler
 ; put your Lab 5 code here
@@ -343,6 +344,9 @@ SVC_Handler
 	
 	CMP R12, #30
 	BEQ OS_RedirectToST7735
+	
+	CMP R12, #31
+	BEQ OS_AddProcess
 	
 	
 svc_done
