@@ -30,8 +30,8 @@
 
 // Flag to indicate whether a filesys is loaded (and therefore to start the timer and init the disk)
 #define USEFILESYS 1
-#define USEWIFI 0
-#define AUTOMOUNT 0
+#define USEWIFI 1
+#define AUTOMOUNT 1
 
 // Note: Periodic threads and switch tasks DO have their own stack
 //			 and therefore they take away from the total pool of threads (when allocated)
