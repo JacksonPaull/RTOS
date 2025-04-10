@@ -698,24 +698,26 @@ iNode_t* eFile_D_get_iNode(Dir_t *dir) {
 }
 
 int eFile_D_dir_from_path(const char path[], Dir_t *buff) {
-		// TODO
 	uint32_t i = 0;
 	Dir_t dir;
-	if(path[i] == '/' || path[i] == 0) {
+	if(path[i] == '/') {
 		// Absolute path, open root dir
 		eFile_D_open_root(&dir);
 		i++;
 	}
 	else {
 		// Relative path, open current dir
+		// Note: opening an empty string is treated as a relative access
+		// i.e. open(".") will yield dir= "" and file="."
+		// The dir is therefore a relative access to "."
 		eFile_OpenCurrentDir(&dir);
 	}
 	
 	char fn[MAX_FILE_NAME_LENGTH+1];
-	for(uint32_t j = 0; path[i] != 0; i++) {
+	for(uint32_t j = 0; ; i++) {
 		fn[j++] = path[i];
-		if(path[i] == '/') {
-			// Change dir
+		if((path[i] == '/') || (path[i] == 0)) {
+			// We have found a complete dir name - change dir
 			Dir_t newDir;
 			if(!eFile_D_lookup(&dir, fn, &newDir)) {
 				eFile_D_close(&dir);
@@ -728,12 +730,14 @@ int eFile_D_dir_from_path(const char path[], Dir_t *buff) {
 			// Reset filename bufer
 			memset(fn, 0, MAX_FILE_NAME_LENGTH+1);
 			j = 0;
-			
-//			// Consume all adjacent /
-//			while(path[++i] == '/') {}
-//				--i; // Account for the for loop increment
+		}
+		
+		// Breka once we reach the end of the string
+		if(path[i] == 0) {
+			break;
 		}
 	}
+	
 	
 	memcpy(buff, &dir, sizeof(dir));
 	return 1;
@@ -891,7 +895,10 @@ int eFile_OpenCurrentDir(File_t *buff) {
 	return 1;
 }
 
-int eFile_parse_path(const char path[], Dir_t* dirBuff, char **fn_buff) {
+
+// Note: This only accepts FILE paths - 
+// passing a directory path to this will technically work, but won't open the last level unless proceeded by a '/'
+int eFile_parse_filepath(const char path[], Dir_t* dirBuff, char **fn_buff) {
 	int i;	
 	for(i = strlen(path)-1; path[i] != '/' && i >= 0; --i) { }
 	*fn_buff = (char *) path+i+1;
@@ -908,7 +915,7 @@ int eFile_Create(const char path[]) {
 	int i;
 	Dir_t d;
 	char *fn;
-	eFile_parse_path(path, &d, &fn);
+	eFile_parse_filepath(path, &d, &fn);
 	
 	// Create a file of zero size
 	uint32_t s = Bitmap_AllocOne();
@@ -926,7 +933,7 @@ int eFile_CreateDir(const char path[]) {
 	Dir_t d;
 	char *fn;
 	
-	eFile_parse_path(path, &d, &fn);
+	eFile_parse_filepath(path, &d, &fn);
 	
 	// Create a file of zero size
 	uint32_t s = Bitmap_AllocOne();
@@ -942,17 +949,16 @@ int eFile_CD(const char path[]) {
 	Dir_t d;
 	eFile_D_dir_from_path(path, &d);
 	iNode_close(RunPt->currentDir);
-	RunPt->currentDir = iNode_reopen(eFile_D_get_iNode(&d));
+	RunPt->currentDir = eFile_D_get_iNode(&d); // Don't need to reopen because dir_from_path already does
 	return 1;
 }
 
 int eFile_Open(const char path[], File_t *buff) {
-	//rfind('/')
 	int i;
 	Dir_t d;
 	char *fn;
 	
-	eFile_parse_path(path, &d, &fn);
+	eFile_parse_filepath(path, &d, &fn);
 	
 	i = eFile_D_lookup(&d, fn, buff);
 	OS_Signal(&pathbuff_lock);
@@ -965,7 +971,7 @@ int eFile_Remove(const char path[]) {
 	Dir_t d;
 	char *fn;
 	
-	eFile_parse_path(path, &d, &fn);
+	eFile_parse_filepath(path, &d, &fn);
 	
 	i = eFile_D_remove(&d, fn);
 	OS_Signal(&pathbuff_lock);

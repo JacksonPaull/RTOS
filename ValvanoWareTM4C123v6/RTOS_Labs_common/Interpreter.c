@@ -36,7 +36,7 @@
 #define arg7 (args+ARG_LEN_MAX*7)
 
 
-#define EMERGENCY 0
+#define EMERGENCY 1
 
 int ADC(int num_args, ...);
 int lcd(int num_args, ...);
@@ -163,6 +163,7 @@ void Interpreter(void){
 	char* args = malloc(16*8);
 	
 	#if EMERGENCY
+	Interpreter_Out("Formatting the disk...\r\n");
 	format_drive(0);
 	#endif
 	
