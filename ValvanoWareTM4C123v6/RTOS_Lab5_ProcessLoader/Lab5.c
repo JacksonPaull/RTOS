@@ -40,6 +40,9 @@
 #include "../RTOS_Labs_common/ST7735.h"
 #include "../RTOS_Labs_common/eDisk.h"
 #include "../RTOS_Labs_common/eFile.h"
+#include "../RTOS_Lab5_ProcessLoader/svc.h"
+#include "../driverlib/mpu.h"
+
 
 
 uint32_t NumCreated;   // number of foreground threads created
@@ -305,7 +308,7 @@ int Testmain0(void){  // Testmain0
 void heapError(const char* errtype,const char* v,uint32_t n){
   printf("%s",errtype);
   printf(" heap error %s%u",v,n);
-  OS_Kill();
+  SVC_OS_Kill();
 }
 heap_stats_t stats;
 void heapStats(void){
@@ -418,15 +421,15 @@ void TestHeap(void){  int16_t i;
 	
   printf("Successful heap test\n\r");
   ST7735_DrawString(0, 0, "Heap test successful", ST7735_YELLOW);
-  OS_Kill();
+  SVC_OS_Kill();
 }
 
 void SW1Push1(void){
-  if(OS_MsTime() > 20){ // debounce
-    if(OS_AddThread(&TestHeap,512,1)){
+  if(SVC_MsTime() > 20){ // debounce
+    if(SVC_OS_AddThread(&TestHeap,512,1)){
       NumCreated++;
     }
-    OS_ClearMsTime();  // at least 20ms between touches
+    SVC_ClearMsTime();  // at least 20ms between touches
   }
 }
 
@@ -449,39 +452,40 @@ int Testmain1(void){   // Testmain1
 //*****************Test project 2*************************
 // Process management test, add and reclaim dummy process
 void TestUser(void){ uint32_t id; uint32_t time;
-  id = OS_Id();
+  id = SVC_OS_Id();
   PD2 ^= 0x04;
   ST7735_Message(0,1, "Hello world: ", id);
-  time = OS_Time();
-  OS_Sleep(1000);
-  time = (((OS_TimeDifference(time, OS_Time()))/1000ul)*125ul)/10000ul;
+  time = SVC_OS_Time();
+  SVC_OS_Sleep(1000);
+  time = (((SVC_TimeDifference(time, SVC_OS_Time()))/1000ul)*125ul)/10000ul;
   ST7735_Message(0,2, "Sleep time: ", time);
   PD2 ^= 0x04;
-  OS_Kill();
+  SVC_OS_Kill();
 }
 
 //  OS-internal OS_AddProcess function
-extern int OS_AddProcess(void(*entry)(void), void *text, void *data, 
-  unsigned long stackSize, unsigned long priority); 
+//extern int SVC_AddProcess(void(*entry)(void), void *heaps[], unsigned long stack_pri[]); 
 
 void TestProcess(void){ heap_stats_t heap1, heap2;
   // simple process management test, add process with dummy code and data segments
   ST7735_DrawString(0, 0, "Process test         ", ST7735_WHITE);
   printf("\n\rEE445M/EE380L, Lab 5 Process Test\n\r");
   PD1 ^= 0x02;
-  if(Heap_Stats(&heap1)) OS_Kill();
+  if(Heap_Stats(&heap1)) SVC_OS_Kill();
   PD1 ^= 0x02;
   ST7735_Message(1,0,"Heap size  =",heap1.size); 
   ST7735_Message(1,1,"Heap used  =",heap1.used);  
   ST7735_Message(1,2,"Heap free  =",heap1.free);
   ST7735_Message(1,3,"Heap waste =",heap1.size - heap1.used - heap1.free);
   PD1 ^= 0x02;
-  if(!OS_AddProcess(&TestUser,Heap_Calloc(128),Heap_Calloc(128),512,1)){
+	void *heaps[2] = {Heap_Calloc(128),Heap_Calloc(128)};
+	unsigned long stack_and_pri[2] = {512,1};
+  if(!SVC_AddProcess(&TestUser,heaps,stack_and_pri)){
     printf("OS_AddProcess error");
-    OS_Kill();
+    SVC_OS_Kill();
   }
   PD1 ^= 0x02;
-  OS_Sleep(2000); // wait long enough for user thread and hence process to exit/die
+  SVC_OS_Sleep(2000); // wait long enough for user thread and hence process to exit/die
   PD1 ^= 0x02;
   if(Heap_Stats(&heap2)) OS_Kill();
   PD1 ^= 0x02;
@@ -492,11 +496,11 @@ void TestProcess(void){ heap_stats_t heap1, heap2;
   PD1 ^= 0x02;
   if((heap1.free != heap2.free)||(heap1.used != heap2.used)){
     printf("Process management heap error");
-    OS_Kill();
+    SVC_OS_Kill();
   }
   printf("Successful process test\n\r");
   ST7735_DrawString(0, 0, "Process test successful", ST7735_YELLOW);
-  OS_Kill();  
+  SVC_OS_Kill();  
 }
 
 void SW2Push2(void){
@@ -529,16 +533,15 @@ int Testmain2(void){   // Testmain2
 // Test supervisor calls (SVC exceptions)
 // Using in_line assembly, syntax is dependent on the compiler
 // Implemented in startup.s
-uint32_t SVC_OS_Id(void);
-void SVC_OS_Kill(void);
-void SVC_OS_Sleep(uint32_t t);
-uint32_t SVC_OS_Time(void);
-int SVC_OS_AddThread(void(*t)(void), uint32_t s, uint32_t p);
+
+Sema4Type sema4;
 
 uint32_t _line = 0;
 void TestSVCThread(void){ uint32_t id;	
   id = SVC_OS_Id();
   PD3 ^= 0x08;
+	
+	SVC_InitSemaphore(&sema4,1);
   ST7735_Message(0,_line++, "Thread: ", id);
   SVC_OS_Sleep(500);
   ST7735_Message(0,_line++, "Thread dying: ", id);
@@ -550,19 +553,20 @@ void TestSVC(void){ uint32_t id; uint32_t time;
   ST7735_DrawString(0, 0, "SVC test         ", ST7735_WHITE);
   printf("\n\rEE445M/EE380L, Lab 5 SCV Test\n\r");
   id = SVC_OS_Id();
+	SVC_ContextSwitch();
   PD2 ^= 0x04;
   ST7735_Message(0,_line++, "SVC test: ", id);
   SVC_OS_AddThread(&TestSVCThread, 512, 1);
   time = SVC_OS_Time();
   SVC_OS_Sleep(1000);
-  time = (((OS_TimeDifference(time, SVC_OS_Time()))/1000ul)*125ul)/10000ul;
+  time = (((SVC_TimeDifference(time, SVC_OS_Time()))/1000ul)*125ul)/10000ul;
   ST7735_Message(0,_line++, "Sleep time: ", time);
   PD2 ^= 0x04;
   if(_line != 4) {
     printf("SVC test error");
-    OS_Kill();
+    SVC_OS_Kill();
   }
-  printf("Successful SVC test\n\r");
+	printf("Successful SVC test\n\r");
   ST7735_Message(0,0, "SVC test done ", id);
   SVC_OS_Kill();
 }
@@ -570,10 +574,14 @@ void TestSVC(void){ uint32_t id; uint32_t time;
 void SWPush3(void){
   if(_line>=4){
     _line = 0;
-    if(OS_AddThread(&TestSVC,512,1)){
+    if(OS_AddPeriodicThread(&TestSVC,512,1)){
       NumCreated++;
     }
   }
+}
+
+void memoryFault(){
+	while(1){}
 }
 
 int Testmain3(void){   // Testmain3 
@@ -584,6 +592,57 @@ int Testmain3(void){   // Testmain3
   OS_AddSW1Task(&SWPush3,2);  // PF4, SW1
   OS_AddSW2Task(&SWPush3,2);  // PF0, SW2
   
+		
+	uint32_t size = 0b11111;
+	uint32_t AP = 0b011;
+	uint32_t TEX = 0;
+	uint32_t S = 1;
+	uint32_t C = 1;
+	uint32_t B = 1;
+	uint32_t ui32Flags = (AP << 24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
+	MPURegionSet(0, 0, ui32Flags);
+	MPURegionEnable(0);
+	
+	uint32_t base = 0x1400;
+	 size = 10;
+	 AP = 0b001;
+	 TEX = 0;
+	 S = 1;
+	 C = 1;
+	 B = 1;
+	ui32Flags = (AP <<24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
+	
+	MPURegionSet(7, base, ui32Flags);
+	MPURegionEnable(7);
+	
+	 base = 0x1300;
+	 size = 7;
+	 AP = 0b001;
+	 TEX = 0;
+	 S = 1;
+	 C = 1;
+	 B = 1;
+	ui32Flags = (AP <<24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
+	
+	MPURegionSet(6, base, ui32Flags);
+	MPURegionEnable(6);
+	
+	base = 0x1C00;
+	 size = 7;
+	 AP = 0b001;
+	 TEX = 0;
+	 S = 1;
+	 C = 1;
+	 B = 1;
+	ui32Flags = (AP <<24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
+	
+	MPURegionSet(5, base, ui32Flags);
+	MPURegionEnable(5);
+	
+	MPUIntRegister(&memoryFault);
+	MPUEnable(MPU_CONFIG_NONE);
+	
+	
   // create initial foreground threads
   NumCreated = 0;
   NumCreated += OS_AddThread(&TestSVC,512,1);  
@@ -593,11 +652,13 @@ int Testmain3(void){   // Testmain3
   return 0;               // this never executes
 }
 
+
 //*******************Trampo_line for selecting main to execute**********
 int main(void) { 			// main
 	// Testmain1(); // Passed
 	// Testmain2(); // Passed
-  // Testmain3(); // Passed
+  Testmain3(); // Passed
+	//basicmain();
 	
-	realmain();
+	// realmain();
 }

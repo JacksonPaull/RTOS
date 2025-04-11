@@ -10,7 +10,7 @@
       <TargetName>Lab5</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pCCUsed>6220000::V6.22::ARMCLANG</pCCUsed>
+      <pCCUsed>6190000::V6.19::ARMCLANG</pCCUsed>
       <uAC6>1</uAC6>
       <TargetOption>
         <TargetCommonOption>
@@ -525,6 +525,24 @@
               <FilePath>..\inc\Timer5A.c</FilePath>
             </File>
             <File>
+              <FileName>svc.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\svc.h</FilePath>
+            </File>
+            <File>
+              <FileName>mpu.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\driverlib\mpu.c</FilePath>
+            </File>
+            <File>
+              <FileName>interrupt.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\driverlib\interrupt.c</FilePath>
+            </File>
+            <File>
+              <FileName>cpu.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\driverlib\cpu.c</FilePath>
               <FileName>esp8266.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\RTOS_Labs_common\esp8266.c</FilePath>

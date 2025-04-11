@@ -668,7 +668,144 @@ SVC_OS_Time
 SVC_OS_AddThread
    SVC #4
    BX  LR
-
+   
+   EXPORT  SVC_ContextSwitch
+SVC_ContextSwitch
+   SVC #5
+   BX  LR
+   
+   EXPORT  SVC_InitSemaphore
+SVC_InitSemaphore
+	SVC #6
+	BX LR
+	
+	EXPORT  SVC_Wait
+SVC_Wait
+   SVC #7
+   BX  LR
+   
+	EXPORT  SVC_Signal
+SVC_Signal
+   SVC #8
+   BX  LR
+   
+   EXPORT  SVC_bWait
+SVC_bWait
+   SVC #9
+   BX  LR
+   
+   EXPORT  SVC_bSignal
+SVC_bSignal
+   SVC #10
+   BX  LR
+   
+   EXPORT  SVC_AddPeriodicThread
+SVC_AddPeriodicThread
+   SVC #11
+   BX  LR
+   
+   EXPORT  SVC_AddSW1Task
+SVC_AddSW1Task
+   SVC #12
+   BX  LR
+   
+   EXPORT  SVC_AddSW2Task
+SVC_AddSW2Task
+   SVC #13
+   BX  LR
+   
+   EXPORT  SVC_Suspend
+SVC_Suspend
+   SVC #14
+   BX  LR
+   
+   EXPORT  SVC_LockScheduler
+SVC_LockScheduler
+   SVC #15
+   BX  LR
+   
+   EXPORT  SVC_UnLockScheduler
+SVC_UnLockScheduler
+   SVC #16
+   BX  LR
+   
+   
+   EXPORT  SVC_Fifo_Init
+SVC_Fifo_Init
+   SVC #17
+   BX  LR
+   
+   EXPORT  SVC_Fifo_Put
+SVC_Fifo_Put
+   SVC #18
+   BX  LR
+   
+   EXPORT  SVC_Fifo_Get
+SVC_Fifo_Get
+   SVC #19
+   BX  LR
+   
+   EXPORT  SVC_Fifo_Size
+SVC_Fifo_Size
+   SVC #20
+   BX  LR
+   
+   EXPORT  SVC_MailBox_Init
+SVC_MailBox_Init
+   SVC #21
+   BX  LR
+   
+   EXPORT  SVC_MailBox_Send
+SVC_MailBox_Send
+   SVC #22
+   BX  LR
+   
+   EXPORT  SVC_MailBox_Recv
+SVC_MailBox_Recv
+   SVC #23
+   BX  LR
+   
+   EXPORT  SVC_TimeDifference
+SVC_TimeDifference
+   SVC #24
+   BX  LR
+   
+   EXPORT  SVC_ClearMsTime
+SVC_ClearMsTime
+   SVC #25
+   BX  LR
+   
+   EXPORT  SVC_MsTime
+SVC_MsTime
+   SVC #26
+   BX  LR
+   
+   EXPORT  SVC_RedirectToFile
+SVC_RedirectToFile
+   SVC #27
+   BX  LR
+   
+   EXPORT  SVC_EndRedirectToFile
+SVC_EndRedirectToFile
+   SVC #28
+   BX  LR
+   
+   EXPORT  SVC_RedirectToUART
+SVC_RedirectToUART
+   SVC #29
+   BX  LR
+   
+   EXPORT  SVC_RedirectToST7735
+SVC_RedirectToST7735
+   SVC #30
+   BX  LR
+   
+   EXPORT  SVC_AddProcess
+SVC_AddProcess
+   SVC #31
+   BX  LR
+   
+   
 ;******************************************************************************
 ;
 ; The function expected of the C library startup code for defining the stack

@@ -116,6 +116,7 @@
 #include <math.h>
 #include "ST7735.h"
 #include "../inc/tm4c123gh6pm.h"
+#include "../RTOS_Lab5_ProcessLoader/svc.h"
 
 
 // these defines are in two places, here and in eDisk.c
@@ -266,6 +267,7 @@ uint16_t StTextColor = ST7735_YELLOW;
 
 #define ST7735_GMCTRP1 0xE0
 #define ST7735_GMCTRN1 0xE1
+
 
 // standard ascii 5x7 font
 // originally from glcdfont.c from Adafruit project
@@ -1457,12 +1459,12 @@ void ST7735_Message(uint32_t  d, uint32_t  l, char *pt, int32_t value){
 		blank[w] = 0;
 	}
 	
-	OS_Wait(&LCDFree); // Acquire LCD Lock
+	SVC_Wait(&LCDFree); // Acquire LCD Lock
 	ST7735_SetCursor(dev.device_x, l+dev.device_y);
 	ST7735_OutString(pt);
 	ST7735_OutDec(value);
 	ST7735_OutString(blank);	// Clear the rest of the line
-	OS_Signal(&LCDFree);	// Release LCD Lock when done
+	SVC_Signal(&LCDFree);	// Release LCD Lock when done
 }
 
 //-----------------------ST7735_OutUDec4-----------------------

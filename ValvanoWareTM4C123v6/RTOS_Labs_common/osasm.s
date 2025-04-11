@@ -19,7 +19,6 @@
 		
 		IMPORT scheduler_next
 
-
 NVIC_INT_CTRL   EQU     0xE000ED04                              ; Interrupt control state register.
 NVIC_SYSPRI14   EQU     0xE000ED22                              ; PendSV priority register (position 14).
 NVIC_SYSPRI15   EQU     0xE000ED23                              ; Systick priority register (position 15).
@@ -31,8 +30,61 @@ STCURRENT 		EQU 	0xE000E018								; Systick current value (reset on context swi
 
 
 StartOS	
-	CPSIE I					; Enable Interupts
-	BL ContextSwitch		; Call ContextSwitch (and return to infinite loop when done)
+;CPSIE I					; Enable Interupts
+	PUSH {LR}
+	BL scheduler_next	; R0 <-- pointer to next thread
+	POP {LR}
+	
+	; 2) Reset STCURRENT=0
+	LDR R1, =STCURRENT
+	MOV R2, #0
+	STR R2, [R1]
+	
+	; 3) Perform the context switch
+	CPSID I
+	LDR R1, =RunPt
+	LDR R2, [R1]		; R2 = run_pt
+	STR R0, [R1]		; run_pt = next_pt
+	LDR R2, [R0, #12]	; Load new stack pointer
+
+	LDM	R2, {R4-R11}
+	ADDS R2, R2, #0x20
+	
+	LDM	R2, {R0,R1,R3}
+	ADDS R2, R2, #0xC
+	LDM	R2, {R3,R12}		; pop regs from the stack
+	ADDS R2, R2, #0x8
+	LDM R2, {LR}					; pop dummy LR
+	ADDS R2, R2, #0x4
+	LDM R2, {LR}					; pop real LR	
+	ADDS R2, R2, #0x4
+	LDM R2, {R0}					; pop initial PSR
+	ADDS R2, R2, #0x4
+	MSR PSP, R2
+	
+	; switch from MSP to PSP
+	MRS R0, CONTROL
+	ORR R1, R0, #2
+	MSR CONTROL, R1
+	ISB
+	
+	CPSIE I				; enable interrupts
+	
+	; switch to unprivileged mode
+	MRS R0, CONTROL
+	ORR R1, R0, #1
+	MSR CONTROL, R1
+	ISB
+	
+	;SUBS R2, R2, #0x20
+	;LDM	R2, {R0,R1,R2}
+	
+	;CPSIE I				; enable interrupts
+	SVC #0
+	
+    BX 		LR                 ; start first thread
+	
+	;BL ContextSwitch		; Call ContextSwitch (and return to infinite loop when done)
 	B OSStartHang			; Enter an infinite loop until the interrupt is serviced
 							; Alternatively, branch to OS background thread
 							; e.g. replace [46] with `BX LR` and update OS_Launch() to call some (non-returning) task
@@ -116,15 +168,25 @@ PendSV_Handler
 	LDR R2, [R1]		; R2 = run_pt
 	
 	CMP R0, R2			; Exit early if the new thread is the current thread
-	BEQ PendSV_exit
+	;BEQ PendSV_exit
 	
-	PUSH {R4-R11}		; Save registers
-	STR SP, [R2, #12] 	; Save stack pointer in TCB
+	MRS R3, PSP ; R2=PSP, the process stack pointer
+	SUBS R3, R3, #0x20 
+	STM R3, {R4-R11} 
+	
+	;PUSH {R4-R11}		; Save registers
+	STR R3, [R2, #12] 	; Save stack pointer in TCB
 	STR R0, [R1]		; run_pt = next_pt
-	LDR SP, [R0, #12]	; Load new stack pointer
-	POP {R4-R11}		; Restore registers
+	LDR R3, [R0, #12]	; Load new stack pointer
+	;POP {R4-R11}		; Restore registers
+	
+	LDM R3, {R4-R11}
+	ADDS R3, R3, #0x20
+	
+	MSR PSP, R3 ; Load PSP with new process SP
 	
 PendSV_exit
+	ORR LR, LR, #0x04 ; 0xFFFFFFFD (return to thread PSP)
 	CPSIE I
     BX	LR              ; Exception return will restore remaining context   
     
@@ -144,14 +206,46 @@ PendSV_exit
         IMPORT    OS_Sleep
         IMPORT    OS_Time
         IMPORT    OS_AddThread
-
+		IMPORT 	  OS_InitSemaphore
+		IMPORT	  OS_Wait
+		IMPORT OS_Signal
+		IMPORT OS_bWait
+		IMPORT OS_bSignal
+		IMPORT OS_AddPeriodicThread
+		IMPORT OS_AddSW1Task
+		IMPORT OS_AddSW2Task
+		IMPORT OS_Suspend
+		IMPORT OS_LockScheduler
+		IMPORT OS_UnLockScheduler
+		IMPORT OS_Fifo_Init
+		IMPORT OS_Fifo_Get
+		IMPORT OS_Fifo_Put
+		IMPORT OS_Fifo_Size
+		IMPORT OS_MailBox_Init
+		IMPORT OS_MailBox_Send
+		IMPORT OS_MailBox_Recv
+		IMPORT OS_TimeDifference
+		IMPORT OS_ClearMsTime
+		IMPORT OS_MsTime
+		IMPORT OS_RedirectToFile
+		IMPORT OS_EndRedirectToFile
+		IMPORT OS_RedirectToUART
+		IMPORT OS_RedirectToST7735
+		IMPORT OS_AddProcess
+			
 SVC_Handler
 ; put your Lab 5 code here
-	LDR R12, [SP, #24]
+
+	MRS R2, PSP 
+	PUSH {R4}
+	MOV R4, R2
+
+	LDR R12, [R4, #24]
 	LDRH R12, [R12, #-2]
 	BIC R12, #0xFF00
-	LDM SP, {R0-R3}
-	PUSH {LR}
+	LDM R4, {R0-R3}
+	SUBS R4, R4, #0x4 
+	STM R4, {LR} 
 	LDR LR, =svc_done
 	
 	;
@@ -172,10 +266,97 @@ SVC_Handler
 	
 	CMP R12, #4
 	BEQ OS_AddThread
+	
+	CMP R12, #5
+	BEQ ContextSwitch
+	
+	CMP R12, #6
+	BEQ OS_InitSemaphore
+	
+	CMP R12, #7
+	BEQ OS_Wait
+	
+	CMP R12, #8
+	BEQ OS_Signal
+	
+	CMP R12, #9
+	BEQ OS_bWait
+	
+	CMP R12, #10
+	BEQ OS_bSignal
+	
+	CMP R12, #11
+	BEQ OS_AddPeriodicThread
 
+	CMP R12, #12
+	BEQ OS_AddSW1Task
+
+	CMP R12, #13
+	BEQ OS_AddSW2Task
+	
+	CMP R12, #14
+	BEQ OS_Suspend
+
+	CMP R12, #15
+	BEQ OS_LockScheduler
+
+	CMP R12, #16
+	BEQ OS_UnLockScheduler
+	
+	CMP R12, #17
+	BEQ OS_Fifo_Init
+	
+	CMP R12, #18
+	BEQ OS_Fifo_Put
+	
+	CMP R12, #19
+	BEQ OS_Fifo_Get
+
+	CMP R12, #20
+	BEQ OS_Fifo_Size
+	
+	CMP R12, #21
+	BEQ OS_MailBox_Init
+	
+	CMP R12, #22
+	BEQ OS_MailBox_Send
+	
+	CMP R12, #23
+	BEQ OS_MailBox_Recv
+	
+	CMP R12, #24
+	BEQ OS_TimeDifference
+	
+	CMP R12, #25
+	BEQ OS_ClearMsTime
+	
+	CMP R12, #26
+	BEQ OS_MsTime
+	
+	CMP R12, #27
+	BEQ OS_RedirectToFile
+	
+	CMP R12, #28
+	BEQ OS_EndRedirectToFile
+	
+	CMP R12, #29
+	BEQ OS_RedirectToUART
+	
+	CMP R12, #30
+	BEQ OS_RedirectToST7735
+	
+	CMP R12, #31
+	BEQ OS_AddProcess
+	
+	
 svc_done
-	POP {LR}
-	STR R0, [SP]
+	LDM R4, {LR}
+	ADDS R4, R4, #0x4
+	;POP {LR}
+
+	STR R0,[R4] ; Store return value
+	
+	POP {R4}
     BX      LR                   ; Return from exception
 
     ALIGN

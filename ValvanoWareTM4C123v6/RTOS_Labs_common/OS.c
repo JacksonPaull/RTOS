@@ -36,6 +36,7 @@ extern void ContextSwitch(void);
 extern void StartOS(void);
 extern void OSThreadReset(void);
 void PortFEdge_Init(void);
+extern void SVC_ContextSwitch(void);
 
 // For use with OS_time and related functions
 #define TRIGGERS_TO_MS 53687
@@ -235,7 +236,7 @@ void BackgroundThreadExit(void) {
 	#if EFILE_H
 	iNode_close(RunPt->currentDir);
 	#endif
-	ContextSwitch();
+	SVC_ContextSwitch();
 	EnableInterrupts(); // Force interrupt enable
 }
 
@@ -596,9 +597,13 @@ int OS_AddThread(void(*task)(void),
 // Outputs: 1 if successful, 0 if this process can not be added
 // This function will be needed for Lab 5
 // In Labs 2-4, this function can be ignored
-int OS_AddProcess(void(*entry)(void), void *text, void *data, 
-  unsigned long stackSize, unsigned long priority){
+int OS_AddProcess(void(*entry)(void), void *heaps[], unsigned long stack_pri[])
+	{
   // put Lab 5 solution here
+		void* text = heaps[0];
+		void* data = heaps[1];
+		unsigned long stackSize = stack_pri[0];
+		unsigned long priority = stack_pri[1];
 	if(stackSize < 512) {
 			 stackSize = 512;
 		 }
