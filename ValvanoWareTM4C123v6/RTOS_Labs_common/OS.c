@@ -28,6 +28,8 @@
 
 #include "../RTOS_Lab2_RTOSkernel/LinkedList.h"
 #include "../RTOS_Lab2_RTOSkernel/scheduler.h"
+#include "../RTOS_Lab5_ProcessLoader/svc.h"
+
 
 
 
@@ -337,6 +339,8 @@ void fs_init_task(void) {
 	eDisk_Init(0);
 	eFile_Init();
 	eFile_Mount();
+	SVC_OS_Kill();
+	for(;;){}
 }
 
 /**
