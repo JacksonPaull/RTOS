@@ -1,4 +1,4 @@
-#<SYMDEFS># ARM Linker, 6190004: Last Updated: Tue Apr  8 23:57:12 2025
+#<SYMDEFS># ARM Linker, 6220000: Last Updated: Thu Apr 10 12:52:46 2025
 0x00000000 D __Vectors
 0x0000026d T Reset_Handler
 0x00000271 T NMI_Handler
@@ -88,14 +88,9 @@
 0x00000283 T Timer1B_Handler
 0x00000283 T Timer2A_Handler
 0x00000283 T Timer2B_Handler
-0x00002fb1 T Timer3A_Handler
-0x00000283 T Timer3B_Handler
-0x0000306d T Timer4A_Handler
-0x00000283 T Timer4B_Handler
-0x00003155 T Timer5A_Handler
 0x00000283 T Timer5B_Handler
 0x00000283 T UART1_Handler
-0x00000283 T UART2_Handler
+0x00004029 T UART2_Handler
 0x00000283 T UART3_Handler
 0x00000283 T UART4_Handler
 0x00000283 T UART5_Handler

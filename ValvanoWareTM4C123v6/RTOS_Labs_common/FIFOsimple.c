@@ -30,7 +30,7 @@
 
 #include <stdint.h>
 #include "../RTOS_Labs_common/FIFOsimple.h"
-#include "../RTOS_Labs_common/os.h"
+#include "../RTOS_Labs_common/OS.h"
 
 
 // Switch between index vs. pointer based implementations

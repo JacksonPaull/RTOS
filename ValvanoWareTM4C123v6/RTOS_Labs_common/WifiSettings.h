@@ -26,7 +26,7 @@ enum Menu_Status {RX=0, TX, CONNECTED};
 //#define PASSKEY    "YourPassword"
 
 #define SSID_NAME  "utexas-iot"
-#define PASSKEY    ""
+#define PASSKEY    "72458653684675071199"
 
 /* To get the password for the "utexas-iot" network:
 

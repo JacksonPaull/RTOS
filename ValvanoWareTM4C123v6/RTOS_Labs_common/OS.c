@@ -21,6 +21,7 @@
 #include "../RTOS_Labs_common/eDisk.h"
 #include "../RTOS_Labs_common/eFile.h"
 #include "../RTOS_Labs_common/heap.h"
+#include "../RTOS_Labs_common/esp8266.h"
 #include "../RTOS_Lab4_FileSystem/iNode.h"
 
 #include "../inc/ADCT0ATrigger.h"
@@ -28,7 +29,7 @@
 
 #include "../RTOS_Lab2_RTOSkernel/LinkedList.h"
 #include "../RTOS_Lab2_RTOSkernel/scheduler.h"
-
+#include "../RTOS_Labs_common/Interpreter.h"
 
 
 extern void ContextSwitch(void);
@@ -336,8 +337,44 @@ void OS_thread_init(void) {
 void fs_init_task(void) {
 	eDisk_Init(0);
 	eFile_Init();
+	
+	#if AUTOMOUNT
 	eFile_Mount();
+	#endif
 }
+
+void RemoteInterpreter(void){
+  // Initialize and bring up Wifi adapter  
+  if(!ESP8266_Init(1,0)) {  // verbose rx echo on UART for debugging
+    ST7735_DrawString(0,1,"No Wifi adapter",ST7735_YELLOW); 
+    OS_Kill();
+  }
+  // Get Wifi adapter version (for debugging)
+  ESP8266_GetVersionNumber(); 
+  // Connect to access point
+  if(!ESP8266_Connect(1)) {  
+    ST7735_DrawString(0,1,"No Wifi network",ST7735_YELLOW); 
+    OS_Kill();
+  }
+  ST7735_DrawString(0,1,"Wifi connected",ST7735_GREEN);
+  if(!ESP8266_StartServer(80,600)) {  // port 80, 5min timeout
+    ST7735_DrawString(0,2,"Server failure",ST7735_YELLOW); 
+    OS_Kill();
+  }  
+  ST7735_DrawString(0,2,"Server started",ST7735_GREEN);
+  
+	Interpreter_register_remote_thread();
+	
+  while(1) {
+    // Wait for connection
+    ESP8266_WaitForConnection();
+    
+    Interpreter();
+		ESP8266_CloseTCPConnection();
+  }
+	
+	Interpreter_unregister_remote_thread();
+}  
 
 /**
  * @details  Initialize operating system, disable interrupts until OS_Launch.
@@ -377,8 +414,11 @@ void OS_Init(void){
 	OS_AddThread(&fs_init_task, 512, 0);	// Note: OS_Init should always be called before adding any threads so this should always execute first. Adding threads to a non-initialized OS is undefined behavior
 	#endif
 	
-	//TODO  any OS controlled ADCs, etc
 
+	
+	#if USEWIFI
+	OS_AddThread(&RemoteInterpreter, 1024, 4);
+	#endif
 }; 
 
 // ******** OS_InitSemaphore ************
@@ -735,12 +775,11 @@ typedef struct SW_Task {
 	TCB_t *TCB;
 	void (*task)(void);
 	// ack flag (x10, x01, or 0x11) -- allows you to register to either switch or both and uses same pool
+	uint8_t mask;
 } SW_Task_t;
 
-SW_Task_t sw1_tasks[MAX_SWITCH_TASKS];
-SW_Task_t sw2_tasks[MAX_SWITCH_TASKS];
-uint8_t num_sw1_tasks = 0;
-uint8_t num_sw2_tasks = 0;
+SW_Task_t sw_tasks[MAX_SWITCH_TASKS];
+uint8_t num_sw_tasks = 0;
 
 
 //******** GPIOPortF_Handler *************** 
@@ -748,39 +787,18 @@ uint8_t num_sw2_tasks = 0;
 // Inputs: none
 // Outputs: none
 void GPIOPortF_Handler(void){
-	
-	// If switch 1 pressed
-	if(GPIO_PORTF_RIS_R & 0x10) {
-		// Schedule all switch 1 tasks
-		DisableInterrupts();
-		for(int i = 0; i < num_sw1_tasks; i++) {
-			SW_Task_t *sw = &sw1_tasks[i];
+	// Schedule all switch tasks w matching mask
+	DisableInterrupts();
+	for(int i = 0; i < num_sw_tasks; i++) {
+		SW_Task_t *sw = &sw_tasks[i];
+		if(sw->mask & GPIO_PORTF_RIS_R) {
 			thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit, BACKGROUND_STACK_SIZE);
 			scheduler_schedule(sw->TCB);
 			ContextSwitch();
-			
-			//sw->task();
-		}		
-		GPIO_PORTF_ICR_R |= 0x10;
-		EnableInterrupts();
-	}
-	
-	// If switch 2 pressed
-	if(GPIO_PORTF_RIS_R & 0x01) {
-		// Schedule all switch 2 tasks
-		DisableInterrupts();
-		for(int i = 0; i < num_sw2_tasks; i++) {
-			SW_Task_t *sw = &sw2_tasks[i];
-			thread_init_stack(sw->TCB, sw->task, &BackgroundThreadExit, BACKGROUND_STACK_SIZE);
-			scheduler_schedule(sw->TCB);
-			ContextSwitch();
-			
-			//sw->task();
-		}		
-		GPIO_PORTF_ICR_R |= 0x01;
-		EnableInterrupts();
-	}
-	
+		}
+	}		
+	GPIO_PORTF_ICR_R |= 0x11;
+	EnableInterrupts();
 }
 
 //******** PortFEdge_Init *************** 
@@ -807,37 +825,39 @@ void PortFEdge_Init(void) {
   NVIC_EN0_R = 0x40000000;      // (h) enable interrupt 30 in NVIC
 }
 
-//******** OS_AddSW1Task *************** 
-// add a background task to run whenever the SW1 (PF4) button is pushed
-// Inputs: pointer to a void/void background function
-//         priority 0 is the highest, 5 is the lowest
-// Outputs: 1 if successful, 0 if this thread can not be added
-// It is assumed that the user task will run to completion and return
-// This task can not spin, block, loop, sleep, or kill
-// This task can call OS_Signal  OS_bSignal   OS_AddThread
-// This task does not have a Thread ID
-// In labs 2 and 3, this command will be called 0 or 1 times
-// In lab 2, the priority field can be ignored
-// In lab 3, there will be up to four background threads, and this priority field 
-//           determines the relative priority of these four threads
 
-int OS_AddSW1Task(void(*task)(void), uint32_t priority){
+int OS_AddSWTask(void(*task)(void), uint32_t priority, uint8_t mask) {
+	mask &= 0x11;
+	if(!mask) return 0;
+	
 	TCB_t *thread = SpawnThread(1, priority, BACKGROUND_STACK_SIZE);
 	if(thread == 0) {
 		return 0; // Can't allocate a thread
 	}
 	
-	SW_Task_t *sw = &sw1_tasks[num_sw1_tasks];
+	SW_Task_t *sw = &sw_tasks[num_sw_tasks];
 	sw->task = task;
 	sw->TCB = thread;
 	
 	if(RunPt->process) {
 		sw->TCB->process = RunPt->process;
 		sw->TCB->process->numThreadsAlive++; // Note: adding a background thread to a process means it will never die.
+		sw->mask = mask;
 	}
 
-	num_sw1_tasks++;
+	num_sw_tasks++;
   return 1;
+}
+
+//******** OS_AddSW1Task *************** 
+// add a background task to run whenever the SW1 (PF4) button is pushed
+// Inputs: pointer to a void/void background function
+//         priority 0 is the highest, 5 is the lowest
+// Outputs: 1 if successful, 0 if this thread can not be added
+
+int OS_AddSW1Task(void(*task)(void), uint32_t priority){
+	OS_AddSWTask(task, priority, 0x01);
+	return 1;
 };
 
 //******** OS_AddSW2Task *************** 
@@ -845,31 +865,9 @@ int OS_AddSW1Task(void(*task)(void), uint32_t priority){
 // Inputs: pointer to a void/void background function
 //         priority 0 is highest, 5 is lowest
 // Outputs: 1 if successful, 0 if this thread can not be added
-// It is assumed user task will run to completion and return
-// This task can not spin block loop sleep or kill
-// This task can call issue OS_Signal, it can call OS_AddThread
-// This task does not have a Thread ID
-// In lab 2, this function can be ignored
-// In lab 3, this command will be called will be called 0 or 1 times
-// In lab 3, there will be up to four background threads, and this priority field 
-//           determines the relative priority of these four threads
 
 int OS_AddSW2Task(void(*task)(void), uint32_t priority){
-  TCB_t *thread = SpawnThread(1, priority, BACKGROUND_STACK_SIZE);
-	if(thread == 0) {
-		return 0; // Can't allocate a thread
-	}
-	
-	SW_Task_t *sw = &sw2_tasks[num_sw2_tasks];
-	sw->task = task;
-	sw->TCB = thread;
-
-	if(RunPt->process) {
-		sw->TCB->process = RunPt->process;
-		sw->TCB->process->numThreadsAlive++; // Note: adding a background thread to a process means it will never die.
-	}
-	
-	num_sw2_tasks++;
+  OS_AddSWTask(task, priority, 0x10);
   return 1;
 };
 
@@ -1137,71 +1135,42 @@ void OS_Launch(uint32_t theTimeSlice){
 // redirect terminal I/O to UART or file (Lab 4)
 
 
+
 #if EFILE_H
-int StreamToDevice=0;                // 0=UART, 1=stream to file (Lab 4)
-File_t file;
+
+// TODO Figure out how to redirect to ESP if necessary
+// See the value of f when called from printf
 
 int fputc (int ch, FILE *f) { 
-  if(StreamToDevice==1){  // Lab 4
-    if(eFile_F_write(&file, &ch, 1)){          // close file on error
-       OS_EndRedirectToFile(); // cannot write to file
-       return 1;                  // failure
-    }
-    return 0; // success writing
-  }
-  
-  // default UART output
-  UART_OutChar(ch);
+	// if ID == telnet_id
+	if(f == stdout) {
+		UART_OutChar(ch);
+	}
+	else {
+		printf("fuck\r\n");
+		//eFile_F_write(f, &ch, 1);
+	}
   return ch; 
 }
 
 int fgetc (FILE *f){
-  char ch = UART_InChar();  // receive from keyboard
-  UART_OutChar(ch);         // echo
+	char ch;
+	if(f == stdout) {
+		ch = UART_InChar();
+	}
+	else {
+		printf("fuck2\r\n");
+		//eFile_F_read(f, &ch, 1);
+	}
   return ch;
 }
 
 int putc (int ch, FILE *f) { 
-  if(StreamToDevice==1){  // Lab 4
-    if(eFile_F_write(&file, &ch, 1)){          // close file on error
-       OS_EndRedirectToFile(); // cannot write to file
-       return 1;                  // failure
-    }
-    return 0; // success writing
-  }
-  
-  // default UART output
-  UART_OutChar(ch);
-  return ch; 
+  return fputc(ch, f);
 }
 
 int getc (FILE *f){
-  char ch = UART_InChar();  // receive from keyboard
-  UART_OutChar(ch);         // echo
-  return ch;
-}
-
-int OS_RedirectToFile(const char *name){  // Lab 4
-  eFile_Create(name);              // ignore error if file already exists
-  if(eFile_Open(name, &file)) return 1;  // cannot open file
-  StreamToDevice = 1;
-  return 0;
-}
-
-int OS_EndRedirectToFile(void){  // Lab 4
-  StreamToDevice = 0;
-  if(eFile_F_close(&file)) return 1;    // cannot close file
-  return 0;
-}
-
-int OS_RedirectToUART(void){
-  StreamToDevice = 0;
-  return 0;
-}
-
-int OS_RedirectToST7735(void){
-  
-  return 1;
+  return fgetc(f);
 }
 
 #else
