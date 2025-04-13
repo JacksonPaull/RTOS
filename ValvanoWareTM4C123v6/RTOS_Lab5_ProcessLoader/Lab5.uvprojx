@@ -10,7 +10,7 @@
       <TargetName>Lab5</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pCCUsed>6190000::V6.19::ARMCLANG</pCCUsed>
+      <pCCUsed>6220000::V6.22::ARMCLANG</pCCUsed>
       <uAC6>1</uAC6>
       <TargetOption>
         <TargetCommonOption>
@@ -440,36 +440,6 @@
               <FilePath>..\RTOS_Labs_common\osasm.s</FilePath>
             </File>
             <File>
-              <FileName>ADCT0ATrigger.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\inc\ADCT0ATrigger.c</FilePath>
-            </File>
-            <File>
-              <FileName>ADCSWTrigger.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\inc\ADCSWTrigger.c</FilePath>
-            </File>
-            <File>
-              <FileName>ADC.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\RTOS_Labs_common\ADC.c</FilePath>
-            </File>
-            <File>
-              <FileName>LPF.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\inc\LPF.c</FilePath>
-            </File>
-            <File>
-              <FileName>IRDistance.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\inc\IRDistance.c</FilePath>
-            </File>
-            <File>
-              <FileName>WTimer0A.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\inc\WTimer0A.c</FilePath>
-            </File>
-            <File>
               <FileName>heap.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\RTOS_Labs_common\heap.c</FilePath>
@@ -488,11 +458,6 @@
               <FileName>PriorityQueue.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\RTOS_Lab3_RTOSpriority\PriorityQueue.c</FilePath>
-            </File>
-            <File>
-              <FileName>PriorityQueue.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\RTOS_Lab3_RTOSpriority\PriorityQueue.h</FilePath>
             </File>
             <File>
               <FileName>LinkedList.c</FileName>
@@ -558,6 +523,11 @@
               <FileName>Bitmap.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\RTOS_Lab4_FileSystem\Bitmap.c</FilePath>
+            </File>
+            <File>
+              <FileName>ADC.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\RTOS_Labs_common\ADC.c</FilePath>
             </File>
           </Files>
         </Group>

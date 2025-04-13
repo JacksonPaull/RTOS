@@ -15,7 +15,6 @@
 #include "../inc/Timer3A.h"
 #include "../inc/Timer4A.h"
 #include "../inc/Timer5A.h"
-#include "../inc/WTimer0A.h"
 #include "../RTOS_Labs_common/OS.h"
 #include "../RTOS_Labs_common/ST7735.h"
 #include "../RTOS_Labs_common/eDisk.h"
