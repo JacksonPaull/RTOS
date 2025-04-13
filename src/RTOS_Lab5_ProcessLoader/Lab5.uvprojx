@@ -470,11 +470,6 @@
               <FilePath>..\RTOS_Lab2_RTOSkernel\scheduler.c</FilePath>
             </File>
             <File>
-              <FileName>scheduler.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\RTOS_Lab2_RTOSkernel\scheduler.h</FilePath>
-            </File>
-            <File>
               <FileName>Timer3A.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\inc\Timer3A.c</FilePath>
