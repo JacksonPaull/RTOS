@@ -551,7 +551,7 @@ void TestSVCThread(void){ uint32_t id;
 void TestSVC(void){ uint32_t id; uint32_t time;
   // simple SVC test, mimicking real user program
   ST7735_DrawString(0, 0, "SVC test         ", ST7735_WHITE);
-  printf("\n\rEE445M/EE380L, Lab 5 SCV Test\n\r");
+  //printf("\n\rEE445M/EE380L, Lab 5 SCV Test\n\r");
   id = SVC_OS_Id();
 	SVC_ContextSwitch();
   PD2 ^= 0x04;
@@ -566,9 +566,9 @@ void TestSVC(void){ uint32_t id; uint32_t time;
     printf("SVC test error");
     SVC_OS_Kill();
   }
-	printf("Successful SVC test\n\r");
+	//printf("Successful SVC test\n\r");
   ST7735_Message(0,0, "SVC test done ", id);
-  SVC_OS_Kill();
+  OS_Kill();
 }
 
 void SWPush3(void){
@@ -581,7 +581,9 @@ void SWPush3(void){
 }
 
 void memoryFault(){
+	// intentionally created memory fault
 	while(1){}
+		
 }
 
 int Testmain3(void){   // Testmain3 
@@ -589,7 +591,7 @@ int Testmain3(void){   // Testmain3
   PortD_Init();
 
   // attach background tasks
-  OS_AddSW1Task(&SWPush3,2);  // PF4, SW1
+  OS_AddSWTask(&SWPush3, 0, SWITCH_MASK_BOTH);  // PF4, SW1
   OS_AddSW2Task(&SWPush3,2);  // PF0, SW2
   
 		
@@ -603,8 +605,8 @@ int Testmain3(void){   // Testmain3
 	MPURegionSet(0, 0, ui32Flags);
 	MPURegionEnable(0);
 	
-	uint32_t base = 0x1400;
-	 size = 10;
+	uint32_t base = 0x1A00;
+	 size = 9;
 	 AP = 0b001;
 	 TEX = 0;
 	 S = 1;
@@ -615,34 +617,9 @@ int Testmain3(void){   // Testmain3
 	MPURegionSet(7, base, ui32Flags);
 	MPURegionEnable(7);
 	
-	 base = 0x1300;
-	 size = 7;
-	 AP = 0b001;
-	 TEX = 0;
-	 S = 1;
-	 C = 1;
-	 B = 1;
-	ui32Flags = (AP <<24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
-	
-	MPURegionSet(6, base, ui32Flags);
-	MPURegionEnable(6);
-	
-	base = 0x1C00;
-	 size = 7;
-	 AP = 0b001;
-	 TEX = 0;
-	 S = 1;
-	 C = 1;
-	 B = 1;
-	ui32Flags = (AP <<24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
-	
-	MPURegionSet(5, base, ui32Flags);
-	MPURegionEnable(5);
-	
 	MPUIntRegister(&memoryFault);
 	MPUEnable(MPU_CONFIG_NONE);
-	
-	
+
   // create initial foreground threads
   NumCreated = 0;
   NumCreated += OS_AddThread(&TestSVC,512,1);  

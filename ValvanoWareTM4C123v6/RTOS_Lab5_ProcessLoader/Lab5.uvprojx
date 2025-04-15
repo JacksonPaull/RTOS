@@ -543,6 +543,8 @@
               <FileName>cpu.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\driverlib\cpu.c</FilePath>
+            </File>
+            <File>
               <FileName>esp8266.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\RTOS_Labs_common\esp8266.c</FilePath>

@@ -30,6 +30,7 @@
 #include "../RTOS_Lab2_RTOSkernel/LinkedList.h"
 #include "../RTOS_Lab2_RTOSkernel/scheduler.h"
 #include "../RTOS_Labs_common/Interpreter.h"
+#include "../RTOS_Lab5_ProcessLoader/svc.h"
 
 
 extern void ContextSwitch(void);
@@ -341,6 +342,8 @@ void fs_init_task(void) {
 	#if AUTOMOUNT
 	eFile_Mount();
 	#endif
+	SVC_OS_Kill();
+	for(;;){}
 }
 
 void RemoteInterpreter(void){
