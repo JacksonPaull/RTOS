@@ -28,6 +28,8 @@
 #ifndef __FIFOSIMPLE_H__
 #define __FIFOSIMPLE_H__
 
+//#include "../RTOS_Lab5_ProcessLoader/svc.h"
+
 // Transmit FIFO
 // can hold 0 to TXFIFOSIZE elements
 #define TXFIFOSIZE 1024 // must be a power of 2
@@ -39,10 +41,10 @@ typedef char txDataType;
 void TxFifo_Init(void);
 // add element to end of FIFO
 // return TXFIFOSUCCESS if successful
-int TxFifo_Put(txDataType data);
+int TxFifo_PutSVC(txDataType data);
 // remove element from front of FIFO
 // return TXFIFOSUCCESS if successful
-int TxFifo_Get(txDataType *datapt);
+int TxFifo_GetSVC(txDataType *datapt);
 // number of elements in FIFO
 // 0 to TXFIFOSIZE-1
 uint32_t TxFifo_Size(void);

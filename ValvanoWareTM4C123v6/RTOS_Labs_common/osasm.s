@@ -232,6 +232,9 @@ PendSV_exit
 		IMPORT OS_RedirectToUART
 		IMPORT OS_RedirectToST7735
 		IMPORT OS_AddProcess
+		IMPORT TxFifo_PutSVC
+		IMPORT TxFifo_GetSVC
+		IMPORT OS_get_current_TCB
 			
 SVC_Handler
 ; put your Lab 5 code here
@@ -347,6 +350,15 @@ SVC_Handler
 	
 	CMP R12, #31
 	BEQ OS_AddProcess
+	
+	CMP R12, #32
+	BEQ TxFifo_PutSVC
+	
+	CMP R12, #33
+	BEQ TxFifo_GetSVC
+	
+	CMP R12, #34
+	BEQ OS_get_current_TCB
 	
 	
 svc_done

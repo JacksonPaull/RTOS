@@ -805,6 +805,20 @@ SVC_AddProcess
    SVC #31
    BX  LR
    
+	EXPORT SVC_TxFifo_Put
+SVC_TxFifo_Put
+	SVC #32
+	BX LR
+	
+	EXPORT SVC_TxFifo_Get
+SVC_TxFifo_Get
+	SVC #33
+	BX LR
+	
+	EXPORT SVC_get_current_TCB
+SVC_get_current_TCB
+	SVC #34
+	BX LR
    
 ;******************************************************************************
 ;

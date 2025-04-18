@@ -31,6 +31,7 @@
 #include <stdint.h>
 #include "../RTOS_Labs_common/FIFOsimple.h"
 #include "../RTOS_Labs_common/os.h"
+#include "../RTOS_Lab5_ProcessLoader/svc.h"
 
 
 // Switch between index vs. pointer based implementations
@@ -51,7 +52,7 @@ void TxFifo_Init(void){
 }
 // add element to end of index FIFO
 // return TXFIFOSUCCESS if successful
-int TxFifo_Put(txDataType data){
+int TxFifo_PutSVC(txDataType data){
 	OS_Wait(&TxRoomLeft);
   TxFifo[TxPutI&(TXFIFOSIZE-1)] = data; // put
   TxPutI++;  // Success, update
@@ -70,7 +71,7 @@ int TxFifo_PutNonBlock(txDataType data){
 
 // remove element from front of index FIFO
 // return TXFIFOSUCCESS if successful
-int TxFifo_Get(txDataType *datapt){
+int TxFifo_GetSVC(txDataType *datapt){
   if(TxPutI == TxGetI ){
     return(TXFIFOFAIL); // Empty if TxPutI=TxGetI
   }

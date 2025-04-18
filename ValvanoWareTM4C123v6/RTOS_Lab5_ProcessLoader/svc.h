@@ -1,4 +1,5 @@
 #import "../RTOS_Labs_common/os.h"
+#import "../RTOS_Labs_common/FIFOsimple.h"
 
 uint32_t SVC_OS_Id(void);
 void SVC_OS_Kill(void);
@@ -34,4 +35,6 @@ int SVC_EndRedirectToFile(void);
 int SVC_RedirectToUART(void);
 int SVC_RedirectToST7735(void);
 int SVC_AddProcess(void(*entry)(void), void *heaps[], unsigned long stack_pri[]); 
-
+int SVC_TxFifo_Put(txDataType data);
+int SVC_TxFifo_Get(txDataType *datapt);
+TCB_t* SVC_get_current_TCB(void);

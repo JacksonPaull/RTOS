@@ -327,8 +327,8 @@ int16_t maxBlockSize;
 uint8_t* bigBlock;
 void TestHeap(void){  int16_t i;  
   ST7735_DrawString(0, 0, "Heap test            ", ST7735_WHITE);
-  printf("\n\rEE445M/EE380L, Lab 5 Heap Test\n\r");
-  // if(Heap_Init())         heapError("Heap_Init","",0);
+  //printf("\n\rEE445M/EE380L, Lab 5 Heap Test\n\r");
+  if(Heap_Init())         heapError("Heap_Init","",0);
 
 	#if TEST_MALLOC == 1
   ptr = Heap_Malloc(sizeof(int16_t));
@@ -414,7 +414,7 @@ void TestHeap(void){  int16_t i;
   heapStats();
   #endif
 	
-  printf("Successful heap test\n\r");
+  //printf("Successful heap test\n\r");
   ST7735_DrawString(0, 0, "Heap test successful", ST7735_YELLOW);
   SVC_OS_Kill();
 }
@@ -464,9 +464,11 @@ void TestUser(void){ uint32_t id; uint32_t time;
 void TestProcess(void){ heap_stats_t heap1, heap2;
   // simple process management test, add process with dummy code and data segments
   ST7735_DrawString(0, 0, "Process test         ", ST7735_WHITE);
-  printf("\n\rEE445M/EE380L, Lab 5 Process Test\n\r");
+  //printf("\n\r");//EE445M/EE380L, Lab 5 Process Test\n\r");
   PD1 ^= 0x02;
-  if(Heap_Stats(&heap1)) SVC_OS_Kill();
+  if(Heap_Stats(&heap1)){
+		SVC_OS_Kill();
+	}
   PD1 ^= 0x02;
   ST7735_Message(1,0,"Heap size  =",heap1.size); 
   ST7735_Message(1,1,"Heap used  =",heap1.used);  
@@ -482,7 +484,7 @@ void TestProcess(void){ heap_stats_t heap1, heap2;
   PD1 ^= 0x02;
   SVC_OS_Sleep(2000); // wait long enough for user thread and hence process to exit/die
   PD1 ^= 0x02;
-  if(Heap_Stats(&heap2)) OS_Kill();
+  if(Heap_Stats(&heap2)) SVC_OS_Kill();
   PD1 ^= 0x02;
   ST7735_Message(1,0,"Heap size  =",heap2.size); 
   ST7735_Message(1,1,"Heap used  =",heap2.used);  
@@ -490,10 +492,10 @@ void TestProcess(void){ heap_stats_t heap1, heap2;
   ST7735_Message(1,3,"Heap waste =",heap2.size - heap2.used - heap2.free);
   PD1 ^= 0x02;
   if((heap1.free != heap2.free)||(heap1.used != heap2.used)){
-    printf("Process management heap error");
+    //printf("Process management heap error");
     SVC_OS_Kill();
   }
-  printf("Successful process test\n\r");
+  //printf("Successful process test\n\r");
   ST7735_DrawString(0, 0, "Process test successful", ST7735_YELLOW);
   SVC_OS_Kill();  
 }
@@ -575,9 +577,6 @@ void SWPush3(void){
   }
 }
 
-void memoryFault(){
-	while(1){}
-}
 
 int Testmain3(void){   // Testmain3 
   OS_Init();           // initialize, disable interrupts
@@ -586,63 +585,12 @@ int Testmain3(void){   // Testmain3
   // attach background tasks
   OS_AddSW1Task(&SWPush3,2);  // PF4, SW1
   OS_AddSW2Task(&SWPush3,2);  // PF0, SW2
-  
-		
-	uint32_t size = 0b11111;
-	uint32_t AP = 0b011;
-	uint32_t TEX = 0;
-	uint32_t S = 1;
-	uint32_t C = 1;
-	uint32_t B = 1;
-	uint32_t ui32Flags = (AP << 24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
-	MPURegionSet(0, 0, ui32Flags);
-	MPURegionEnable(0);
-	
-	uint32_t base = 0x1400;
-	 size = 10;
-	 AP = 0b001;
-	 TEX = 0;
-	 S = 1;
-	 C = 1;
-	 B = 1;
-	ui32Flags = (AP <<24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
-	
-	MPURegionSet(7, base, ui32Flags);
-	MPURegionEnable(7);
-	
-	 base = 0x1300;
-	 size = 7;
-	 AP = 0b001;
-	 TEX = 0;
-	 S = 1;
-	 C = 1;
-	 B = 1;
-	ui32Flags = (AP <<24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
-	
-	MPURegionSet(6, base, ui32Flags);
-	MPURegionEnable(6);
-	
-	base = 0x1C00;
-	 size = 7;
-	 AP = 0b001;
-	 TEX = 0;
-	 S = 1;
-	 C = 1;
-	 B = 1;
-	ui32Flags = (AP <<24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
-	
-	MPURegionSet(5, base, ui32Flags);
-	MPURegionEnable(5);
-	
-	MPUIntRegister(&memoryFault);
-	MPUEnable(MPU_CONFIG_NONE);
-	
-	
+  		
   // create initial foreground threads
   NumCreated = 0;
   NumCreated += OS_AddThread(&TestSVC,512,1);  
   NumCreated += OS_AddThread(&Idle,128,3); 
- 
+	 
   OS_Launch(10*TIME_1MS); // doesn't return, interrupts enabled in here
   return 0;               // this never executes
 }
@@ -651,8 +599,8 @@ int Testmain3(void){   // Testmain3
 //*******************Trampo_line for selecting main to execute**********
 int main(void) { 			// main
 	// Testmain1(); // Passed
-	// Testmain2(); // Passed
-  Testmain3(); // Passed
+	Testmain2(); // Passed
+  // Testmain3(); // Passed
 	//basicmain();
 	
 	// realmain();

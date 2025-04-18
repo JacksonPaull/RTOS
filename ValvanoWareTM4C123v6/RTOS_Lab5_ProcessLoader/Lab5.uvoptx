@@ -151,7 +151,7 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>3163</LineNumber>
+          <LineNumber>303</LineNumber>
           <EnabledFlag>1</EnabledFlag>
           <Address>626</Address>
           <ByteObject>0</ByteObject>
@@ -160,16 +160,16 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>.\ff.c</Filename>
+          <Filename>.\startup.s</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\Lab5\ff.c\3163</Expression>
+          <Expression>\\Lab5\startup.s\303</Expression>
         </Bp>
         <Bp>
           <Number>1</Number>
           <Type>0</Type>
-          <LineNumber>578</LineNumber>
+          <LineNumber>479</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>23688</Address>
+          <Address>12794</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -178,14 +178,14 @@
           <BreakIfRCount>1</BreakIfRCount>
           <Filename>.\Lab5.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\Lab5\Lab5.c\578</Expression>
+          <Expression>\\Lab5\Lab5.c\479</Expression>
         </Bp>
         <Bp>
           <Number>2</Number>
           <Type>0</Type>
-          <LineNumber>570</LineNumber>
+          <LineNumber>408</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>11034</Address>
+          <Address>12452</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -194,28 +194,12 @@
           <BreakIfRCount>1</BreakIfRCount>
           <Filename>.\Lab5.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\Lab5\Lab5.c\570</Expression>
+          <Expression>\\Lab5\Lab5.c\408</Expression>
         </Bp>
         <Bp>
           <Number>3</Number>
           <Type>0</Type>
-          <LineNumber>341</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>22800</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\RTOS_Labs_common\OS.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\Lab5\../RTOS_Labs_common/OS.c\341</Expression>
-        </Bp>
-        <Bp>
-          <Number>4</Number>
-          <Type>0</Type>
-          <LineNumber>303</LineNumber>
+          <LineNumber>3163</LineNumber>
           <EnabledFlag>1</EnabledFlag>
           <Address>0</Address>
           <ByteObject>0</ByteObject>
@@ -224,7 +208,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>0</BreakIfRCount>
-          <Filename>.\startup.s</Filename>
+          <Filename>.\ff.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression></Expression>
         </Bp>
@@ -233,7 +217,7 @@
         <Ww>
           <count>0</count>
           <WinNumber>1</WinNumber>
-          <ItemText>semaPt</ItemText>
+          <ItemText>semaPt,0x10</ItemText>
         </Ww>
       </WatchWindow1>
       <MemoryWindow1>

@@ -44,12 +44,15 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "../RTOS_Labs_common/heap.h"
-#include "../RTOS_Labs_common/OS.h"
+#include "../RTOS_Lab5_ProcessLoader/svc.h"
 
 
 extern int8_t HeapMem[HEAP_SIZE];	// Align to full word addresses
+void* Heap_Malloc_Priv(int32_t desiredBytes);
+int32_t Heap_Free_Priv(void* pointer);
 
-uint32_t getHeapSize(void) {
+
+uint32_t getHeapSize_Priv(void) {
 	TCB_t *r = OS_get_current_TCB();
 	if(r && r->process) {
 		return r->process->heap_size;
@@ -57,8 +60,24 @@ uint32_t getHeapSize(void) {
 	return HEAP_SIZE;
 }
 
-int8_t* getHeapBase(void) {
+uint32_t getHeapSize(void) {
+	TCB_t *r = SVC_get_current_TCB();
+	if(r && r->process) {
+		return r->process->heap_size;
+	}
+	return HEAP_SIZE;
+}
+
+int8_t* getHeapBase_Priv(void) {
 	TCB_t *r = OS_get_current_TCB();
+	if(r && r->process) {
+		return r->process->heap;
+	}
+	return HeapMem;
+}
+
+int8_t* getHeapBase(void) {
+	TCB_t *r = SVC_get_current_TCB();
 	if(r && r->process) {
 		return r->process->heap;
 	}
@@ -81,11 +100,11 @@ void* memcpy(void* dst, const void *src, size_t num_bytes) {
 
 void* malloc(size_t size) {
 	// Get current process heap, then pass to Heap_Malloc
-	return Heap_Malloc(size);
+	return Heap_Malloc_Priv(size);
 }
 
 void free(void* ptr) {
-	Heap_Free(ptr);
+	Heap_Free_Priv(ptr);
 }
 
 //// Take the (ceil of the) base 2 log (can be replaced with CLZ asm though...)
@@ -130,8 +149,8 @@ void free(void* ptr) {
 // notes: Initializes/resets the heap to a clean state where no memory
 //  is allocated.
 int32_t Heap_Init(void){
-	uint32_t hs = getHeapSize();
-	int32_t* heap = (int32_t*) getHeapBase();
+	uint32_t hs = getHeapSize_Priv();
+	int32_t* heap = (int32_t*) getHeapBase_Priv();
 	
 	// set header and footer
 	heap[0] = 8-hs;
@@ -193,6 +212,52 @@ void* Heap_Malloc(int32_t desiredBytes){
 	return 0;
 }
 
+// 
+void* Heap_Malloc_Priv(int32_t desiredBytes){
+	desiredBytes = (desiredBytes+3)/4 * 4; // Round up to nearest word
+	
+	int I = StartCritical();
+	uint32_t hs = getHeapSize_Priv();
+	void* heap = getHeapBase_Priv();
+	
+	void* currentBlock = heap;
+	
+	while(currentBlock - heap < hs) {
+		int32_t block_size = *((int32_t*) currentBlock);
+		
+		if(block_size < 0 && block_size == -1 * desiredBytes) {
+			// Large enough free block to allocate directly
+			*(int32_t *) currentBlock 			 					= desiredBytes;		// Allocated header
+			*(int32_t *)(currentBlock-block_size+4)   = desiredBytes;	// Fragment footer
+			
+			EndCritical(I);
+			return currentBlock+4;
+		}
+		
+		if(block_size < 0 && block_size + 8 <= -1 * desiredBytes) {
+			// Large enough free block to split and allocate
+			int32_t frag_size = block_size + desiredBytes + 8; // Size of the new block accounting for the new header and footer in the middle
+			
+			*(int32_t *) currentBlock 			 					= desiredBytes;		// Allocated header
+			*(int32_t *)(currentBlock+desiredBytes+4) = desiredBytes;		// Allocated footer
+			*(int32_t *)(currentBlock+desiredBytes+8) = frag_size;	// Frament header
+			*(int32_t *)(currentBlock-block_size+4)   = frag_size;	// Fragment footer
+			
+			EndCritical(I);
+			return currentBlock+4;
+		}
+		
+		if(block_size < 0) {
+			currentBlock += 8 - block_size;
+		}
+		else {
+			currentBlock += block_size + 8;
+		}
+	}
+	
+	EndCritical(I);
+	return 0;
+}
 
 //******** Heap_Calloc *************** 
 // Allocate memory, data are initialized to 0
@@ -328,6 +393,52 @@ int32_t Heap_Free(void* pointer){
 }
 
 
+int32_t Heap_Free_Priv(void* pointer){
+	if(!pointer) 
+		return 0; // Freeing null pointer OK
+	
+	int I = StartCritical();
+	
+	uint32_t hs = getHeapSize_Priv();
+	int8_t* heap = getHeapBase_Priv();
+	int32_t* block_header = (int32_t*) (pointer-4);
+	int32_t* block_footer = (int32_t*) (pointer + *block_header);
+	
+	if(*block_header != *block_footer) {
+		EndCritical(I);
+		return 1; // uh oh
+	}
+	
+	// Mark block as free
+	*block_footer *= -1;
+	*block_header *= -1;
+	
+	
+	// Check to see if we can merge with the next and previous block (and also make sure they exist before doing so)
+	// Also reclaim space for header and footer
+	if(((int8_t*)block_header - heap >= 8) 
+			&& *(block_header-1) < 0) {
+		// Merge
+		int32_t* new_header = block_header + *(block_header-1)/4 - 2;
+		
+		*new_header 	= *(block_header-1) + *(block_header)-8;
+		*block_footer = *(block_header-1) + *(block_header)-8;
+		
+		block_header = new_header;
+		
+	}
+	if(((int8_t*)block_footer - heap + 8 < hs) && *(block_footer+1) < 0) {
+		// Merge
+		int32_t* footer = block_footer - *(block_footer+1)/4 + 2;
+		
+		*block_header = *(block_footer) + *(block_footer+1)-8;
+		*footer 			= *(block_footer) + *(block_footer+1)-8;
+	}
+	
+	EndCritical(I);
+  return 0;
+}
+
 //******** Heap_Stats *************** 
 // return the current status of the heap
 // input: reference to a heap_stats_t that returns the current usage of the heap
@@ -361,7 +472,7 @@ int32_t Heap_Stats(heap_stats_t *stats){
 		int32_t check = *((int32_t*) (currentBlock+4+n_bytes));
 		if(check < 0) check *= -1;
 		if(check != n_bytes) {
-			EndCritical(I);
+			//EndCritical(I);
 			return 1;
 		}
 		
