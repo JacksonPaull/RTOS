@@ -80,7 +80,7 @@ StartOS
 	;LDM	R2, {R0,R1,R2}
 	
 	;CPSIE I				; enable interrupts
-	SVC #0
+	;SVC #0
 	
     BX 		LR                 ; start first thread
 	
@@ -170,7 +170,7 @@ PendSV_Handler
 	CMP R0, R2			; Exit early if the new thread is the current thread
 	;BEQ PendSV_exit
 	
-	MRS R3, PSP ; R2=PSP, the process stack pointer
+	MRS R3, PSP ; R=PSP, the process stack pointer
 	SUBS R3, R3, #0x20 
 	STM R3, {R4-R11} 
 	
@@ -232,13 +232,13 @@ PendSV_exit
 		IMPORT OS_RedirectToUART
 		IMPORT OS_RedirectToST7735
 		IMPORT OS_AddProcess
-		IMPORT TxFifo_PutSVC
-		IMPORT TxFifo_GetSVC
+;		IMPORT TxFifo_PutSVC
+;		IMPORT TxFifo_GetSVC
 		IMPORT OS_get_current_TCB
 			
 SVC_Handler
 ; put your Lab 5 code here
-
+	CPSID I
 	MRS R2, PSP 
 	PUSH {R4}
 	MOV R4, R2
@@ -351,11 +351,11 @@ SVC_Handler
 	CMP R12, #31
 	BEQ OS_AddProcess
 	
-	CMP R12, #32
-	BEQ TxFifo_PutSVC
-	
-	CMP R12, #33
-	BEQ TxFifo_GetSVC
+;	CMP R12, #32
+;	BEQ TxFifo_PutSVC
+;	
+;	CMP R12, #33
+;	BEQ TxFifo_GetSVC
 	
 	CMP R12, #34
 	BEQ OS_get_current_TCB
@@ -369,6 +369,7 @@ svc_done
 	STR R0,[R4] ; Store return value
 	
 	POP {R4}
+	CPSIE I
     BX      LR                   ; Return from exception
 
     ALIGN

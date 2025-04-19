@@ -41,10 +41,10 @@ typedef char txDataType;
 void TxFifo_Init(void);
 // add element to end of FIFO
 // return TXFIFOSUCCESS if successful
-int TxFifo_PutSVC(txDataType data);
+int TxFifo_Put(txDataType data);
 // remove element from front of FIFO
 // return TXFIFOSUCCESS if successful
-int TxFifo_GetSVC(txDataType *datapt);
+int TxFifo_Get(txDataType *datapt);
 // number of elements in FIFO
 // 0 to TXFIFOSIZE-1
 uint32_t TxFifo_Size(void);

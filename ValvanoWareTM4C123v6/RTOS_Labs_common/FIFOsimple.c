@@ -52,8 +52,8 @@ void TxFifo_Init(void){
 }
 // add element to end of index FIFO
 // return TXFIFOSUCCESS if successful
-int TxFifo_PutSVC(txDataType data){
-	OS_Wait(&TxRoomLeft);
+int TxFifo_Put(txDataType data){
+	SVC_Wait(&TxRoomLeft);
   TxFifo[TxPutI&(TXFIFOSIZE-1)] = data; // put
   TxPutI++;  // Success, update
   return(TXFIFOSUCCESS);
@@ -71,13 +71,13 @@ int TxFifo_PutNonBlock(txDataType data){
 
 // remove element from front of index FIFO
 // return TXFIFOSUCCESS if successful
-int TxFifo_GetSVC(txDataType *datapt){
+int TxFifo_Get(txDataType *datapt){
   if(TxPutI == TxGetI ){
     return(TXFIFOFAIL); // Empty if TxPutI=TxGetI
   }
   *datapt = TxFifo[TxGetI&(TXFIFOSIZE-1)];
   TxGetI++;  // Success, update
-	OS_Signal(&TxRoomLeft);
+	SVC_Signal(&TxRoomLeft);
   return(TXFIFOSUCCESS);
 }
 
@@ -114,7 +114,7 @@ int RxFifo_Put(rxDataType data){
 // remove element from front of index FIFO
 // return TXFIFOSUCCESS if successful
 int RxFifo_Get(rxDataType *datapt){
-	OS_Wait(&RxDataAvailable);
+	SVC_Wait(&RxDataAvailable);
   *datapt = RxFifo[RxGetI&(RXFIFOSIZE-1)];
   RxGetI++;  // Success, update
   return(RXFIFOSUCCESS);

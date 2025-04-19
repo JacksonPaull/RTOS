@@ -27,7 +27,7 @@
 #define BACKGROUND_STACK_SIZE 512
 
 // Flag to indicate whether a filesys is loaded (and therefore to start the timer and init the disk)
-#define USEFILESYS 1
+#define USEFILESYS 0
 
 // Note: Periodic threads and switch tasks DO have their own stack
 //			 and therefore they take away from the total pool of threads (when allocated)

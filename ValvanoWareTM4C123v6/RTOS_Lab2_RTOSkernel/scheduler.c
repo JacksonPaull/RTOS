@@ -114,7 +114,12 @@ TCB_t* scheduler_next(void) {
 	}
 	
 	// Execute round robin scheduling on that list
-	thread_to_schedule = head->next_ptr;
+	if(head->next_ptr == 0){
+		thread_to_schedule = head;
+	}
+	else{
+		thread_to_schedule = head->next_ptr;
+	}
 	Priority_Levels[i] = thread_to_schedule;
 	EndCritical(I);
 	return thread_to_schedule;

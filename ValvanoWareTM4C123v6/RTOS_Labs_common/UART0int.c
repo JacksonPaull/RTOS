@@ -113,7 +113,7 @@ void static copyHardwareToSoftware(void){
 void static copySoftwareToHardware(void){
   char letter;
   while(((UART0_FR_R&UART_FR_TXFF) == 0) && (TxFifo_Size() > 0)){
-    SVC_TxFifo_Get(&letter);
+    TxFifo_Get(&letter);
     UART0_DR_R = letter;
   }
 }
@@ -146,7 +146,7 @@ char UART_InCharNonBlock(void){
 // Output: none
 // spin if TxFifo full
 void UART_OutChar(char data){
-  SVC_TxFifo_Put(data);
+  TxFifo_Put(data);
   UART0_IM_R &= ~UART_IM_TXIM;          // disable TX FIFO interrupt
   copySoftwareToHardware();
   UART0_IM_R |= UART_IM_TXIM;           // enable TX FIFO interrupt

@@ -1122,41 +1122,17 @@ void memoryFault(){
 }
 
 void enableMPU(){
-	uint32_t size = 0b11111;
-	uint32_t AP = 0b011;
-	uint32_t TEX = 0;
-	uint32_t S = 1;
-	uint32_t C = 1;
-	uint32_t B = 1;
-	uint32_t ui32Flags = (AP << 24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
-	MPURegionSet(0, 0, ui32Flags);
-	MPURegionEnable(0);
-	
-	uint32_t base = 0x1600;
-	 size = 8;
-	 AP = 0b001;
-	 TEX = 0;
-	 S = 1;
-	 C = 1;
-	 B = 1;
-	ui32Flags = (AP <<24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
-	
-	MPURegionSet(7, base, ui32Flags);
-	MPURegionEnable(7);
-	
-	 base = 0x1800;
-	 size = 9;
-	 AP = 0b001;
-	 TEX = 0;
-	 S = 1;
-	 C = 1;
-	 B = 1;
-	ui32Flags = (AP <<24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
+//	uint32_t size = 0b11111;
+//	uint32_t AP = 0b011;
+//	uint32_t TEX = 0;
+//	uint32_t S = 1;
+//	uint32_t C = 1;
+//	uint32_t B = 1;
+//	uint32_t ui32Flags = (AP << 24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
+//	MPURegionSet(0, 0, ui32Flags);
+//	MPURegionEnable(0);
 //	
-	MPURegionSet(6, base, ui32Flags);
-	MPURegionEnable(6);
-	
-//	base = 0x1C00;
+//	uint32_t base = 0x1600;
 //	 size = 8;
 //	 AP = 0b001;
 //	 TEX = 0;
@@ -1165,11 +1141,35 @@ void enableMPU(){
 //	 B = 1;
 //	ui32Flags = (AP <<24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
 //	
-//	MPURegionSet(5, base, ui32Flags);
-//	MPURegionEnable(5);
-	
-	MPUIntRegister(&memoryFault);
-	MPUEnable(MPU_CONFIG_NONE);
+//	MPURegionSet(7, base, ui32Flags);
+//	MPURegionEnable(7);
+//	
+//	 base = 0x1800;
+//	 size = 9;
+//	 AP = 0b001;
+//	 TEX = 0;
+//	 S = 1;
+//	 C = 1;
+//	 B = 1;
+//	ui32Flags = (AP <<24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
+////	
+//	MPURegionSet(6, base, ui32Flags);
+//	MPURegionEnable(6);
+//	
+////	base = 0x1C00;
+////	 size = 8;
+////	 AP = 0b001;
+////	 TEX = 0;
+////	 S = 1;
+////	 C = 1;
+////	 B = 1;
+////	ui32Flags = (AP <<24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
+////	
+////	MPURegionSet(5, base, ui32Flags);
+////	MPURegionEnable(5);
+//	
+//	MPUIntRegister(&memoryFault);
+//	MPUEnable(MPU_CONFIG_NONE);
 }
 
 
