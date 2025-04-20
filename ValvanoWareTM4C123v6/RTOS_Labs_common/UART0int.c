@@ -118,6 +118,13 @@ void static copySoftwareToHardware(void){
   }
 }
 
+void static copySoftwareToHardwarePRIV(void){
+  char letter;
+  while(((UART0_FR_R&UART_FR_TXFF) == 0) && (TxFifo_Size() > 0)){
+    TxFifo_GetPRIV(&letter);
+    UART0_DR_R = letter;
+  }
+}
 
 
 // input ASCII character from UART
@@ -172,7 +179,7 @@ void UART0_Handler(void){
   if(UART0_RIS_R&UART_RIS_TXRIS){       // hardware TX FIFO <= 2 items
     UART0_ICR_R = UART_ICR_TXIC;        // acknowledge TX FIFO
     // copy from software TX FIFO to hardware TX FIFO
-    copySoftwareToHardware();
+    copySoftwareToHardwarePRIV();
     if(TxFifo_Size() == 0){             // software TX FIFO is empty
       UART0_IM_R &= ~UART_IM_TXIM;      // disable TX FIFO interrupt
     }

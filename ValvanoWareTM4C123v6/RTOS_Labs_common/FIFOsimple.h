@@ -45,6 +45,8 @@ int TxFifo_Put(txDataType data);
 // remove element from front of FIFO
 // return TXFIFOSUCCESS if successful
 int TxFifo_Get(txDataType *datapt);
+int TxFifo_GetPRIV(txDataType *datapt);
+
 // number of elements in FIFO
 // 0 to TXFIFOSIZE-1
 uint32_t TxFifo_Size(void);

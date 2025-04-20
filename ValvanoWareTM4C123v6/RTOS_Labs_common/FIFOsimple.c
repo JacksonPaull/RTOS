@@ -81,6 +81,16 @@ int TxFifo_Get(txDataType *datapt){
   return(TXFIFOSUCCESS);
 }
 
+int TxFifo_GetPRIV(txDataType *datapt){
+  if(TxPutI == TxGetI ){
+    return(TXFIFOFAIL); // Empty if TxPutI=TxGetI
+  }
+  *datapt = TxFifo[TxGetI&(TXFIFOSIZE-1)];
+  TxGetI++;  // Success, update
+	OS_Signal(&TxRoomLeft);
+  return(TXFIFOSUCCESS);
+}
+
 // number of elements in index FIFO
 // 0 to TXFIFOSIZE-1
 uint32_t TxFifo_Size(void){

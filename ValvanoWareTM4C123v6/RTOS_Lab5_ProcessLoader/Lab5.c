@@ -121,6 +121,7 @@ void SW2Push(void){
 void Idle(void){
   IdleCount = 0;          
   while(1) {
+
     IdleCount++;
     PD0 ^= 0x01;
     // WaitForInterrupt();
@@ -464,7 +465,7 @@ void TestUser(void){ uint32_t id; uint32_t time;
 void TestProcess(void){ heap_stats_t heap1, heap2;
   // simple process management test, add process with dummy code and data segments
   ST7735_DrawString(0, 0, "Process test         ", ST7735_WHITE);
-  //printf("\n\r");//EE445M/EE380L, Lab 5 Process Test\n\r");
+  printf("\n\rEE445M/EE380L, Lab 5 Process Test\n\r");
   PD1 ^= 0x02;
   if(Heap_Stats(&heap1)){
 		SVC_OS_Kill();
@@ -492,10 +493,10 @@ void TestProcess(void){ heap_stats_t heap1, heap2;
   ST7735_Message(1,3,"Heap waste =",heap2.size - heap2.used - heap2.free);
   PD1 ^= 0x02;
   if((heap1.free != heap2.free)||(heap1.used != heap2.used)){
-    //printf("Process management heap error");
+    printf("Process management heap error");
     SVC_OS_Kill();
   }
-  //printf("Successful process test\n\r");
+  printf("Successful process test\n\r");
   ST7735_DrawString(0, 0, "Process test successful", ST7735_YELLOW);
   SVC_OS_Kill();  
 }
@@ -549,9 +550,8 @@ void TestSVC(void){ uint32_t id; uint32_t time;
   // simple SVC test, mimicking real user program
   ST7735_DrawString(0, 0, "SVC test         ", ST7735_WHITE);
 	UART0_IM_R &= ~UART_IM_TXIM;    
-  //printf("\n\rEE445M/EE380L, Lab 5 SCV Test\n\r");
+  printf("\n\rEE445M/EE380L, Lab 5 SCV Test\n\r");
   id = SVC_OS_Id();
-	SVC_ContextSwitch();
   PD2 ^= 0x04;
   ST7735_Message(0,_line++, "SVC test: ", id);
   SVC_OS_AddThread(&TestSVCThread, 512, 1);
@@ -561,10 +561,10 @@ void TestSVC(void){ uint32_t id; uint32_t time;
   ST7735_Message(0,_line++, "Sleep time: ", time);
   PD2 ^= 0x04;
   if(_line != 4) {
-    //printf("SVC test error");
+    printf("SVC test error");
     SVC_OS_Kill();
   }
-	//printf("Successful SVC test\n\r");
+	printf("Successful SVC test\n\r");
   ST7735_Message(0,0, "SVC test done ", id);
   SVC_OS_Kill();
 }
@@ -572,7 +572,7 @@ void TestSVC(void){ uint32_t id; uint32_t time;
 void SWPush3(void){
   if(_line>=4){
     _line = 0;
-    if(OS_AddPeriodicThread(&TestSVC,512,1)){
+    if(OS_AddThread(&TestSVC,512,1)){
       NumCreated++;
     }
   }
@@ -591,7 +591,7 @@ int Testmain3(void){   // Testmain3
   NumCreated = 0;
   NumCreated += OS_AddThread(&TestSVC,512,1);  
   NumCreated += OS_AddThread(&Idle,128,3); 
-	NumCreated += OS_AddThread(&Interpreter,1024,1); 
+	NumCreated += OS_AddThread(&Interpreter,1024,2); 
 
 	 
   OS_Launch(10*TIME_1MS); // doesn't return, interrupts enabled in here
@@ -602,7 +602,7 @@ int Testmain3(void){   // Testmain3
 //*******************Trampo_line for selecting main to execute**********
 int main(void) { 			// main
 	// Testmain1(); // Passed
-	Testmain3(); // Passed
+	Testmain2(); // Passed
   // Testmain3(); // Passed
 	//basicmain();
 	

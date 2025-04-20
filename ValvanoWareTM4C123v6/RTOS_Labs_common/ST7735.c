@@ -112,7 +112,6 @@
 // GND    (pin 1)  connected to ground
 
 #include <stdio.h>
-#include <string.h>
 #include <math.h>
 #include "ST7735.h"
 #include "../inc/tm4c123gh6pm.h"
@@ -1431,6 +1430,14 @@ static const device devices[2] = {
 	{0,8, 8, 20}  // LCD 1
 };
 
+int string_length(const char *str) {
+    int length = 0;
+    while (str[length] != '\0') {
+        length++;
+    }
+    return length;
+}
+
 //------------ST7735_Message------------
 // String draw and number output.  
 // Input: device  0 is on top, 1 is on bottom
@@ -1450,7 +1457,8 @@ void ST7735_Message(uint32_t  d, uint32_t  l, char *pt, int32_t value){
 	} while (value_copy != 0);
 	
 	char blank[dev.w];
-	int8_t w = dev.w - strlen(pt) - val_len ;	// Allow negative values so that the loop wont trigger if msg overflows
+	
+	int8_t w = dev.w - string_length(pt) - val_len ;	// Allow negative values so that the loop wont trigger if msg overflows
 	if(w > 0) {
 		
 		for(int i = 0; i < w; i++) {
