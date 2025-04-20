@@ -75,14 +75,14 @@ void PortD_Init(void){
 void ButtonWork(void){  heap_stats_t heap;
   uint32_t myId = OS_Id(); 
   PD1 ^= 0x02;
-  if(Heap_Stats(&heap)) OS_Kill();
+  if(Heap_Stats(&heap)) SVC_OS_Kill();
   PD1 ^= 0x02;
   ST7735_Message(1,0,"Heap size  =",heap.size); 
   ST7735_Message(1,1,"Heap used  =",heap.used);  
   ST7735_Message(1,2,"Heap free  =",heap.free);
   ST7735_Message(1,3,"Heap waste =",heap.size - heap.used - heap.free);
   PD1 ^= 0x02;
-  OS_Kill();  // done, OS does not return from a Kill
+  SVC_OS_Kill();  // done, OS does not return from a Kill
 } 
 
 //************SW1Push*************
@@ -90,11 +90,11 @@ void ButtonWork(void){  heap_stats_t heap;
 // Adds another foreground task
 // background threads execute once and return
 void SW1Push(void){
-  if(OS_MsTime() > 20){ // debounce
-    if(OS_AddThread(&ButtonWork,512,2)){
+  if(SVC_MsTime() > 20){ // debounce
+    if(SVC_OS_AddThread(&ButtonWork,512,2)){
       NumCreated++; 
     }
-    OS_ClearMsTime();  // at least 20ms between touches
+    SVC_ClearMsTime();  // at least 20ms between touches
   }
 }
 
@@ -103,11 +103,11 @@ void SW1Push(void){
 // Adds another foreground task
 // background threads execute once and return
 void SW2Push(void){
-  if(OS_MsTime() > 20){ // debounce
-    if(OS_AddThread(&ButtonWork,512,2)){
+  if(SVC_MsTime() > 20){ // debounce
+    if(SVC_OS_AddThread(&ButtonWork,512,2)){
       NumCreated++; 
     }
-    OS_ClearMsTime();  // at least 20ms between touches
+    SVC_ClearMsTime();  // at least 20ms between touches
   }
 }
 
@@ -164,7 +164,7 @@ int realmain(void){ // realmain
 void diskError(const char* errtype, uint32_t n){
   printf("%s",errtype);
   printf(" disk error %u",n);
-  OS_Kill();
+  SVC_OS_Kill();
 }
 char const string1[]="Filename = %s";
 char const string2[]="File size = %lu bytes";
@@ -222,7 +222,7 @@ void TestFile(void){   int i; char data;
   printf("Successful test\n\r");
   ST7735_DrawString(0, 1, "eFile successful", ST7735_YELLOW);
   FileTestRunning=0; // launch again
-  OS_Kill();
+  SVC_OS_Kill();
 }
 
 void SWPushFile(void){
@@ -238,14 +238,15 @@ int TestmainFile(void){   // TestmainFile
   FileTestRunning = 1; 
 
   // attach background tasks
-  OS_AddPeriodicThread(&disk_timerproc,TIME_1MS,0);   // time out routines for disk
+  //OS_AddPeriodicThread(&disk_timerproc,TIME_1MS,0);   // time out routines for disk
   OS_AddSW1Task(&SWPushFile,2);    // PF4, SW1
   OS_AddSW2Task(&SWPushFile,2);    // PF0, SW2
   
   // create initial foreground threads
   NumCreated = 0;
   NumCreated += OS_AddThread(&TestFile,128,1);  
-  NumCreated += OS_AddThread(&Idle,128,3); 
+	NumCreated += OS_AddThread(&Idle,128,3); 
+  NumCreated += OS_AddThread(&Idle,128,2); 
  
   OS_Launch(10*TIME_1MS); // doesn't return, interrupts enabled in here
   return 0;               // this never executes
@@ -299,7 +300,7 @@ int Testmain0(void){  // Testmain0
 
 //*****************Test project 1*************************
 // Heap test, allocate and deallocate memory
-#define TEST_MALLOC 3
+#define TEST_MALLOC 1
 
 void heapError(const char* errtype,const char* v,uint32_t n){
   printf("%s",errtype);
@@ -406,7 +407,8 @@ void TestHeap(void){  int16_t i;
   heapStats();
   if(Heap_Free(bigBlock)) heapError("Heap_Free","bigBlock",0);
 
-  bigBlock = Heap_Calloc(maxBlockSize);
+	maxBlockSize = 50;
+  bigBlock = Heap_Calloc(512);
   if(!bigBlock)           heapError("Heap_Calloc","bigBlock",0);
   if(*bigBlock)           heapError("Zero initialization","bigBlock",0);
   heapStats();
@@ -415,7 +417,7 @@ void TestHeap(void){  int16_t i;
   heapStats();
   #endif
 	
-  //printf("Successful heap test\n\r");
+  printf("Successful heap test\n\r");
   ST7735_DrawString(0, 0, "Heap test successful", ST7735_YELLOW);
   SVC_OS_Kill();
 }
@@ -602,9 +604,8 @@ int Testmain3(void){   // Testmain3
 //*******************Trampo_line for selecting main to execute**********
 int main(void) { 			// main
 	// Testmain1(); // Passed
-	Testmain2(); // Passed
+	TestmainFile(); // Passed
   // Testmain3(); // Passed
-	//basicmain();
 	
-	// realmain();
+	//realmain();
 }

@@ -15,32 +15,32 @@
 
 unsigned int line = 0;
 
-void thread(void)
-{
-  unsigned int id;
-	
-  id = OS_Id();
-  PF3 ^= 0x08;
-  Display_Message(0,line++, "Thread: ", id);
-  OS_Sleep(2000);
-  Display_Message(0,line++, "Thread dying: ", id);
-  PF3 ^= 0x08;
-  OS_Kill();
-}
+//void thread(void)
+//{
+//  unsigned int id;
+//	
+//  id = SVC_OS_Id();
+//  PF3 ^= 0x08;
+//  Display_Message(0,line++, "Thread: ", id);
+//  SVC_OS_Sleep(2000);
+//  Display_Message(0,line++, "Thread dying: ", id);
+//  PF3 ^= 0x08;
+//  SVC_OS_Kill();
+//}
 
 int main(void)
 {
   unsigned int id;
   unsigned long time;
 	
-  id = OS_Id();
+//  id = SVC_OS_Id();
+//  PF2 ^= 0x04;
+//  Display_Message(0,line++, "Hello world: ", id);
+//  SVC_OS_AddThread(thread, 128, 1);
+//  time = SVC_OS_Time();
+//  SVC_OS_Sleep(1000);
+//  time = (((SVC_TimeDifference(time, SVC_OS_Time()))/1000ul)*125ul)/10000ul;
+//  Display_Message(0,line++, "Sleep time: ", time);
   PF2 ^= 0x04;
-  Display_Message(0,line++, "Hello world: ", id);
-  OS_AddThread(thread, 128, 1);
-  time = OS_Time();
-  OS_Sleep(1000);
-  time = (((OS_TimeDifference(time, OS_Time()))/1000ul)*125ul)/10000ul;
-  Display_Message(0,line++, "Sleep time: ", time);
-  PF2 ^= 0x04;
-  OS_Kill();
+//  SVC_OS_Kill();
 }

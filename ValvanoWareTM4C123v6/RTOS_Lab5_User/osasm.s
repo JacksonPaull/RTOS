@@ -9,32 +9,37 @@
         REQUIRE8
         PRESERVE8
 
-		EXPORT	OS_Id
-        EXPORT  OS_Sleep
-		EXPORT	OS_Kill
-		EXPORT	OS_Time
-		EXPORT	OS_AddThread
+		EXPORT	SVC_OS_Id
+        EXPORT  SVC_OS_Sleep
+		EXPORT	SVC_OS_Kill
+		EXPORT	SVC_OS_Time
+		EXPORT	SVC_OS_AddThread
+		EXPORT SVC_TimeDifference
 			
-OS_Id
+			
+SVC_OS_Id
 	SVC		#0
 	BX		LR
 
-OS_Kill
+SVC_OS_Kill
 	SVC		#1
 	BX		LR
 
-OS_Sleep
+SVC_OS_Sleep
 	SVC		#2
 	BX		LR
 
-OS_Time
+SVC_OS_Time
 	SVC		#3
 	BX		LR
 
-OS_AddThread
+SVC_OS_AddThread
 	SVC		#4
 	BX		LR
-
+	
+SVC_TimeDifference
+	SVC #24
+	BX  LR
 
     ALIGN
     END

@@ -233,6 +233,7 @@ void SysTick_Handler(void) {
 }
 
 void BackgroundThreadExit(void) {
+	DisableInterrupts();
 	scheduler_unlock(); // Force unlock
 	thread_cnt_alive--;
 	#if EFILE_H
@@ -378,7 +379,7 @@ void OS_Init(void){
 		 In practice this means that threads will be non-preemtive while executing OS routines */
 	
 	#if USEFILESYS
-	OS_AddPeriodicThread(&disk_timerproc, TIME_1MS, 0);
+	OS_AddPeriodicThread(&disk_timerproc, TIME_1MS*2, 0);
 	OS_AddThread(&fs_init_task, 512, 0);	// Note: OS_Init should always be called before adding any threads so this should always execute first. Adding threads to a non-initialized OS is undefined behavior
 	#endif
 	
@@ -546,7 +547,7 @@ int OS_AddThread(void(*task)(void),
 	}
 	
 	int I = StartCritical();
-	thread_init_stack(thread, task, &OS_Kill, stackSize);
+	thread_init_stack(thread, task, &SVC_OS_Kill, stackSize);
 	scheduler_schedule(thread);
   EndCritical(I);
   return 1; 

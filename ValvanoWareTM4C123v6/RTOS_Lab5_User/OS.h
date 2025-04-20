@@ -10,12 +10,21 @@
 #ifndef __OS_H
 #define __OS_H  1
 
+#include <stdint.h>
+
 // feel free to change the type of semaphore, there are lots of good solutions
 struct  Sema4{
   long Value;   // >0 means free, otherwise means busy        
 // add other components here, if necessary to implement blocking
 };
 typedef struct Sema4 Sema4Type;
+
+uint32_t SVC_OS_Id(void);
+void SVC_OS_Sleep(uint32_t t);
+int SVC_OS_AddThread(void(*t)(void), uint32_t s, uint32_t p);
+uint32_t SVC_TimeDifference(uint32_t start, uint32_t stop);
+void SVC_OS_Kill(void);
+uint32_t SVC_OS_Time(void);
 
 // ******** OS_InitSemaphore ************
 // initialize semaphore 
