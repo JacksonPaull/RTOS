@@ -228,7 +228,7 @@ void TestFile(void){   int i; char data;
 void SWPushFile(void){
   if(FileTestRunning==0){
     FileTestRunning = 1;  // prevents you from starting two test threads
-    NumCreated += OS_AddThread(&TestFile,128,1);  // test eFile
+    NumCreated += SVC_OS_AddThread(&TestFile,128,1);  // test eFile
   }
 }
 
@@ -424,7 +424,7 @@ void TestHeap(void){  int16_t i;
 
 void SW1Push1(void){
   if(SVC_MsTime() > 20){ // debounce
-    if(SVC_OS_AddThread(&TestHeap,512,1)){
+    if(SVC_OS_AddThread(&TestFile,512,1)){
       NumCreated++;
     }
     SVC_ClearMsTime();  // at least 20ms between touches
@@ -504,11 +504,11 @@ void TestProcess(void){ heap_stats_t heap1, heap2;
 }
 
 void SW2Push2(void){
-  if(OS_MsTime() > 20){ // debounce
-    if(OS_AddThread(&TestProcess,128,1)){
+  if(SVC_MsTime() > 20){ // debounce
+    if(SVC_OS_AddThread(&TestProcess,128,1)){
       NumCreated++;
     }
-    OS_ClearMsTime();  // at least 20ms between touches
+    SVC_ClearMsTime();  // at least 20ms between touches
   }
 }
 
@@ -574,7 +574,7 @@ void TestSVC(void){ uint32_t id; uint32_t time;
 void SWPush3(void){
   if(_line>=4){
     _line = 0;
-    if(OS_AddThread(&TestSVC,512,1)){
+    if(SVC_OS_AddThread(&TestSVC,512,1)){
       NumCreated++;
     }
   }
@@ -604,8 +604,8 @@ int Testmain3(void){   // Testmain3
 //*******************Trampo_line for selecting main to execute**********
 int main(void) { 			// main
 	// Testmain1(); // Passed
-	TestmainFile(); // Passed
+	// Testmain2(); // Passed
   // Testmain3(); // Passed
 	
-	//realmain();
+	Testmain3();
 }

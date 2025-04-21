@@ -10,7 +10,7 @@ F (..\inc\PLL.c)(0x6801565C)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=corte
 I (C:\Keil_v5\ARM\ARMCLANG\include\stdint.h)(0x6388FFD8)
 I (..\inc\..\inc\PLL.h)(0x6801565C)
 I (..\inc\..\inc\tm4c123gh6pm.h)(0x6801565C)
-F (.\Lab5.c)(0x680523F8)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-IC:/Users/jenna/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123-D__UVISION_VERSION="538" -DTM4C123GH6PM -Drvmdk -DPART_LM4F120H5QR -DLAB5-o ./lab5.o -MD)
+F (.\Lab5.c)(0x6805C98C)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-IC:/Users/jenna/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123-D__UVISION_VERSION="538" -DTM4C123GH6PM -Drvmdk -DPART_LM4F120H5QR -DLAB5-o ./lab5.o -MD)
 I (C:\Keil_v5\ARM\ARMCLANG\include\stdint.h)(0x6388FFD8)
 I (C:\Keil_v5\ARM\ARMCLANG\include\stdio.h)(0x6388FFD8)
 I (..\inc\tm4c123gh6pm.h)(0x6801565C)
@@ -34,7 +34,7 @@ I (..\RTOS_Labs_common\eFile.h)(0x68015659)
 I (..\RTOS_Lab5_ProcessLoader\svc.h)(0x6801E077)
 I (..\RTOS_Labs_common\FIFOsimple.h)(0x680448D7)
 I (..\driverlib\mpu.h)(0x6801565C)
-F (..\RTOS_Labs_common\OS.c)(0x6805234B)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-IC:/Users/jenna/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123-D__UVISION_VERSION="538" -DTM4C123GH6PM -Drvmdk -DPART_LM4F120H5QR -DLAB5-o ./os.o -MD)
+F (..\RTOS_Labs_common\OS.c)(0x6805C9F1)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-IC:/Users/jenna/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123-D__UVISION_VERSION="538" -DTM4C123GH6PM -Drvmdk -DPART_LM4F120H5QR -DLAB5-o ./os.o -MD)
 I (C:\Keil_v5\ARM\ARMCLANG\include\stdio.h)(0x6388FFD8)
 I (C:\Keil_v5\ARM\ARMCLANG\include\stdlib.h)(0x6388FFD8)
 I (..\RTOS_Labs_common\..\inc\PLL.h)(0x6801565C)
@@ -163,11 +163,11 @@ I (..\RTOS_Labs_common\..\RTOS_Lab5_ProcessLoader\..\RTOS_Labs_common\os.h)(0x68
 I (..\RTOS_Labs_common\..\inc\tm4c123gh6pm.h)(0x6801565C)
 I (..\RTOS_Labs_common\..\inc\CortexM.h)(0x6801565C)
 I (..\RTOS_Labs_common\..\RTOS_Lab5_ProcessLoader\..\RTOS_Labs_common\FIFOsimple.h)(0x680448D7)
-F (.\loader.c)(0x68015659)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-IC:/Users/jenna/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123-D__UVISION_VERSION="538" -DTM4C123GH6PM -Drvmdk -DPART_LM4F120H5QR -DLAB5-o ./loader.o -MD)
+F (.\loader.c)(0x6805C2E4)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-IC:/Users/jenna/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123-D__UVISION_VERSION="538" -DTM4C123GH6PM -Drvmdk -DPART_LM4F120H5QR -DLAB5-o ./loader.o -MD)
 I (loader.h)(0x68015659)
 I (elf.h)(0x68015659)
 I (C:\Keil_v5\ARM\ARMCLANG\include\stdint.h)(0x6388FFD8)
-I (loader_config.h)(0x68015659)
+I (loader_config.h)(0x6805C382)
 I (C:\Keil_v5\ARM\ARMCLANG\include\stdio.h)(0x6388FFD8)
 I (C:\Keil_v5\ARM\ARMCLANG\include\stdlib.h)(0x6388FFD8)
 I (C:\Keil_v5\ARM\ARMCLANG\include\string.h)(0x6388FFD8)
@@ -179,7 +179,7 @@ I (..\RTOS_Labs_common\UART0int.h)(0x68015659)
 I (..\RTOS_Labs_common\OS.h)(0x680474A6)
 I (..\RTOS_Labs_common\..\inc\tm4c123gh6pm.h)(0x6801565C)
 I (..\RTOS_Labs_common\..\inc\CortexM.h)(0x6801565C)
-F (..\RTOS_Labs_common\FIFOsimple.c)(0x68052201)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-IC:/Users/jenna/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123-D__UVISION_VERSION="538" -DTM4C123GH6PM -Drvmdk -DPART_LM4F120H5QR -DLAB5-o ./fifosimple.o -MD)
+F (..\RTOS_Labs_common\FIFOsimple.c)(0x68052AC5)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=none -mfloat-abi=soft -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I .. -I ../../..-IC:/Users/jenna/AppData/Local/Arm/Packs/Keil/TM4C_DFP/1.1.0/Device/Include/TM4C123-D__UVISION_VERSION="538" -DTM4C123GH6PM -Drvmdk -DPART_LM4F120H5QR -DLAB5-o ./fifosimple.o -MD)
 I (C:\Keil_v5\ARM\ARMCLANG\include\stdint.h)(0x6388FFD8)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\FIFOsimple.h)(0x680448D7)
 I (..\RTOS_Labs_common\..\RTOS_Labs_common\os.h)(0x680474A6)

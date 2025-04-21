@@ -40,7 +40,7 @@ int main(void)
 //  time = SVC_OS_Time();
 //  SVC_OS_Sleep(1000);
 //  time = (((SVC_TimeDifference(time, SVC_OS_Time()))/1000ul)*125ul)/10000ul;
-//  Display_Message(0,line++, "Sleep time: ", time);
-  PF2 ^= 0x04;
+  Display_Message(0,line++, "Sleep time: ", time);
+//  PF2 ^= 0x04;
 //  SVC_OS_Kill();
 }

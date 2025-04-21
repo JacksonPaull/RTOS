@@ -1122,55 +1122,70 @@ void memoryFault(){
 	for(;;){};
 }
 
+int round_to_nearest_256(int x) {
+    int remainder = x % 256;
+//    if (remainder >= 128) {
+        return x + (256 - remainder);  // Round up
+//    } else if (remainder <= -128) {
+//        return x - (128 + remainder);  // Round down for negatives
+//    } else {
+//        return x - remainder;          // Round down
+//    }
+}
+
+int largest_power_of_two_divisor(int x) {
+	if (x == 0) return -1; // undefined for 0
+	int exponent = 0;
+	while ((x & 1) == 0) {
+		x >>= 1;
+		exponent++;
+	}
+	return exponent;
+}
+
+void setMPURegion(int j, uint32_t base, uint32_t size){
+	uint32_t AP = 0b001;
+	uint32_t TEX = 0;
+	uint32_t S = 1;
+	uint32_t C = 1;
+	uint32_t B = 1;
+	uint32_t ui32Flags = (AP <<24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
+	
+	MPURegionSet(j, base, ui32Flags);
+	MPURegionEnable(j);
+}
+
 void enableMPU(){
-//	uint32_t size = 0b11111;
-//	uint32_t AP = 0b011;
-//	uint32_t TEX = 0;
-//	uint32_t S = 1;
-//	uint32_t C = 1;
-//	uint32_t B = 1;
-//	uint32_t ui32Flags = (AP << 24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
-//	MPURegionSet(0, 0, ui32Flags);
-//	MPURegionEnable(0);
-//	
-//	uint32_t base = 0x1600;
-//	 size = 8;
-//	 AP = 0b001;
-//	 TEX = 0;
-//	 S = 1;
-//	 C = 1;
-//	 B = 1;
-//	ui32Flags = (AP <<24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
-//	
-//	MPURegionSet(7, base, ui32Flags);
-//	MPURegionEnable(7);
-//	
-//	 base = 0x1800;
-//	 size = 9;
-//	 AP = 0b001;
-//	 TEX = 0;
-//	 S = 1;
-//	 C = 1;
-//	 B = 1;
-//	ui32Flags = (AP <<24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
-////	
-//	MPURegionSet(6, base, ui32Flags);
-//	MPURegionEnable(6);
-//	
-////	base = 0x1C00;
-////	 size = 8;
-////	 AP = 0b001;
-////	 TEX = 0;
-////	 S = 1;
-////	 C = 1;
-////	 B = 1;
-////	ui32Flags = (AP <<24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
-////	
-////	MPURegionSet(5, base, ui32Flags);
-////	MPURegionEnable(5);
-//	
-//	MPUIntRegister(&memoryFault);
-//	MPUEnable(MPU_CONFIG_NONE);
+	uint32_t size = 0b11111;
+	uint32_t AP = 0b011;
+	uint32_t TEX = 0;
+	uint32_t S = 1;
+	uint32_t C = 1;
+	uint32_t B = 1;
+	uint32_t ui32Flags = (AP << 24) | (TEX<<19) | (S<<18) | (C<<17) | (B<<16) | (size<<1) | 1;
+	MPURegionSet(0, 0, ui32Flags);
+	MPURegionEnable(0);
+	
+	uint32_t current_os_base = round_to_nearest_256((uint32_t)&OS_AddPeriodicThread);
+	int32_t B_left_to_cover = 0xA00;
+	
+	for(int j = 7; j>=1;j--){
+		if(B_left_to_cover < 256) break;
+		uint32_t largest_region_size = largest_power_of_two_divisor(B_left_to_cover);
+		uint32_t largest_remaining_size = largest_power_of_two_divisor(current_os_base);
+		
+		uint32_t next_region_size;
+		if(largest_region_size>largest_remaining_size){ next_region_size = largest_remaining_size;}
+		else{ next_region_size = largest_region_size;}
+		
+		setMPURegion(j,current_os_base, next_region_size-1);
+		current_os_base += 1 << (next_region_size);
+		B_left_to_cover -= 1 << (next_region_size);
+	
+	}
+	
+	MPUIntRegister(&memoryFault);
+	MPUEnable(MPU_CONFIG_NONE);
 }
 
 

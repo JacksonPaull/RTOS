@@ -48,7 +48,7 @@
 #include "../RTOS_Labs_common/OS.h"
 
 // Declare extern OS_AddProcess function (implemented in OS.c)
-int OS_AddProcess(void(*entry)(void), void *text, void *data, 
+int SVC_AddProcess(void(*entry)(void), void *text, void *data, 
   unsigned long stackSize, unsigned long priority);
 
 typedef unsigned long int off_t;
@@ -80,7 +80,7 @@ void LOADER_CLEAR(void* ptr, size_t size) { int i; int32_t *p;
 }
 #define LOADER_STREQ(s1, s2) (strcmp(s1, s2) == 0)
 
-#define LOADER_JUMP_TO(entry, text, data) OS_AddProcess(entry, text, data, 128, 1)
+#define LOADER_JUMP_TO(entry, text, data) SVC_AddProcess(entry, text, data, 128, 1)
 
 #define DBG(msg, par)
 #define ERR(msg) UART_OutString("ELF: " msg "\n\r")
