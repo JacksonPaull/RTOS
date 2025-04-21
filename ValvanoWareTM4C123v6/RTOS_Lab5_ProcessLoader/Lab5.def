@@ -1,4 +1,4 @@
-#<SYMDEFS># ARM Linker, 6190004: Last Updated: Sun Apr 20 23:30:45 2025
+#<SYMDEFS># ARM Linker, 6190004: Last Updated: Mon Apr 21 09:58:26 2025
 0x00000000 D __Vectors
 0x0000026d T Reset_Handler
 0x00000271 T NMI_Handler
@@ -88,11 +88,11 @@
 0x00000283 T Timer1B_Handler
 0x00000283 T Timer2A_Handler
 0x00000283 T Timer2B_Handler
-0x00003a81 T Timer3A_Handler
+0x00003acd T Timer3A_Handler
 0x00000283 T Timer3B_Handler
-0x00003b3d T Timer4A_Handler
+0x00003b89 T Timer4A_Handler
 0x00000283 T Timer4B_Handler
-0x00003c25 T Timer5A_Handler
+0x00003c71 T Timer5A_Handler
 0x00000283 T Timer5B_Handler
 0x00000283 T UART1_Handler
 0x00000283 T UART2_Handler
@@ -139,18 +139,18 @@
 0x00000e99 T ADC0Seq0_Handler
 0x00000ecd T ADC0Seq3_Handler
 0x000010d9 T GPIOPortF_Handler
-0x00001409 T Heap_Init
-0x00002165 T OS_AddThread
-0x000022ed T OS_Id
-0x000023a1 T OS_Kill
-0x000037e5 T SysTick_Handler
-0x00003e09 T TxFifo_Size
-0x00003e21 T UART0_Handler
-0x0000408d T WideTimer0A_Handler
-0x00009975 T __scatterload_copy
-0x00009983 T __scatterload_null
-0x00009985 T __scatterload_zeroinit
-0x00008079 T main
+0x00001439 T Heap_Init
+0x000021ad T OS_AddThread
+0x00002335 T OS_Id
+0x000023e9 T OS_Kill
+0x0000382d T SysTick_Handler
+0x00003e55 T TxFifo_Size
+0x00003e6d T UART0_Handler
+0x000040d9 T WideTimer0A_Handler
+0x000099c5 T __scatterload_copy
+0x000099d3 T __scatterload_null
+0x000099d5 T __scatterload_zeroinit
+0x000080c5 T main
 0x20000670 D ADCTask
 0x20000b54 D PD3data
 0x2000140c D WidePeriodicTask0

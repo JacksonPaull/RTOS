@@ -568,6 +568,7 @@ void TestSVC(void){ uint32_t id; uint32_t time;
   }
 	printf("Successful SVC test\n\r");
   ST7735_Message(0,0, "SVC test done ", id);
+	
   SVC_OS_Kill();
 }
 
@@ -580,6 +581,17 @@ void SWPush3(void){
   }
 }
 
+void GenerateMemoryFault(void){
+	printf("generating memory fault\n\r");
+	OS_AddThread(TestSVC, 512,3);
+	printf("memory fault not produced");
+}
+
+
+void MemFaultSWPush(void){
+  SVC_OS_AddThread(&GenerateMemoryFault,512,1);
+}
+
 
 int Testmain3(void){   // Testmain3 
   OS_Init();           // initialize, disable interrupts
@@ -587,7 +599,7 @@ int Testmain3(void){   // Testmain3
 
   // attach background tasks
   OS_AddSW1Task(&SWPush3,2);  // PF4, SW1
-  OS_AddSW2Task(&SWPush3,2);  // PF0, SW2
+  OS_AddSW2Task(&MemFaultSWPush,2);  // PF0, SW2
   		
   // create initial foreground threads
   NumCreated = 0;

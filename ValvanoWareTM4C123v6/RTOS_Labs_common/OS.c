@@ -1119,7 +1119,7 @@ uint32_t OS_MsTime(void){
 };
 
 void memoryFault(){
-	for(;;){};
+	OS_Kill();
 }
 
 int round_to_nearest_256(int x) {
