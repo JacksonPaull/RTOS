@@ -44,6 +44,7 @@ typedef struct heap {
  */
 int32_t Heap_Init(void);
 
+int32_t Heap_Init_Priv(void);
 
 /**
  * @details Allocate memory, data not initialized

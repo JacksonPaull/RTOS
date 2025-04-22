@@ -227,10 +227,10 @@ PendSV_exit
 		IMPORT OS_TimeDifference
 		IMPORT OS_ClearMsTime
 		IMPORT OS_MsTime
-		IMPORT OS_RedirectToFile
-		IMPORT OS_EndRedirectToFile
-		IMPORT OS_RedirectToUART
-		IMPORT OS_RedirectToST7735
+;		IMPORT OS_RedirectToFile
+;		IMPORT OS_EndRedirectToFile
+;		IMPORT OS_RedirectToUART
+;		IMPORT OS_RedirectToST7735
 		IMPORT OS_AddProcess
 ;		IMPORT TxFifo_PutSVC
 ;		IMPORT TxFifo_GetSVC
@@ -336,17 +336,17 @@ SVC_Handler
 	CMP R12, #26
 	BEQ OS_MsTime
 	
-	CMP R12, #27
-	BEQ OS_RedirectToFile
-	
-	CMP R12, #28
-	BEQ OS_EndRedirectToFile
-	
-	CMP R12, #29
-	BEQ OS_RedirectToUART
-	
-	CMP R12, #30
-	BEQ OS_RedirectToST7735
+;	CMP R12, #27
+;	BEQ OS_RedirectToFile
+;	
+;	CMP R12, #28
+;	BEQ OS_EndRedirectToFile
+;	
+;	CMP R12, #29
+;	BEQ OS_RedirectToUART
+;	
+;	CMP R12, #30
+;	BEQ OS_RedirectToST7735
 	
 	CMP R12, #31
 	BEQ OS_AddProcess

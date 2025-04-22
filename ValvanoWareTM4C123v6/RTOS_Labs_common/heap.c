@@ -149,6 +149,17 @@ void free(void* ptr) {
 // notes: Initializes/resets the heap to a clean state where no memory
 //  is allocated.
 int32_t Heap_Init(void){
+	uint32_t hs = getHeapSize();
+	int32_t* heap = (int32_t*) getHeapBase();
+	
+	// set header and footer
+	heap[0] = 8-hs;
+	heap[hs/4-1] = 8-hs;
+	
+  return 0; 
+}
+
+int32_t Heap_Init_Priv(void){
 	uint32_t hs = getHeapSize_Priv();
 	int32_t* heap = (int32_t*) getHeapBase_Priv();
 	

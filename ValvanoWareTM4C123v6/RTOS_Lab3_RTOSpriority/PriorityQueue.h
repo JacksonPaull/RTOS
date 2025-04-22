@@ -3,7 +3,7 @@
 #ifndef PRIO_Q_H
 #define PRIO_Q_H
 
-#include "../RTOS_Labs_common/os.h"
+#include "../RTOS_Labs_common/OS.h"
 #include "../RTOS_Lab2_RTOSkernel/LinkedList.h"
 
 typedef struct PrioQ_Node {

@@ -35,9 +35,8 @@
 #include "../inc/CortexM.h"
 #include "../RTOS_Labs_common/FIFOsimple.h"
 #include "../RTOS_Labs_common/UART0int.h"
-#include "../RTOS_Labs_common/os.h"
 #include "../RTOS_Lab5_ProcessLoader/svc.h"
-
+#include "../RTOS_Labs_common/OS.h"
 
 #define NVIC_EN0_INT5           0x00000020  // Interrupt 5 enable
 

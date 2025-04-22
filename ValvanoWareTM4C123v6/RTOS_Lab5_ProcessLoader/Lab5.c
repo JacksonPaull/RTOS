@@ -141,13 +141,12 @@ int realmain(void){ // realmain
   
   // attach background tasks
 	PD0^=1;
-  OS_AddSW1Task(&SW1Push,2);
-  OS_AddSW2Task(&SW2Push,2);  
+  // OS_AddSWTask(&SW1Push, 2, SWITCH_MASK_BOTH);
 
   // create initial foreground threads
   NumCreated = 0;
   NumCreated += OS_AddThread(&Interpreter,1024,2); 
-  NumCreated += OS_AddThread(&Idle,256,5);  // at lowest priority 
+  NumCreated += OS_AddThread(&Idle,512,5);  // at lowest priority 
 	PD0^=1;
 	
   OS_Launch(TIME_2MS); // doesn't return, interrupts enabled in here
@@ -167,18 +166,19 @@ void diskError(const char* errtype, uint32_t n){
   SVC_OS_Kill();
 }
 char const string1[]="Filename = %s";
-char const string2[]="File size = %lu bytes";
+char const string2[]="File size = %d bytes";
 char const string3[]="Number of Files = %u";
 char const string4[]="Number of Bytes = %lu";
 uint32_t FileTestRunning = 0; 
-void TestDirectory(void){ char *name; unsigned long size; 
+void TestDirectory(void){ char name[32]; uint32_t size; 
   unsigned int num;
   unsigned long total;
   num = 0;
   total = 0;
   printf("\n\r");
-  if(eFile_DOpen(""))           diskError("eFile_DOpen",0);
-  while(!eFile_DirNext(&name, &size)){
+	File_t dir;
+  if(eFile_Open(".", &dir))           diskError("eFile_DOpen",0);
+  while(!eFile_D_read_next(&dir, name, &size)){
     printf(string1, name);
     printf("  ");
     printf(string2, size);
@@ -190,33 +190,38 @@ void TestDirectory(void){ char *name; unsigned long size;
   printf("\n\r");
   printf(string4, total);
   printf("\n\r");
-  if(eFile_DClose())            diskError("eFile_DClose",0);
+  if(eFile_D_close(&dir))            diskError("eFile_DClose",0);
 }
 void TestFile(void){   int i; char data; 
   printf("\n\rEE445M/EE380L, Lab 5 eFile test\n\r");
   ST7735_DrawString(0, 1, "eFile test      ", ST7735_WHITE);
+	
+	File_t f;
   // simple test of eFile
   if(eFile_Init())              diskError("eFile_Init",0); 
   if(eFile_Mount())             diskError("eFile_Mount",0);
   if(eFile_Format())            diskError("eFile_Format",0); 
   TestDirectory();
   if(eFile_Create("file1"))     diskError("eFile_Create",0);
-  if(eFile_WOpen("file1"))      diskError("eFile_WOpen",0);
+  if(eFile_Open("file1", &f))      diskError("eFile_WOpen",0);
   for(i=0;i<1000;i++){
-    if(eFile_Write('a'+i%26))   diskError("eFile_Write",i);
+		char c = 'a'+i%26;
+    if(eFile_F_write(&f, &c, 1))   diskError("eFile_Write",i);
     if(i%52==51){
-      if(eFile_Write('\n'))     diskError("eFile_Write",i);  
-      if(eFile_Write('\r'))     diskError("eFile_Write",i);
+			c = '\n';
+      if(eFile_F_write(&f, &c, 1))     diskError("eFile_Write",i);  
+			c = '\r';
+      if(eFile_F_write(&f, &c, 1))     diskError("eFile_Write",i);
     }
   }
-  if(eFile_WClose())            diskError("eFile_WClose",0);
+  if(eFile_F_close(&f))            diskError("eFile_WClose",0);
   TestDirectory();
-  if(eFile_ROpen("file1"))      diskError("eFile_ROpen",0);
+  if(eFile_Open("file1", &f))      diskError("eFile_ROpen",0);
   for(i=0;i<1000;i++){
-    if(eFile_ReadNext(&data))   diskError("eFile_ReadNext",i);
+    if(eFile_F_read(&f, &data, 1))   diskError("eFile_ReadNext",i);
     UART_OutChar(data);
   }
-  if(eFile_Delete("file1"))     diskError("eFile_Delete",0);
+  if(eFile_Remove("file1"))     diskError("eFile_Delete",0);
   TestDirectory();
   if(eFile_Unmount())           diskError("eFile_Unmount",0);
   printf("Successful test\n\r");
@@ -599,13 +604,13 @@ int Testmain3(void){   // Testmain3
 
   // attach background tasks
   OS_AddSW1Task(&SWPush3,2);  // PF4, SW1
-  OS_AddSW2Task(&MemFaultSWPush,2);  // PF0, SW2
+  //OS_AddSW2Task(&MemFaultSWPush,2);  // PF0, SW2
   		
   // create initial foreground threads
   NumCreated = 0;
   NumCreated += OS_AddThread(&TestSVC,512,1);  
   NumCreated += OS_AddThread(&Idle,128,3); 
-	NumCreated += OS_AddThread(&Interpreter,1024,2); 
+	//NumCreated += OS_AddThread(&Interpreter,1024,2); 
 
 	 
   OS_Launch(10*TIME_1MS); // doesn't return, interrupts enabled in here
@@ -619,5 +624,5 @@ int main(void) { 			// main
 	// Testmain2(); // Passed
   // Testmain3(); // Passed
 	
-	Testmain3();
+	realmain();
 }
