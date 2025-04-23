@@ -848,8 +848,8 @@ int OS_AddSWTask(void(*task)(void), uint32_t priority, uint8_t mask) {
 	if(RunPt->process) {
 		sw->TCB->process = RunPt->process;
 		sw->TCB->process->numThreadsAlive++; // Note: adding a background thread to a process means it will never die.
-		sw->mask = mask;
 	}
+	sw->mask = mask;
 
 	num_sw_tasks++;
   return 1;

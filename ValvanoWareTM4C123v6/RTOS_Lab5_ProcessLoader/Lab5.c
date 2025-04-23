@@ -73,7 +73,7 @@ void PortD_Init(void){
 
 // ***********ButtonWork*************
 void ButtonWork(void){  heap_stats_t heap;
-  uint32_t myId = OS_Id(); 
+  uint32_t myId = SVC_OS_Id(); 
   PD1 ^= 0x02;
   if(Heap_Stats(&heap)) SVC_OS_Kill();
   PD1 ^= 0x02;
@@ -141,7 +141,7 @@ int realmain(void){ // realmain
   
   // attach background tasks
 	PD0^=1;
-  // OS_AddSWTask(&SW1Push, 2, SWITCH_MASK_BOTH);
+  OS_AddSWTask(&SW1Push, 2, SWITCH_MASK_BOTH);
 
   // create initial foreground threads
   NumCreated = 0;
