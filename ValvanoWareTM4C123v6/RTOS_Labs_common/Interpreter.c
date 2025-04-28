@@ -37,7 +37,7 @@
 #define arg7 (args+ARG_LEN_MAX*7)
 
 
-#define EMERGENCY 1
+#define EMERGENCY 0
 
 int ADC(int num_args, ...);
 int lcd(int num_args, ...);
