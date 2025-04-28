@@ -948,7 +948,10 @@ int eFile_CreateDir(const char path[]) {
 
 int eFile_CD(const char path[]) {
 	Dir_t d;
-	eFile_D_dir_from_path(path, &d);
+	if(!eFile_D_dir_from_path(path, &d)) {
+		return 0;
+	}
+	
 	iNode_close(RunPt->currentDir);
 	RunPt->currentDir = eFile_D_get_iNode(&d); // Don't need to reopen because dir_from_path already does
 	return 1;

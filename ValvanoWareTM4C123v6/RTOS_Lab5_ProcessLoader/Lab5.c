@@ -622,7 +622,7 @@ int Testmain3(void){   // Testmain3
 int main(void) { 			// main
 	// Testmain1(); // Passed
 	// Testmain2(); // Passed
-  Testmain3(); // Passed
+  // Testmain3(); // Passed
 	
-	// realmain();
+	realmain();
 }
