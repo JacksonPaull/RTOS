@@ -130,6 +130,17 @@ void Idle(void){
 
 //--------------end of Idle Task-----------------------------
 
+void GenerateMemoryFault(void){
+	printf("generating memory fault\n\r");
+	OS_AddThread(ButtonWork, 512,3);
+	printf("memory fault not produced");
+}
+
+
+void MemFaultSWPush(void){
+  SVC_OS_AddThread(&GenerateMemoryFault,512,1);
+}
+
 //*******************final user main DEMONTRATE THIS TO TA**********
 int realmain(void){ // realmain
   OS_Init();        // initialize, disable interrupts
@@ -586,16 +597,7 @@ void SWPush3(void){
   }
 }
 
-void GenerateMemoryFault(void){
-	printf("generating memory fault\n\r");
-	OS_AddThread(TestSVC, 512,3);
-	printf("memory fault not produced");
-}
 
-
-void MemFaultSWPush(void){
-  SVC_OS_AddThread(&GenerateMemoryFault,512,1);
-}
 
 
 int Testmain3(void){   // Testmain3 
@@ -610,7 +612,6 @@ int Testmain3(void){   // Testmain3
   NumCreated = 0;
   NumCreated += OS_AddThread(&TestSVC,512,1);  
   NumCreated += OS_AddThread(&Idle,128,3); 
-	NumCreated += OS_AddThread(&Interpreter,1024,1); 
 
 	 
   OS_Launch(10*TIME_1MS); // doesn't return, interrupts enabled in here
